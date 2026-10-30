@@ -96,7 +96,7 @@ prepB.fix({
 });
 prepB.build({
   tiles: ["noon", "The", "is", "Friday", "meeting", "at", "on"],
-  answers: ["The meeting is on Friday at noon"],
+  answers: ["The meeting is on Friday at noon", "The meeting is at noon on Friday"],
   hints: ["Start with “The meeting”.", "Day first (on Friday), then time (at noon)."],
   why: "Use on with the day and at with the time: on Friday at noon.",
 });
@@ -195,9 +195,9 @@ quantB.mc({
 });
 quantB.fill({
   prompt: "There isn’t ___ milk in the fridge.",
-  answers: ["any", "There isn't any milk in the fridge"],
+  answers: ["any", "much", "There isn't any milk in the fridge", "There isn't much milk in the fridge"],
   hints: ["“Isn’t” makes it negative.", "Negative sentence → any."],
-  why: "Negative sentences take any: there isn’t any milk.",
+  why: "Negative sentences take any (or much, with an uncountable noun): there isn’t any milk.",
 });
 quantB.mcCtx({
   prompt: "How ___ students are in your class?",

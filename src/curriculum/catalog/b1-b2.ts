@@ -196,7 +196,7 @@ condB.mcCtx({
 });
 condB.fix({
   source: "“If I would know the answer, I would tell you.”",
-  answers: ["If I knew the answer I would tell you"],
+  answers: ["If I knew the answer I would tell you", "If I knew the answer I'd tell you"],
   hints: ["Look at the if-clause.", "Don’t use would after if: use the past simple."],
   why: "No would in the if-clause: If I knew the answer, I would tell you.",
 });
@@ -219,6 +219,7 @@ condB.rewrite({
     "If I had studied I would not have failed",
     "If I had studied I wouldn't have failed",
     "If I had studied I would have passed",
+    "If I had studied I'd have passed",
   ],
   hints: ["Start with “If I had studied”.", "Result: would not have failed, or would have passed."],
   why: "Imagine the opposite of the past: if + had + participle, would have + participle.",

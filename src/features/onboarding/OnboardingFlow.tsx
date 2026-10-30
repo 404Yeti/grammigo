@@ -36,6 +36,7 @@ import {
   startQuiz,
 } from "./actions";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { AiNotice } from "@/components/ui/AiNotice";
 
 const EXAMPLES = ["I mix up past tenses", "Articles confuse me", "I’m not sure about conditionals", "Prepositions like at, on, in"];
 
@@ -192,7 +193,10 @@ function Concerns({ state, aiAvailable }: { state: StoredState; aiAvailable: boo
         ))}
       </div>
       {aiAvailable ? (
-        <VoiceRecorder onAudio={onAudio} disabled={busy !== "idle"} />
+        <>
+          <VoiceRecorder onAudio={onAudio} disabled={busy !== "idle"} />
+          <AiNotice what="voice-and-text" />
+        </>
       ) : (
         <p className="text-xs font-medium leading-4 text-muted" data-testid="voice-unavailable">
           Voice isn’t available right now. Typing works great.

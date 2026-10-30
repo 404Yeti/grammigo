@@ -14,7 +14,7 @@ beB.mc({
 beB.fill({
   prompt: "I ___ from Spain.",
   answers: ["am", "I am"],
-  hints: ["Which form goes with “I”?", "The short form is I’m."],
+  hints: ["Which form goes with “I”?", "It is a very short word: a-m."],
   why: "With “I” we always use am.",
 });
 beB.mcCtx({

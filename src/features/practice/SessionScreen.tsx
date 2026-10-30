@@ -11,6 +11,7 @@ import { ExitDialog } from "@/components/lesson/ExitDialog";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
 import { MigoBubble } from "@/components/mascot/MigoBubble";
 import type { AnswerState } from "@/components/ui/AnswerOption";
+import { AiNotice } from "@/components/ui/AiNotice";
 import { Button } from "@/components/ui/Button";
 import { GrammarTag } from "@/components/ui/GrammarTag";
 import { fetchAiStatus, requestWritingFeedback } from "@/features/ai/client";
@@ -235,6 +236,8 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
             onChange={onChange}
             inputRef={inputRef}
           />
+
+          {!inFeedback && aiAvailable && question.type === "short-writing" && <AiNotice what="writing" />}
 
           {!inFeedback && nextHint && <HintCard index={record.hintsUsed} total={question.hints.length} text={nextHint} />}
         </div>
