@@ -83,7 +83,7 @@ test.describe("library and multiple lessons", () => {
   test("browse, filter, choose a lesson and finish it; progress shows in the library and Home", async ({ page }) => {
     await seedReturningLearner(page);
     await page.goto("/library");
-    await expect(page.getByTestId("lesson-card")).toHaveCount(12);
+    await expect(page.getByTestId("lesson-card")).toHaveCount(13);
 
     await page.getByRole("group", { name: "Level" }).getByRole("button", { name: "A1" }).click();
     await expect(page.getByTestId("lesson-card")).toHaveCount(3);

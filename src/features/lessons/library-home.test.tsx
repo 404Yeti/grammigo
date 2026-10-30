@@ -24,7 +24,7 @@ describe("Grammar library", () => {
     skipOnboarding();
     render(<LibraryScreen />);
     const cards = await screen.findAllByTestId("lesson-card");
-    expect(cards).toHaveLength(12);
+    expect(cards).toHaveLength(13);
     const first = cards[0];
     expect(first).toHaveAttribute("data-skill", "a1-be-present");
     expect(within(first).getByText("Not assessed")).toBeInTheDocument();

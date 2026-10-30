@@ -17,8 +17,8 @@ const issuesOf = (raw: unknown): string[] => {
 };
 
 describe("shipped catalog", () => {
-  it("validates and spans A1–B2 with roughly twelve lessons", () => {
-    expect(listSkills()).toHaveLength(12);
+  it("validates and spans A1–B2 with roughly a dozen lessons", () => {
+    expect(listSkills()).toHaveLength(13);
     expect(availableLevels()).toEqual(["A1", "A2", "B1", "B2"]);
   });
 

@@ -168,6 +168,84 @@ passB.write({
   why: "Passive = be + past participle.",
 });
 
+const ppB = lessonBuilder("b1-past-perfect", "Past perfect");
+ppB.mc({
+  prompt: "Which sentence uses the past perfect?",
+  options: [
+    "When I arrived, the film had started.",
+    "When I arrived, the film started.",
+    "When I arrive, the film has started.",
+    "When I arrived, the film was starting.",
+  ],
+  correct: 0,
+  hints: ["Look for “had” plus a past participle.", "Which film started before you arrived?"],
+  why: "The past perfect is had + past participle. It shows an action that happened before another past moment.",
+});
+ppB.fill({
+  prompt: "By the time we got to the station, the train had already ___ (leave).",
+  answers: [
+    "left",
+    "had already left",
+    "the train had already left",
+    "By the time we got to the station the train had already left",
+  ],
+  hints: ["“Had already” is there. You need the past participle.", "Leave is irregular: leave → left."],
+  why: "Past perfect = had + past participle: had already left. The train left first, then we arrived.",
+});
+ppB.mcCtx({
+  prompt: "When I called Anna, she ___ already left the office.",
+  options: ["has", "had", "was", "did"],
+  correct: 1,
+  hints: ["Anna left before the call, and both are in the past.", "Use had + left for the earlier past action."],
+  why: "Use had + past participle for the earlier of two past actions: she had already left.",
+});
+ppB.fix({
+  source: "“By the time I arrived, the meeting already started.”",
+  answers: [
+    "By the time I arrived the meeting had already started",
+    "By the time I arrived the meeting had started already",
+    "By the time I arrived the meeting had started",
+  ],
+  hints: ["The meeting started before you arrived.", "Use had + started for the earlier action."],
+  why: "After “by the time” in the past, the earlier action takes the past perfect: had already started.",
+});
+ppB.build({
+  tiles: ["had", "She", "already", "eaten", "when", "I", "arrived"],
+  answers: [
+    "She had already eaten when I arrived",
+    "She had eaten already when I arrived",
+    "When I arrived she had already eaten",
+    "When I arrived she had eaten already",
+  ],
+  hints: ["Start with who: She.", "Order: She, had, already, eaten, when, I, arrived."],
+  why: "Earlier action: had + participle (had already eaten). Later action: past simple (arrived).",
+});
+ppB.verb({
+  prompt: "A: “Did you see Jo at the party?” B: “No. By the time I got there, she ___ (leave).”",
+  answers: ["had left", "she had left", "had already left", "She had already left"],
+  hints: ["Jo left before you got there.", "had + the past participle of leave."],
+  why: "“By the time” + a past event: the earlier action is in the past perfect: had left.",
+});
+ppB.rewrite({
+  prompt: "Join the sentences. Begin with “After” and use the past perfect for the first action.",
+  source: "“I finished my homework. Then I watched TV.”",
+  answers: [
+    "After I had finished my homework I watched TV",
+    "After I had finished my homework I watched television",
+    "After I'd finished my homework I watched TV",
+    "After I'd finished my homework I watched television",
+  ],
+  hints: ["Start with “After I had…”.", "After I had finished my homework, I watched TV."],
+  why: "The earlier action takes had + participle: After I had finished my homework, I watched TV.",
+});
+ppB.write({
+  prompt: "Write two sentences about things that had already happened before something else yesterday. Use “had”.",
+  criteria:
+    "Two short sentences where the earlier past action uses the past perfect (had + past participle) and the later action uses the past simple, e.g. “When I got home, I had finished my work.”",
+  hints: ["For example: “When I got home, my sister had already cooked dinner.”", "Use “already” or “by the time” to show what came first."],
+  why: "Earlier past action: had + past participle. Later past action: past simple.",
+});
+
 const condB = lessonBuilder("b2-second-third-conditionals", "Second & third conditionals");
 condB.mc({
   prompt: "Which sentence is a second conditional?",
@@ -246,17 +324,17 @@ repB.mc({
   why: "In reported speech the tense usually moves back (am → was) and pronouns change (I → she).",
 });
 repB.fill({
-  prompt: "“I live in Rome,” he said. → He said he ___ in Rome.",
+  prompt: "In 2015 he said, “I live in Rome.” (He doesn’t live there now.) → He said he ___ in Rome.",
   answers: ["lived", "He said he lived in Rome"],
   hints: ["Move the tense one step back.", "live → lived."],
   why: "Present simple becomes past simple in reported speech: live → lived.",
 });
 repB.mcCtx({
-  prompt: "He said, “I will help you.” → He said he ___ help me.",
+  prompt: "Ten years ago my teacher said, “I will help you.” (She doesn’t teach me now.) → My teacher said she ___ help me.",
   options: ["would", "will", "is", "did"],
   correct: 0,
-  hints: ["Will moves back one tense.", "will → would."],
-  why: "In reported speech will becomes would.",
+  hints: ["That moment is finished, so the tense moves back.", "will → would."],
+  why: "When we report a finished moment, will becomes would. (If the plan is still in the future, people sometimes keep will; here it is over.)",
 });
 repB.fix({
   source: "“She said me that she was busy.”",
@@ -284,14 +362,19 @@ repB.verb({
 repB.rewrite({
   prompt: "Report what Tom said. Begin with “Tom said”.",
   source: "“I have finished my homework,” Tom said.",
-  answers: ["Tom said he had finished his homework", "Tom said that he had finished his homework"],
+  answers: [
+    "Tom said he had finished his homework",
+    "Tom said that he had finished his homework",
+    "Tom said he'd finished his homework",
+    "Tom said that he'd finished his homework",
+  ],
   hints: ["Present perfect moves back to past perfect.", "have finished → had finished; my → his."],
   why: "Present perfect becomes past perfect; pronouns change: had finished his homework.",
 });
 repB.write({
   prompt: "Write two sentences reporting something someone told you recently.",
   criteria:
-    "Two sentences in reported speech that use correct backshift and pronoun changes (e.g. “She said she was busy.”).",
+    "Two sentences in reported speech that report speech correctly: the tense moves back (She said she was busy) unless the statement is clearly still true now, in which case keeping the original tense is also acceptable; pronouns must change correctly.",
   hints: ["For example: “My friend said he was tired.”", "Remember: said / told me + that."],
   why: "Reported speech moves tenses back and changes pronouns.",
 });
@@ -358,6 +441,36 @@ export const B_SKILLS = [
   ),
   defineSkill(
     {
+      id: "b1-past-perfect",
+      title: "Past perfect: the earlier past",
+      cefr: "B1",
+      mappingRationale: `The past perfect for "the earlier past" is a standard intermediate target and a needed foundation for third conditionals. ${NOTE}`,
+      topic: "Verb tenses",
+      subtopic: "Past perfect",
+      objectives: ["Form had + past participle", "Show which past action came first", "Use it with already and by the time"],
+      prerequisites: ["a2-past-simple"],
+      difficulty: 3,
+      estimatedMinutes: 6,
+      explanation: {
+        summary: "Use the past perfect (had + past participle) for the earlier of two past actions. The later action stays in the past simple.",
+        examples: [
+          { text: "When I arrived, the film had started.", note: "The film started first." },
+          { text: "She had already left when I called." },
+          { text: "By the time we got there, they had eaten.", note: "“By the time” often signals the past perfect." },
+        ],
+      },
+      commonMistakes: [
+        { mistake: "By the time I arrived, the meeting already started.", correction: "…the meeting had already started.", why: "The earlier action needs had + participle." },
+        { mistake: "She had left yesterday.", correction: "She left yesterday.", why: "With a plain finished time and no second action, use the past simple." },
+      ],
+      intro: "Hey, amigo! Sometimes one past event happens before another. The past perfect helps you say which came first.",
+      homeReason: "Say which past event came first. It also prepares you for third conditionals. 8 questions · about 6 min.",
+      keywords: ["past perfect", "had done", "had been", "earlier past", "before", "by the time", "already", "tenses", "tense"],
+    },
+    ppB.finish(),
+  ),
+  defineSkill(
+    {
       id: "b2-second-third-conditionals",
       title: "Second and third conditionals",
       cefr: "B2",
@@ -365,7 +478,7 @@ export const B_SKILLS = [
       topic: "Conditionals",
       subtopic: "Second and third conditionals",
       objectives: ["Form second conditionals for unreal present/future", "Form third conditionals for the unreal past", "Avoid would in the if-clause"],
-      prerequisites: ["b1-first-conditional", "a2-past-simple"],
+      prerequisites: ["b1-first-conditional", "a2-past-simple", "b1-past-perfect"],
       difficulty: 4,
       estimatedMinutes: 8,
       explanation: {

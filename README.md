@@ -34,7 +34,7 @@ Attempt classifications (from the Figma notes): `correct_first_try`, `correct_af
 ## v0.2: adaptive onboarding, CEFR curriculum, optional AI
 
 - New learners meet Migo, say (or type) what is hard, take a short adaptive check, see a provisional profile, and start a recommended lesson. Nobody picks a CEFR level.
-- Curriculum: `src/curriculum` (zod-validated; 12 curated A1–B2 lessons; C1/C2 supported by the schema, none authored).
+- Curriculum: `src/curriculum` (zod-validated; 13 curated A1–B2 lessons; C1/C2 supported by the schema, none authored).
 - Deterministic engines: `src/features/diagnostic` (quiz selection), `src/features/learning` (mastery, profile, recommendations).
 - Progress is stored in `localStorage` (`grammigo:v2`); v0.1 data (`grammigo:v1`) is migrated and left untouched as a backup.
 
