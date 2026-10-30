@@ -30,7 +30,7 @@ export async function requestGoals(text: string): Promise<{ goals: GoalItem[]; s
   const out = await call<{ status: string; goals: GoalItem[]; skillIds: string[]; summary: string }>(
     "/api/ai/goals",
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) },
-    14_000,
+    10_000,
   );
   return out?.status === "ok" ? { goals: out.goals, skillIds: out.skillIds, summary: out.summary } : null;
 }
@@ -46,7 +46,7 @@ export async function requestWritingFeedback(input: { skillId: string; questionI
   const out = await call<{ status: string; feedback: WritingFeedback }>(
     "/api/ai/writing-feedback",
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) },
-    17_000,
+    14_000,
   );
   return out?.status === "ok" ? out.feedback : null;
 }

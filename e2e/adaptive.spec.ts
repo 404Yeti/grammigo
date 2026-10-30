@@ -155,7 +155,9 @@ test.describe("AI is closed by default", () => {
     const headers = { origin: baseURL!, "content-type": "application/json" };
     const goals = await page.request.post("/api/ai/goals", { headers, data: { text: "past tense" } });
     expect(goals.status()).toBe(503);
-    expect((await goals.json()).reason).toBe("disabled");
+    // "disabled" with a clean environment; "not_configured" when a developer's .env.local has AI on but
+    // production has no durable rate limiter. Either way production refuses, which is the invariant.
+    expect(["disabled", "not_configured"]).toContain((await goals.json()).reason);
     expect((await page.request.post("/api/ai/writing-feedback", { headers, data: { skillId: "a2-past-simple", questionId: "q8", text: "I went. I saw." } })).status()).toBe(503);
     expect((await page.request.post("/api/ai/transcribe", { headers: { origin: baseURL! }, multipart: { audio: { name: "a.webm", mimeType: "audio/webm", buffer: Buffer.from("x") } } })).status()).toBe(503);
   });

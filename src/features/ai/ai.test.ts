@@ -40,6 +40,20 @@ describe("goal extraction: structured output validation", () => {
     expect(out.goals[0].label).toBe("Past tenses");
   });
 
+  it("ignores a padded candidate list: the learner's skills are exactly their visible goals", async () => {
+    const { client } = mockClient({ ...goodGoals, candidateSkillIds: skills.map((s) => s.id) });
+    const out = await createAiService(client, config(), skills).extractGoals("past tenses");
+    expect(out.skillIds).toEqual(["a2-past-simple", "present-perfect-vs-past-simple"]);
+    expect(out.skillIds).toEqual([...new Set(out.goals.flatMap((g) => g.skillIds))]);
+  });
+
+  it("falls back to candidates (as visible goals) only when the model named no goals", async () => {
+    const { client } = mockClient({ ...goodGoals, goals: [], candidateSkillIds: ["a1-articles", "bogus-id"] });
+    const out = await createAiService(client, config(), skills).extractGoals("articles");
+    expect(out.goals).toEqual([{ label: "a / an / the", skillIds: ["a1-articles"] }]);
+    expect(out.skillIds).toEqual(["a1-articles"]);
+  });
+
   it("drops skill ids that are not in the catalog (the model cannot invent skills)", async () => {
     const { client } = mockClient({
       ...goodGoals,
@@ -56,10 +70,53 @@ describe("goal extraction: structured output validation", () => {
     ["extra fields", { ...goodGoals, hacked: true }],
     ["wrong types", { ...goodGoals, goals: "none" }],
     ["missing fields", { summary: "x" }],
-    ["too many goals", { ...goodGoals, goals: Array(9).fill(goodGoals.goals[0]) }],
   ])("rejects invalid model output (%s) with invalid_response", async (_name, content) => {
     const { client } = mockClient(content as never);
     await expect(createAiService(client, config(), skills).extractGoals("past tense")).rejects.toMatchObject({ code: "invalid_response" });
+  });
+
+  it("TRIMS an over-long answer instead of discarding it (regression: found by live testing)", async () => {
+    // A learner who lists everything makes the model list everything. This used to be a hard failure.
+    const ids = skills.map((s) => s.id);
+    const kitchenSink = {
+      summary: "x".repeat(900),
+      goals: ids.map((id) => ({ label: `Goal ${id}`.padEnd(200, "!"), skillIds: [id] })),
+      candidateSkillIds: ids,
+      unclearReason: null,
+    };
+    const out = await createAiService(mockClient(kitchenSink).client, config(), skills).extractGoals("everything");
+    expect(out.goals.length).toBe(5);
+    expect(out.skillIds.length).toBe(5);
+    expect(out.summary.length).toBeLessThanOrEqual(280);
+    expect(out.goals.every((g) => g.label.length <= 80)).toBe(true);
+  });
+
+  it("what the learner sees is exactly what drives the quiz, even for an over-broad answer", async () => {
+    const ids = skills.map((s) => s.id);
+    const broad = { summary: "s", goals: ids.slice(0, 5).map((id, i) => ({ label: `G${i}`, skillIds: [id, ids[(i + 5) % ids.length]] })), candidateSkillIds: [], unclearReason: null };
+    const out = await createAiService(mockClient(broad).client, config(), skills).extractGoals("everything");
+    expect(out.skillIds.length).toBeLessThanOrEqual(6);
+    expect(out.skillIds).toEqual([...new Set(out.goals.flatMap((g) => g.skillIds))]);
+  });
+
+  it("is still strict about structure: wrong types, missing or extra fields are rejected", async () => {
+    for (const bad of [{ ...goodGoals, goals: "none" }, { summary: "x" }, { ...goodGoals, extra: 1 }, { ...goodGoals, goals: [{ label: "x" }] }]) {
+      await expect(createAiService(mockClient(bad as never).client, config(), skills).extractGoals("past tense")).rejects.toMatchObject({ code: "invalid_response" });
+    }
+  });
+
+  it("trims over-long writing feedback too", async () => {
+    const skill = requireSkill("a2-past-simple");
+    const long = {
+      outcome: "needs_work", confidence: "high",
+      errors: Array(9).fill({ original: "o".repeat(500), correction: "c".repeat(500), explanation: "e".repeat(900) }),
+      suggestedCorrection: "s".repeat(900), explanation: "x".repeat(2000), example: "y".repeat(900), assessedSkillIds: ["a2-past-simple"],
+    };
+    const fb = await createAiService(mockClient(long).client, config(), skills).evaluateWriting({ skill, questionId: "q8", text: "I go. I eat." });
+    expect(fb.errors).toHaveLength(5);
+    expect(fb.errors[0].original.length).toBe(200);
+    expect(fb.explanation.length).toBe(500);
+    expect(fb.suggestedCorrection!.length).toBe(400);
   });
 
   it("treats a model refusal or empty content as invalid_response", async () => {
@@ -68,7 +125,9 @@ describe("goal extraction: structured output validation", () => {
   });
 
   it("maps timeouts and upstream errors to codes without leaking details", async () => {
-    const timeout = Object.assign(new Error("secret-ish details"), { name: "APIConnectionTimeoutError" });
+    // Use the SDK's real class: a fake error with a made-up name is what hid this bug before.
+    const { APIConnectionTimeoutError } = await import("openai");
+    const timeout = new APIConnectionTimeoutError({ message: "secret-ish details" });
     await expect(createAiService(mockClient(null, { reject: timeout }).client, config(), skills).extractGoals("hi there")).rejects.toMatchObject({ code: "timeout" });
     const err = await createAiService(mockClient(null, { reject: new Error("sk-LEAK 401") }).client, config(), skills).extractGoals("hi there").catch((e) => e);
     expect(err).toBeInstanceOf(AiError);
@@ -84,7 +143,7 @@ describe("goal extraction: structured output validation", () => {
     expect(args.max_completion_tokens).toBe(350);
     expect(args.response_format.json_schema.strict).toBe(true);
     expect(args.response_format.json_schema.schema.properties.candidateSkillIds.items.enum).toContain("a2-past-simple");
-    expect(opts.timeout).toBe(12_000);
+    expect(opts.timeout).toBe(8_000);
     expect(opts.maxRetries).toBe(0);
   });
 });

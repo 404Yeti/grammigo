@@ -18,7 +18,8 @@ const BODY_OVERHEAD = 10_000;
 /** What went wrong, never why: no learner text, model output or key material reaches the client or logs. */
 function failure(error: unknown): Response {
   const code = error instanceof AiError ? error.code : "upstream";
-  console.warn(`[ai] request failed: ${code}`);
+  const status = error instanceof AiError && error.upstreamStatus ? ` (upstream status ${error.upstreamStatus})` : "";
+  console.warn(`[ai] request failed: ${code}${status}`);
   return json(code === "timeout" ? 504 : 502, { error: code });
 }
 

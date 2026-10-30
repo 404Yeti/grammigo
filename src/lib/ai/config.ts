@@ -7,6 +7,8 @@
  *   OPENAI_MODEL          chat model for goals + writing feedback (default below)
  *   OPENAI_TRANSCRIBE_MODEL  speech-to-text model (default below)
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   durable rate limiting + daily budget
+ *   AI_USAGE_LOG          "true" logs counts-only usage lines (tokens, seconds, est. cost; never content)
+ *   OPENAI_PRICE_IN_PER_M / OPENAI_PRICE_OUT_PER_M / OPENAI_PRICE_TRANSCRIBE_PER_MIN  assumed USD prices
  *   AI_DAILY_CALL_CAP     hard cap on AI calls per UTC day across all users (default below)
  *   AI_ALLOW_MEMORY_LIMITER_IN_PRODUCTION   "true" to knowingly run production without Upstash
  */
@@ -19,11 +21,16 @@ export interface AiConfig {
   durableLimiter: { url: string; token: string } | null;
   allowMemoryLimiterInProduction: boolean;
   dailyCallCap: number;
+  /** Log one counts-only line per AI call (never content). */
+  usageLog: boolean;
+  prices: { inPerM: number; outPerM: number; transcribePerMin: number };
   limits: {
     goalsTextMax: number;
     writingTextMax: number;
     audioBytesMax: number;
     transcriptMax: number;
+    /** Segments at or above this no-speech probability count as silence (initial value; tune from real usage logs). */
+    noSpeechProb: number;
     maxOutputTokens: { goals: number; writing: number };
     timeoutMs: { goals: number; writing: number; transcribe: number };
     perMinute: { goals: number; transcribe: number; writing: number };
@@ -51,13 +58,23 @@ export function readAiConfig(env: AiEnv = process.env): AiConfig {
     durableLimiter: url && token ? { url, token } : null,
     allowMemoryLimiterInProduction: env.AI_ALLOW_MEMORY_LIMITER_IN_PRODUCTION === "true",
     dailyCallCap: num(env.AI_DAILY_CALL_CAP, 300),
+    usageLog: env.AI_USAGE_LOG === "true",
+    // ASSUMED prices (USD). Override with the current numbers from OpenAI's pricing page.
+    prices: {
+      inPerM: num(env.OPENAI_PRICE_IN_PER_M, 0.15),
+      outPerM: num(env.OPENAI_PRICE_OUT_PER_M, 0.6),
+      transcribePerMin: num(env.OPENAI_PRICE_TRANSCRIBE_PER_MIN, 0.006),
+    },
     limits: {
       goalsTextMax: 600,
       writingTextMax: 600,
       audioBytesMax: 600_000,
       transcriptMax: 600,
+      noSpeechProb: 0.6,
       maxOutputTokens: { goals: 350, writing: 500 },
-      timeoutMs: { goals: 12_000, writing: 15_000, transcribe: 20_000 },
+      // Real calls measured 1.4–4.2 s (goals) and ~1.5–2.2 s (writing); these leave ample headroom
+      // without making a learner wait long when OpenAI is down.
+      timeoutMs: { goals: 8_000, writing: 12_000, transcribe: 20_000 },
       perMinute: { goals: 6, transcribe: 4, writing: 6 },
       perDay: { goals: 40, transcribe: 20, writing: 40 },
     },

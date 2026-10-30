@@ -14,15 +14,33 @@ export const writingRequestSchema = z
 
 /* ------------------------------------------------------------ responses */
 
+/**
+ * Limits applied AFTER validation by clamping (see service.ts). The schemas below are strict about
+ * types, required fields and unknown keys, but deliberately do not reject over-long lists or
+ * strings: a model that lists too many skills should be trimmed, not discarded.
+ */
+export const AI_LIMITS = {
+  summary: 280,
+  goalLabel: 80,
+  goals: 5,
+  candidates: 6,
+  unclearReason: 200,
+  errors: 5,
+  original: 200,
+  correction: 200,
+  errorExplanation: 300,
+  suggestedCorrection: 400,
+  explanation: 500,
+  example: 240,
+} as const;
+
 /** What the model must return when interpreting what a learner wants to improve. */
 export const goalExtractionSchema = z
   .object({
-    summary: z.string().max(280),
-    goals: z
-      .array(z.object({ label: z.string().min(1).max(80), skillIds: z.array(z.string()).max(4) }).strict())
-      .max(5),
-    candidateSkillIds: z.array(z.string()).max(6),
-    unclearReason: z.string().max(200).nullable(),
+    summary: z.string(),
+    goals: z.array(z.object({ label: z.string(), skillIds: z.array(z.string()) }).strict()),
+    candidateSkillIds: z.array(z.string()),
+    unclearReason: z.string().nullable(),
   })
   .strict();
 export type GoalExtraction = z.infer<typeof goalExtractionSchema>;
@@ -31,24 +49,17 @@ export const writingFeedbackSchema = z
   .object({
     outcome: z.enum(["meets_goal", "needs_work", "unclear"]),
     confidence: z.enum(["low", "medium", "high"]),
-    errors: z
-      .array(
-        z
-          .object({
-            original: z.string().max(200),
-            correction: z.string().max(200),
-            explanation: z.string().max(300),
-          })
-          .strict(),
-      )
-      .max(5),
-    suggestedCorrection: z.string().max(400).nullable(),
-    explanation: z.string().max(500),
-    example: z.string().max(240).nullable(),
-    assessedSkillIds: z.array(z.string()).max(3),
+    errors: z.array(z.object({ original: z.string(), correction: z.string(), explanation: z.string() }).strict()),
+    suggestedCorrection: z.string().nullable(),
+    explanation: z.string(),
+    example: z.string().nullable(),
+    assessedSkillIds: z.array(z.string()),
   })
   .strict();
 export type WritingFeedback = z.infer<typeof writingFeedbackSchema>;
+
+/** Trims to a maximum length without ever throwing. */
+export const clamp = (text: string, max: number): string => text.trim().slice(0, max);
 
 /* ------------------------------------------- OpenAI strict JSON schemas */
 
