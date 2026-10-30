@@ -1,38 +1,36 @@
 import type { StoredState } from "@/types/session";
-import { emptyState, parseStoredState, STORAGE_KEY } from "./schema";
+import type { PersistenceAdapter } from "./adapter";
+import { localStorageAdapter } from "./local-storage-adapter";
+import { emptyState, parseStoredState } from "./schema";
 
 /**
- * Tiny external store over localStorage, shaped for useSyncExternalStore.
- * Never touched during server rendering: getServerSnapshot returns null.
+ * Tiny external store shaped for useSyncExternalStore. Persistence goes through an adapter, so
+ * storage can change later without touching the app. Never used during server rendering:
+ * getServerSnapshot returns null.
  */
 
-let cachedRaw: string | null | undefined;
+let adapter: PersistenceAdapter = localStorageAdapter;
+let cachedKey: string | null | undefined;
 let cachedState: StoredState = emptyState();
-let memoryOnly = false; // localStorage unavailable or full: keep working in memory
+let memoryOnly = false; // storage unavailable or full: keep working in memory
 const listeners = new Set<() => void>();
 
-function readRaw(): string | null {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
+/** Swap the persistence backend (used by tests and, later, a remote adapter). */
+export function setPersistenceAdapter(next: PersistenceAdapter): void {
+  adapter = next;
+  resetStoreCache();
 }
 
 export function getSnapshot(): StoredState {
   if (memoryOnly) return cachedState;
-  const raw = readRaw();
-  if (raw === cachedRaw) return cachedState;
-  cachedRaw = raw;
-  const parsed = parseStoredState(raw);
-  if (raw && !parsed) {
-    // Keep unreadable data aside instead of silently destroying it.
-    try {
-      window.localStorage.setItem(`${STORAGE_KEY}:corrupt`, raw);
-    } catch {
-      /* ignore */
-    }
-  }
+  const { primary, legacy } = adapter.read();
+  const key = primary ?? (legacy !== null ? `legacy:${legacy}` : null);
+  if (key === cachedKey) return cachedState;
+  cachedKey = key;
+
+  const source = primary ?? legacy;
+  const parsed = parseStoredState(source);
+  if (source && !parsed) adapter.quarantine(source);
   cachedState = parsed ?? emptyState();
   return cachedState;
 }
@@ -43,24 +41,20 @@ export function getServerSnapshot(): StoredState | null {
 
 export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY || event.key === null) listener();
-  };
-  window.addEventListener("storage", onStorage);
+  const unsubscribe = adapter.subscribe(listener);
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
+    unsubscribe();
   };
 }
 
 export function updateState(update: (state: StoredState) => StoredState): StoredState {
   const next = update(getSnapshot());
   const serialized = JSON.stringify(next);
-  try {
-    window.localStorage.setItem(STORAGE_KEY, serialized);
-    cachedRaw = serialized;
+  if (adapter.write(serialized)) {
+    cachedKey = serialized;
     memoryOnly = false;
-  } catch {
+  } else {
     memoryOnly = true;
   }
   cachedState = next;
@@ -68,9 +62,9 @@ export function updateState(update: (state: StoredState) => StoredState): Stored
   return next;
 }
 
-/** Test helper: forget cached data so the next read hits localStorage again. */
+/** Test helper: forget cached data so the next read hits storage again. */
 export function resetStoreCache(): void {
-  cachedRaw = undefined;
+  cachedKey = undefined;
   cachedState = emptyState();
   memoryOnly = false;
 }

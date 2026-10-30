@@ -59,8 +59,76 @@ export type LessonState =
   | "showing_feedback"
   | "completed";
 
-export interface StoredState {
+/** The shape saved by v0.1. Only used when migrating. */
+export interface StoredStateV1 {
   version: 1;
   sessions: Session[];
   activeSessionId: string | null;
+}
+
+export type StoredState = StoredStateV2;
+
+/* ---------------------------------------------------------------- v0.2 */
+
+import type { DiagnosticRun } from "@/features/diagnostic/engine";
+import type { RecommendationSnapshot } from "@/features/learning/recommend";
+
+export interface GoalItem {
+  label: string;
+  skillIds: string[];
+}
+
+/** What the learner said they want to improve, interpreted into curriculum skills. */
+export interface LearnerGoals {
+  text: string;
+  source: "typed" | "spoken" | "none";
+  goals: GoalItem[];
+  /** All candidate skill ids, validated against the catalog. */
+  skillIds: string[];
+  /** "ai" when OpenAI interpreted it, "local" for the offline keyword matcher, "none" for a general check. */
+  extractedBy: "ai" | "local" | "none";
+  updatedAt: number;
+}
+
+export type OnboardingStep = "welcome" | "concerns" | "confirm" | "quiz" | "profile" | "recommendation";
+export type OnboardingStatus = "not_started" | "in_progress" | "completed" | "skipped";
+
+export interface OnboardingState {
+  status: OnboardingStatus;
+  step: OnboardingStep;
+  /** Text typed or transcribed, kept so a refresh never loses it. */
+  draftText: string;
+  draftSource: "typed" | "spoken";
+  runId: string | null;
+  startedAt: number | null;
+  completedAt: number | null;
+}
+
+export interface WritingFeedbackErrorItem {
+  original: string;
+  correction: string;
+  explanation: string;
+}
+
+export interface StoredWritingFeedback {
+  status: "ready" | "unavailable";
+  at: number;
+  outcome?: "meets_goal" | "needs_work" | "unclear";
+  confidence?: "low" | "medium" | "high";
+  errors?: WritingFeedbackErrorItem[];
+  suggestedCorrection?: string | null;
+  explanation?: string;
+  example?: string | null;
+}
+
+export interface StoredStateV2 {
+  version: 2;
+  sessions: Session[];
+  activeSessionId: string | null;
+  onboarding: OnboardingState;
+  goals: LearnerGoals | null;
+  diagnosticRuns: DiagnosticRun[];
+  lastRecommendation: RecommendationSnapshot | null;
+  /** Optional AI writing feedback, keyed by "sessionId:questionId". */
+  writingFeedback: Record<string, StoredWritingFeedback>;
 }
