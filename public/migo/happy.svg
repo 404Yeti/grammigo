@@ -1,0 +1,31 @@
+<svg width="260" height="300" viewBox="0 0 260 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Migo">
+<g id="Expression=Happy">
+<g id="Migo-art">
+<g id="body">
+<path id="Vector" d="M120 50C170 50 208 88 208 138C208 175 192 205 170 232C152 254 128 276 98 286C84 291 72 284 76 272C80 260 96 254 106 240C112 232 114 224 112 218C70 210 32 180 32 138C32 88 70 50 120 50Z" fill="url(#paint0_radial_2_3)"/>
+<path id="Vector_2" d="M90.4505 101.893C105.08 94.1146 113.156 80.6933 108.488 71.9159C103.821 63.1384 88.1787 62.3285 73.5495 70.1069C58.9204 77.8854 50.8445 91.3067 55.5116 100.084C60.1787 108.862 75.8213 109.672 90.4505 101.893Z" fill="white" fill-opacity="0.5"/>
+</g>
+<g id="brows">
+<path id="Vector_3" d="M66 98C76.6667 88.6667 88 88 100 96" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_4" d="M132 90C144 80.6667 155.333 80 166 88" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g id="eyes">
+<path id="Vector_5" d="M71 140C81 125.333 91 125.333 101 140" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_6" d="M133 136C143 121.333 153 121.333 163 136" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g id="mustache">
+<path id="Vector_7" d="M120 174C132 166 152 162 168 168C176 171 182 168 181 163C190 162 194 172 188 180C182 190 168 194 152 194C138 194 128 196 120 202C112 196 102 194 88 194C72 194 58 190 52 180C46 172 50 162 59 163C58 168 64 171 72 168C88 162 108 166 120 174Z" fill="#14171C"/>
+<path id="Vector_8" d="M84 184C94.6667 180.667 104.667 180.667 114 184" stroke="#3A404A" stroke-width="3" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<radialGradient id="paint0_radial_2_3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(93.6 121.29) scale(158.4 213.869)">
+<stop stop-color="#FFFCF5"/>
+<stop offset="0.6" stop-color="#F6EBDA"/>
+<stop offset="1" stop-color="#E8D6BD"/>
+</radialGradient>
+</defs>
+</svg>

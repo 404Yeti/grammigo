@@ -1,0 +1,40 @@
+<svg width="260" height="300" viewBox="0 0 260 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Migo">
+<g id="Expression=Celebrating">
+<g id="Migo-art">
+<g id="body">
+<path id="Vector" d="M120 50C170 50 208 88 208 138C208 175 192 205 170 232C152 254 128 276 98 286C84 291 72 284 76 272C80 260 96 254 106 240C112 232 114 224 112 218C70 210 32 180 32 138C32 88 70 50 120 50Z" fill="url(#paint0_radial_2_3)"/>
+<path id="Vector_2" d="M90.4505 101.893C105.08 94.1146 113.156 80.6934 108.488 71.9159C103.821 63.1384 88.1787 62.3285 73.5495 70.107C58.9204 77.8854 50.8445 91.3067 55.5116 100.084C60.1787 108.862 75.8213 109.672 90.4505 101.893Z" fill="white" fill-opacity="0.5"/>
+</g>
+<g id="brows">
+<path id="Vector_3" d="M66 92C76.6667 82.6667 88 82 100 90" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_4" d="M132 84C144 74.6667 155.333 74 166 82" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g id="eyes">
+<path id="Vector_5" d="M71 140C81 125.333 91 125.333 101 140" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_6" d="M133 136C143 121.333 153 121.333 163 136" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g id="mustache">
+<path id="Vector_7" d="M120 174C132 166 152 162 168 168C176 171 182 168 181 163C190 162 194 172 188 180C182 190 168 194 152 194C138 194 128 196 120 202C112 196 102 194 88 194C72 194 58 190 52 180C46 172 50 162 59 163C58 168 64 171 72 168C88 162 108 166 120 174Z" fill="#14171C"/>
+<path id="Vector_8" d="M84 184C94.6667 180.667 104.667 180.667 114 184" stroke="#3A404A" stroke-width="3" stroke-linecap="round"/>
+</g>
+<g id="marks">
+<path id="Vector_9" d="M62 40L52 20" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_10" d="M150 30L160 6" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_11" d="M198 52L224 38" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_12" d="M16 74L36 62" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_13" d="M104 31C107.866 31 111 27.866 111 24C111 20.134 107.866 17 104 17C100.134 17 97 20.134 97 24C97 27.866 100.134 31 104 31Z" fill="#A7B9A0"/>
+<path id="Vector_14" d="M232 90C236.418 90 240 86.4183 240 82C240 77.5817 236.418 74 232 74C227.582 74 224 77.5817 224 82C224 86.4183 227.582 90 232 90Z" fill="#A7B9A0"/>
+<path id="Vector_15" d="M26 122C29.3137 122 32 119.314 32 116C32 112.686 29.3137 110 26 110C22.6863 110 20 112.686 20 116C20 119.314 22.6863 122 26 122Z" fill="#FF7316"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<radialGradient id="paint0_radial_2_3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(93.6 121.29) scale(158.4 213.869)">
+<stop stop-color="#FFFCF5"/>
+<stop offset="0.6" stop-color="#F6EBDA"/>
+<stop offset="1" stop-color="#E8D6BD"/>
+</radialGradient>
+</defs>
+</svg>

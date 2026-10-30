@@ -1,0 +1,38 @@
+<svg width="260" height="300" viewBox="0 0 260 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Migo">
+<g id="Expression=Explaining">
+<g id="Migo-art">
+<g id="body">
+<path id="Vector" d="M120 50C170 50 208 88 208 138C208 175 192 205 170 232C152 254 128 276 98 286C84 291 72 284 76 272C80 260 96 254 106 240C112 232 114 224 112 218C70 210 32 180 32 138C32 88 70 50 120 50Z" fill="url(#paint0_radial_2_3)"/>
+<path id="Vector_2" d="M90.4504 101.893C105.08 94.1146 113.155 80.6933 108.488 71.9159C103.821 63.1384 88.1786 62.3285 73.5495 70.1069C58.9203 77.8854 50.8444 91.3067 55.5115 100.084C60.1786 108.862 75.8213 109.672 90.4504 101.893Z" fill="white" fill-opacity="0.5"/>
+</g>
+<g id="brows">
+<path id="Vector_3" d="M66 94C76.6667 87.3333 88 87.3333 100 94" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_4" d="M132 86C144 79.3333 155.333 79.3333 166 86" stroke="#14171C" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g id="eyes">
+<path id="Vector_5" d="M86 151C93.1797 151 99 142.493 99 132C99 121.507 93.1797 113 86 113C78.8203 113 73 121.507 73 132C73 142.493 78.8203 151 86 151Z" fill="#14171C"/>
+<path id="Vector_6" d="M90 128.05C91.9882 128.05 93.6 125.991 93.6 123.45C93.6 120.909 91.9882 118.85 90 118.85C88.0118 118.85 86.4 120.909 86.4 123.45C86.4 125.991 88.0118 128.05 90 128.05Z" fill="white"/>
+<path id="Vector_7" d="M148 147C155.18 147 161 138.493 161 128C161 117.507 155.18 109 148 109C140.82 109 135 117.507 135 128C135 138.493 140.82 147 148 147Z" fill="#14171C"/>
+<path id="Vector_8" d="M152 124.05C153.988 124.05 155.6 121.991 155.6 119.45C155.6 116.909 153.988 114.85 152 114.85C150.012 114.85 148.4 116.909 148.4 119.45C148.4 121.991 150.012 124.05 152 124.05Z" fill="white"/>
+</g>
+<g id="mustache">
+<path id="Vector_9" d="M120 174C132 166 152 162 168 168C176 171 182 168 181 163C190 162 194 172 188 180C182 190 168 194 152 194C138 194 128 196 120 202C112 196 102 194 88.0001 194C72.0001 194 58.0001 190 52.0001 180C46.0001 172 50.0001 162 59.0001 163C58.0001 168 64.0001 171 72.0001 168C88.0001 162 108 166 120 174Z" fill="#14171C"/>
+<path id="Vector_10" d="M84 184C94.6667 180.667 104.667 180.667 114 184" stroke="#3A404A" stroke-width="3" stroke-linecap="round"/>
+</g>
+<g id="marks">
+<path id="Vector_11" d="M214 70L240 62" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_12" d="M216 96H244" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_13" d="M214 122L238 132" stroke="#FF7316" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<radialGradient id="paint0_radial_2_3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(93.6 121.29) scale(158.4 213.869)">
+<stop stop-color="#FFFCF5"/>
+<stop offset="0.6" stop-color="#F6EBDA"/>
+<stop offset="1" stop-color="#E8D6BD"/>
+</radialGradient>
+</defs>
+</svg>
