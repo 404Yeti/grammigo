@@ -30,7 +30,7 @@ function Group({
           <li key={e.skillId} className="text-sm font-medium leading-5">
             <span className="font-semibold">{e.title}</span>
             {e.isGoal && <span className="ml-2 rounded-full bg-surface/70 px-2 py-0.5 text-xs font-bold text-brand-text">You mentioned this</span>}
-            <span className="block text-ink-2">{e.note}</span>
+            {!e.mastery.provisional && <span className="block text-ink-2">{e.note}</span>}
           </li>
         ))}
       </ul>
@@ -51,6 +51,11 @@ export function ProfileSummary({ profile }: { profile: LearningProfile }) {
       <p className="text-base font-medium leading-6 text-ink-2" data-testid="profile-headline">
         {profile.headline}
       </p>
+      {profile.entries.some((e) => e.bucket !== "unassessed" && e.mastery.provisional) && (
+        <p className="text-sm font-medium leading-5 text-ink-2" data-testid="profile-early">
+          These are early reads from only a few answers, so they can change as you practice.
+        </p>
+      )}
       <Group
         title="Looks like strengths"
         icon={<Check size={18} className="text-success" aria-hidden />}

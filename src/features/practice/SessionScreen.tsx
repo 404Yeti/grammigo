@@ -161,26 +161,26 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
 
   const feedbackKey = `${session.id}:${question.id}`;
   const stored = state?.writingFeedback[feedbackKey];
+  // Feedback is shown whenever it exists for this question: even after a confident confirmation
+  // upgrades the answer to correct, the learner still sees what the AI said.
   const aiNote =
-    kind === "needs-review" ? (
-      stored?.status === "ready" ? (
-        <div className="mt-3 rounded-2xl bg-surface/80 px-4 py-3 text-sm font-medium leading-5" data-testid="ai-feedback">
-          <p>{stored.explanation}</p>
-          {stored.suggestedCorrection && (
-            <p className="mt-2">
-              <span className="font-bold">A corrected version: </span>
-              {stored.suggestedCorrection}
-            </p>
-          )}
-          {stored.outcome === "needs_work" && (
-            <p className="mt-2 text-xs text-ink-2">This is feedback only. It doesn’t change your result.</p>
-          )}
-        </div>
-      ) : aiAvailable && !stored ? (
-        <p role="status" className="mt-3 text-sm font-semibold text-ink-2" data-testid="ai-pending">
-          Checking your writing… you can keep going.
-        </p>
-      ) : null
+    stored?.status === "ready" ? (
+      <div className="mt-3 rounded-2xl bg-surface/80 px-4 py-3 text-sm font-medium leading-5" data-testid="ai-feedback">
+        <p>{stored.explanation}</p>
+        {stored.suggestedCorrection && (
+          <p className="mt-2">
+            <span className="font-bold">A corrected version: </span>
+            {stored.suggestedCorrection}
+          </p>
+        )}
+        {stored.outcome === "needs_work" && (
+          <p className="mt-2 text-xs text-ink-2">This is feedback only. It doesn’t change your result.</p>
+        )}
+      </div>
+    ) : kind === "needs-review" && aiAvailable && !stored ? (
+      <p role="status" className="mt-3 text-sm font-semibold text-ink-2" data-testid="ai-pending">
+        Checking your writing… you can keep going.
+      </p>
     ) : null;
 
   const showWhy = kind === "exhausted" || (kind === "incorrect" && record.whyViewed);

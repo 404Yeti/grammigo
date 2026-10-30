@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { answerCorrectly, check, cont, expectQuestion, LESSON, startFromHome } from "./helpers";
+import { answerCorrectly, check, cont, expectQuestion, LESSON, seedReturningLearner, startFromHome } from "./helpers";
 
 test("full journey: Home → Intro → 8 questions → Success → Review → Return Home", async ({ page }) => {
   await startFromHome(page);
@@ -111,7 +111,8 @@ test("works with the keyboard alone", async ({ page }) => {
 });
 
 test("no horizontal overflow on key screens", async ({ page }) => {
-  for (const path of ["/", `/practice/${LESSON}`]) {
+  await seedReturningLearner(page);
+  for (const path of ["/", "/library", `/practice/${LESSON}`]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
