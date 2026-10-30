@@ -121,16 +121,16 @@ export function FeedbackPanel({
             <>
               <div className="flex gap-2.5">
                 {!why && (
-                  <Button variant="secondary" onClick={onWhy} className="w-auto flex-none px-5">
+                  <Button variant="secondary" fullWidth={false} onClick={onWhy} className="flex-none px-6">
                     Why?
                   </Button>
                 )}
                 {canHint ? (
-                  <Button variant="dark" onClick={onHint}>
+                  <Button variant="dark" fullWidth={false} onClick={onHint} className="flex-1">
                     Get a hint
                   </Button>
                 ) : (
-                  <Button variant="dark" onClick={onRetry}>
+                  <Button variant="dark" fullWidth={false} onClick={onRetry} className="flex-1">
                     Try again
                   </Button>
                 )}

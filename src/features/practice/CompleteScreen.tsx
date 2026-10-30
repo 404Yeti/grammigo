@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Confetti } from "@/components/progress/Confetti";
 import { StatTile } from "@/components/progress/StatTile";
 import { Migo } from "@/components/mascot/Migo";
@@ -10,8 +10,10 @@ import { getLatestCompleted, getSessionById } from "./selectors";
 import { achievementMessage, formatElapsed, summarizeSession } from "./summary";
 import { usePracticeState } from "./use-practice-state";
 
-export function CompleteScreen({ lessonId, sessionId }: { lessonId: string; sessionId?: string }) {
+export function CompleteScreen({ lessonId, sessionId: sessionIdProp }: { lessonId: string; sessionId?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = sessionIdProp ?? searchParams.get("session") ?? undefined;
   const state = usePracticeState();
 
   const found = state ? (sessionId ? getSessionById(state, sessionId) : getLatestCompleted(state, lessonId)) : null;

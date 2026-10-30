@@ -1,13 +1,18 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { getLesson } from "@/data/lessons";
+import { getLesson, listLessons } from "@/data/lessons";
 import { ReviewScreen } from "@/features/practice/ReviewScreen";
 
-export default async function ReviewPage({
-  params,
-  searchParams,
-}: PageProps<"/practice/[lessonId]/review">) {
+export function generateStaticParams() {
+  return listLessons().map((lesson) => ({ lessonId: lesson.id }));
+}
+
+export default async function ReviewPage({ params }: PageProps<"/practice/[lessonId]/review">) {
   const { lessonId } = await params;
-  const { session } = await searchParams;
   if (!getLesson(lessonId)) notFound();
-  return <ReviewScreen lessonId={lessonId} sessionId={typeof session === "string" ? session : undefined} />;
+  return (
+    <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>
+      <ReviewScreen lessonId={lessonId} />
+    </Suspense>
+  );
 }

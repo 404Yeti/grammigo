@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronLeft, RotateCcw } from "lucide-react";
 import { getLesson } from "@/data/lessons";
 import { getSkill } from "@/data/grammar/skills";
@@ -20,9 +20,11 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mt-4 text-sm font-semibold leading-5 text-ink-2">{children}</h2>;
 }
 
-export function ReviewScreen({ lessonId, sessionId }: { lessonId: string; sessionId?: string }) {
+export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId: string; sessionId?: string }) {
   const lesson = getLesson(lessonId)!;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = sessionIdProp ?? searchParams.get("session") ?? undefined;
   const state = usePracticeState();
 
   const found = state ? (sessionId ? getSessionById(state, sessionId) : getLatestCompleted(state, lessonId)) : null;

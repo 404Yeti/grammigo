@@ -5,6 +5,7 @@ import { router } from "./helpers";
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
   usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("next/link", () => ({
