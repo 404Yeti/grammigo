@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grammigo
 
-## Getting Started
+Your grammar amigo. Mobile-first English grammar practice, with Migo as your guide.
 
-First, run the development server:
+v0.1 is a complete, playable lesson: **Present Perfect vs. Past Simple** (8 exercises). It needs no Supabase project, no AI keys and no backend. Content is local; progress is saved in the browser (`localStorage`, key `grammigo:v1`).
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Test
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test             # Vitest: unit + component tests
+npm run e2e          # builds, then Playwright (mobile + desktop)
+npm run e2e:only     # Playwright against an existing build
+npm run typecheck && npm run lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- `src/data` lesson content and grammar skills (no UI)
+- `src/features/practice` grading, session state machine, summary, review, screens
+- `src/features/mastery` evidence + deterministic next-step recommendation
+- `src/lib/storage` versioned, validated localStorage store
+- `src/components` ui, layout, mascot, lesson, exercises, feedback, progress
+- `e2e` Playwright journeys
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Attempt classifications (from the Figma notes): `correct_first_try`, `correct_after_hint`, `correct_after_retry`, `incorrect`.

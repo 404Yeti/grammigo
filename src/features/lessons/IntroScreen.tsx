@@ -41,12 +41,12 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
         <div className="size-11" aria-hidden />
       </header>
 
-      <main className="flex flex-1 flex-col gap-4 px-2 pt-3">
+      <main className="flex flex-1 flex-col gap-3 px-2 pt-1">
         <div className="flex justify-center pt-2">
-          <Migo expression="curious" size={132} />
+          <Migo expression="explaining" size={116} />
         </div>
 
-        <p className="rounded-[20px] border border-line bg-surface p-4 text-lg font-medium leading-7">
+        <p className="rounded-[20px] border border-line bg-surface p-4 text-base font-medium leading-6">
           {lesson.intro}
         </p>
 
@@ -63,8 +63,8 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
         </ul>
 
         <Card className="rounded-[20px]">
-          <h2 className="text-base font-bold leading-6">You’ll practice</h2>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-base font-medium leading-6 text-ink-2 marker:text-muted">
+          <h2 className="text-sm font-bold leading-5">You’ll practice</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-medium leading-5 text-ink-2 marker:text-muted">
             {lesson.objectives.map((objective) => (
               <li key={objective}>{objective}</li>
             ))}

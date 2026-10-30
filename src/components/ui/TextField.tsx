@@ -40,7 +40,7 @@ export function TextField({
   const describedBy = [error ? errorId : null, helperId].filter(Boolean).join(" ");
 
   const fieldClass = cn(
-    "w-full rounded-[14px] border-[1.5px] bg-surface px-4 py-3.5 text-base font-medium leading-6 text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:bg-subtle disabled:text-muted",
+    "w-full rounded-[14px] border-[1.5px] bg-surface px-4 py-3.5 text-base font-medium leading-6 text-ink placeholder:text-muted focus:border-brand disabled:text-ink-2",
     error ? "border-error-border" : "border-line-strong",
   );
 

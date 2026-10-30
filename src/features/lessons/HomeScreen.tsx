@@ -72,7 +72,7 @@ export function HomeScreen() {
                 <p className="text-xs font-bold tracking-[0.6px] text-brand-text">
                   {active ? "Lesson in progress" : "Recommended for you"}
                 </p>
-                <h2 id="next-step" className="mt-2 text-[26px] font-extrabold leading-8 tracking-[-0.3px]">
+                <h2 id="next-step" className="mt-2 text-2xl font-bold leading-8 tracking-[-0.3px]">
                   {lesson.title}
                 </h2>
                 <p className="mt-2 text-sm font-medium leading-5 text-ink-2" data-testid="next-step-text">
