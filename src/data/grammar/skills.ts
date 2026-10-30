@@ -1,5 +1,7 @@
 import type { Skill } from "@/types/lesson";
+import { getCurriculumSkill } from "@/curriculum";
 
+/** Review copy for the v0.1 lesson's sub-skills (kept so migrated sessions review the same way). */
 export const SKILLS: Record<string, Skill> = {
   "present-perfect-form": {
     id: "present-perfect-form",
@@ -36,8 +38,16 @@ export const SKILLS: Record<string, Skill> = {
   },
 };
 
+/** Copy for a question's skillId: a v0.1 sub-skill, or a curriculum skill (lesson). */
 export function getSkill(id: string): Skill {
-  const skill = SKILLS[id];
+  const sub = SKILLS[id];
+  if (sub) return sub;
+  const skill = getCurriculumSkill(id);
   if (!skill) throw new Error(`Unknown skill: ${id}`);
-  return skill;
+  return {
+    id: skill.id,
+    title: skill.title,
+    strengthText: skill.review.strengthText,
+    practiceText: skill.review.practiceText,
+  };
 }

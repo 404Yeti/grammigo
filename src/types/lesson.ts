@@ -13,7 +13,9 @@ export type EvaluationStrategy =
   | "exact-choice"
   | "normalized-text"
   | "ordered-words"
-  | "limited-rubric";
+  | "limited-rubric"
+  /** Open writing: needs optional AI feedback; without it the answer is saved as unverified. */
+  | "ai-writing";
 
 /** The kind of learning evidence a question produces (for the future adaptive engine). */
 export type EvidenceKind = "recognition" | "construction" | "production";
@@ -66,6 +68,8 @@ export interface Question {
   nudge: { title: string; body: string };
   misconceptions?: Misconception[];
   maxAttempts: number;
+  /** What a good answer must show; used only for optional AI writing feedback. */
+  writingCriteria?: string;
 }
 
 export interface Skill {

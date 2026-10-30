@@ -1,6 +1,6 @@
 import type { Question } from "@/types/lesson";
 import { answersMatch, normalizeAnswer } from "./normalize";
-import { evaluateWriting } from "./writing-rubric";
+import { evaluateWriting, precheckWriting } from "./writing-rubric";
 
 export type Verdict = "correct" | "incorrect" | "needs_review" | "invalid";
 
@@ -44,6 +44,16 @@ export function evaluateAnswer(question: Question, answer: string): EvaluationRe
         case "unverified":
           return { verdict: "needs_review", message: result.message };
       }
+    }
+
+    case "ai-writing": {
+      // No deterministic judgement exists for this answer: never mark it wrong.
+      const check = precheckWriting(answer);
+      if (!check.ok) return { verdict: "invalid", message: check.message };
+      return {
+        verdict: "needs_review",
+        message: "Saved for feedback. Grammigo can’t check this kind of writing automatically yet.",
+      };
     }
   }
 }

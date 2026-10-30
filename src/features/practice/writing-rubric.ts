@@ -105,3 +105,14 @@ export function evaluateWriting(text: string): WritingVerdict {
       "Grammigo can’t check free writing automatically yet, so this answer is saved for review instead of being marked wrong.",
   };
 }
+
+/**
+ * Generic structural pre-check for open writing that has no deterministic rubric.
+ * It only decides whether there is enough text to give feedback on; it never judges grammar.
+ */
+export function precheckWriting(text: string): { ok: true } | { ok: false; message: string } {
+  if (splitSentences(text).length < 2) {
+    return { ok: false, message: "Write two sentences, each with at least three words." };
+  }
+  return { ok: true };
+}
