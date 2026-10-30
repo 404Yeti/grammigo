@@ -9,7 +9,7 @@ import {
   retry,
   setDraft,
   submitAnswer,
-  useHint,
+  revealHint,
   type SubmitOutcome,
 } from "./session";
 
@@ -44,8 +44,8 @@ export const practiceActions = {
   setDraft: (sessionId: string, draft: string) =>
     mutate(sessionId, (s) => setDraft(s, draft, Date.now())),
 
-  useHint: (sessionId: string, lesson: Lesson) =>
-    mutate(sessionId, (s) => useHint(s, lesson, Date.now())),
+  revealHint: (sessionId: string, lesson: Lesson) =>
+    mutate(sessionId, (s) => revealHint(s, lesson, Date.now())),
 
   markWhyViewed: (sessionId: string) => mutate(sessionId, (s) => markWhyViewed(s, Date.now())),
 

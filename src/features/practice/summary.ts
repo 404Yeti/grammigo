@@ -70,3 +70,17 @@ export function formatElapsed(ms: number): { value: number; unit: "minutes" | "s
   if (seconds < 60) return { value: seconds, unit: "seconds" };
   return { value: Math.round(seconds / 60), unit: "minutes" };
 }
+
+/** Honest, deterministic achievement line based on what actually happened. */
+export function achievementMessage(summary: SessionSummary): string {
+  if (summary.independent === summary.total) {
+    return "A clean run: every answer on your own!";
+  }
+  if (summary.incorrect > 0) {
+    return "Some answers were tricky, and that’s useful: your review shows exactly what to practice next.";
+  }
+  if (summary.assisted > 0) {
+    return "You turned every stumble into a correct answer. That’s how grammar sticks.";
+  }
+  return "Nice work finishing the lesson.";
+}

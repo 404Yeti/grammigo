@@ -10,7 +10,7 @@ import {
   retry,
   setDraft,
   submitAnswer,
-  useHint,
+  revealHint,
 } from "./session";
 import { summarizeSession } from "./summary";
 import type { Session } from "@/types/session";
@@ -64,7 +64,7 @@ describe("answering", () => {
 
   it("classifies correct after a hint (even with a retry) as correct_after_hint", () => {
     let { session } = answer(fresh(), "a");
-    session = useHint(session, lesson, T0 + 2000);
+    session = revealHint(session, lesson, T0 + 2000);
     expect(session.phase).toBe("answering");
     ({ session } = answer(session, "b", T0 + 3000));
     expect(currentRecord(session).classification).toBe("correct_after_hint");
@@ -72,16 +72,16 @@ describe("answering", () => {
   });
 
   it("counts a hint taken before the first submission as correct_after_hint", () => {
-    let session = useHint(fresh(), lesson, T0 + 500);
+    let session = revealHint(fresh(), lesson, T0 + 500);
     ({ session } = answer(session, "b"));
     expect(currentRecord(session).classification).toBe("correct_after_hint");
   });
 
   it("reveals hints one at a time and stops at the last one", () => {
     let s = fresh();
-    s = useHint(s, lesson, T0);
-    s = useHint(s, lesson, T0);
-    s = useHint(s, lesson, T0);
+    s = revealHint(s, lesson, T0);
+    s = revealHint(s, lesson, T0);
+    s = revealHint(s, lesson, T0);
     expect(currentRecord(s).hintsUsed).toBe(lesson.questions[0].hints.length);
   });
 
@@ -174,7 +174,7 @@ describe("completion", () => {
     ({ session: s } = answer(s, "watched", T0 + 4000));
     s = advance(s, T0 + 4500);
     // q3 hint then correct => after hint
-    s = useHint(s, lesson, T0 + 5000);
+    s = revealHint(s, lesson, T0 + 5000);
     ({ session: s } = answer(s, "a", T0 + 6000));
     s = advance(s, T0 + 6500);
     const summary = summarizeSession(s);

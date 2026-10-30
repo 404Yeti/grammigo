@@ -79,7 +79,7 @@ export function setDraft(session: Session, draft: string, now: number): Session 
 }
 
 /** Reveals the next pre-authored hint for the current question. */
-export function useHint(session: Session, lesson: Lesson, now: number): Session {
+export function revealHint(session: Session, lesson: Lesson, now: number): Session {
   if (session.status !== "in_progress") return session;
   const question = currentQuestion(session, lesson);
   const record = currentRecord(session);

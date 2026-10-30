@@ -33,6 +33,8 @@ export interface Misconception {
 
 export interface Question {
   id: string;
+  /** Compact label for the review list. */
+  reviewTitle: string;
   skillId: string;
   /** Short chip text shown above the prompt, e.g. "Present perfect · Recognize". */
   skillLabel: string;

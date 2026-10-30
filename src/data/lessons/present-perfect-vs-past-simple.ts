@@ -18,6 +18,7 @@ export const presentPerfectVsPastSimple: Lesson = {
   questions: [
     {
       id: "q1",
+      reviewTitle: "Which sentence uses the present perfect?",
       skillId: "present-perfect-form",
       skillLabel: "Present perfect · Recognize",
       type: "multiple-choice",
@@ -50,6 +51,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q2",
+      reviewTitle: "We ____ (watch) a great film last weekend.",
       skillId: "past-simple-finished-time",
       skillLabel: "Past simple · Use",
       type: "fill-blank",
@@ -82,6 +84,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q3",
+      reviewTitle: "She has worked here ____ 2021.",
       skillId: "present-perfect-since-for",
       skillLabel: "Present perfect · since and for",
       type: "multiple-choice-context",
@@ -114,6 +117,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q4",
+      reviewTitle: "Rewrite: “I have seen that film yesterday.”",
       skillId: "past-simple-finished-time",
       skillLabel: "Tense mistakes · Correction",
       type: "sentence-correction",
@@ -153,6 +157,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q5",
+      reviewTitle: "Build: They have lived here since 2018.",
       skillId: "present-perfect-construction",
       skillLabel: "Present perfect · Sentence building",
       type: "sentence-construction",
@@ -181,6 +186,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q6",
+      reviewTitle: "He ____ (leave) ten minutes ago.",
       skillId: "past-simple-finished-time",
       skillLabel: "Tense in context · Choose",
       type: "contextual-verb",
@@ -216,6 +222,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q7",
+      reviewTitle: "Rewrite with have and since.",
       skillId: "present-perfect-since-for",
       skillLabel: "Present perfect · Rewrite",
       type: "sentence-transformation",
@@ -252,6 +259,7 @@ export const presentPerfectVsPastSimple: Lesson = {
     },
     {
       id: "q8",
+      reviewTitle: "Write about this week and yesterday.",
       skillId: "tense-contrast-writing",
       skillLabel: "Independent production · Writing",
       type: "short-writing",
