@@ -1,5 +1,12 @@
 import "@/tests/mocks";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/features/ai/client", () => ({
+  fetchAiStatus: async () => ({ available: false }),
+  requestGoals: async () => null,
+  requestTranscription: async () => null,
+  requestWritingFeedback: async () => null,
+}));
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HomeScreen } from "@/features/lessons/HomeScreen";
@@ -7,7 +14,7 @@ import { IntroScreen } from "@/features/lessons/IntroScreen";
 import { CompleteScreen } from "./CompleteScreen";
 import { ReviewScreen } from "./ReviewScreen";
 import { SessionScreen } from "./SessionScreen";
-import { getSnapshot } from "@/lib/storage/store";
+import { getSnapshot, updateState } from "@/lib/storage/store";
 import { getActiveSession, getCompletedSessions } from "./selectors";
 import { lesson, playQuestions, resetApp, router } from "@/tests/helpers";
 import { practiceActions, startSession } from "./actions";
@@ -19,11 +26,20 @@ beforeEach(() => {
 });
 
 describe("Home", () => {
-  it("offers Start Practice on a fresh install, linking to the lesson", async () => {
+  it("sends a brand-new learner to meet Migo first", async () => {
+    render(<HomeScreen />);
+    await act(async () => {});
+    expect(router.replace).toHaveBeenCalledWith("/onboarding");
+  });
+
+  it("a learner who skipped onboarding gets a friendly foundation lesson, not a level choice", async () => {
+    updateState((s) => ({ ...s, onboarding: { ...s.onboarding, status: "skipped" } }));
     render(<HomeScreen />);
     const link = await screen.findByRole("link", { name: "Start Practice" });
-    expect(link).toHaveAttribute("href", `/practice/${lesson.id}`);
+    expect(link).toHaveAttribute("href", "/practice/a1-be-present");
+    expect(screen.getByTestId("next-step-text")).toHaveTextContent(/don’t have any evidence/);
     expect(screen.getByText(/Nothing is “weak”/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tell Migo" })).toBeInTheDocument();
   });
 
   it("shows Continue Lesson for an unfinished session", async () => {

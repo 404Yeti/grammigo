@@ -210,3 +210,43 @@ export function abandonSession(session: Session, now: number): Session {
   if (session.status !== "in_progress") return session;
   return { ...session, status: "abandoned", updatedAt: now };
 }
+
+export interface WritingEvaluation {
+  outcome: "meets_goal" | "needs_work" | "unclear";
+  confidence: "low" | "medium" | "high";
+}
+
+/**
+ * Applies optional AI feedback to an answer that was saved as unverified.
+ *
+ * The AI can only ever help the learner: a confident "meets_goal" upgrades the answer to correct
+ * (classified from the attempts and hints actually used). "needs_work" and "unclear" never mark
+ * anything incorrect: the answer stays "needs review" and the feedback is simply shown.
+ * Closed-ended answers are never touched.
+ */
+export function applyWritingEvaluation(
+  session: Session,
+  lesson: Lesson,
+  questionId: string,
+  evaluation: WritingEvaluation,
+  now: number,
+): Session {
+  const index = lesson.questions.findIndex((q) => q.id === questionId);
+  const question = lesson.questions[index];
+  const record = session.records[index];
+  if (!question || !record) return session;
+  if (question.strategy !== "ai-writing" && question.strategy !== "limited-rubric") return session;
+  if (record.resolution !== "needs_review") return session;
+  if (evaluation.outcome !== "meets_goal" || evaluation.confidence === "low") return session;
+
+  const upgraded: QuestionRecord = {
+    ...record,
+    resolution: "correct",
+    classification: classify(record, true),
+  };
+  return {
+    ...session,
+    updatedAt: now,
+    records: session.records.map((r, i) => (i === index ? upgraded : r)),
+  };
+}

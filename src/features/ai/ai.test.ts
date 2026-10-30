@@ -79,7 +79,7 @@ describe("goal extraction: structured output validation", () => {
   it("sends bounded, strict requests: model from config, token cap, timeout, strict JSON schema with allowed ids", async () => {
     const { client, create } = mockClient(goodGoals);
     await createAiService(client, config({ OPENAI_MODEL: "my-cheap-model" }), skills).extractGoals("past tense");
-    const [args, opts] = create.mock.calls[0] as unknown as [Record<string, any>, Record<string, any>];
+    const [args, opts] = create.mock.calls[0] as unknown as [{ model: string; max_completion_tokens: number; response_format: { json_schema: { strict: boolean; schema: { properties: { candidateSkillIds: { items: { enum: string[] } } } } } } }, { timeout: number; maxRetries: number }];
     expect(args.model).toBe("my-cheap-model");
     expect(args.max_completion_tokens).toBe(350);
     expect(args.response_format.json_schema.strict).toBe(true);

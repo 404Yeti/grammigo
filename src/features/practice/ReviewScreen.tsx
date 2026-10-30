@@ -9,8 +9,10 @@ import { getSkill } from "@/data/grammar/skills";
 import { ReviewCard } from "@/components/lesson/ReviewCard";
 import { Migo } from "@/components/mascot/Migo";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { requireSkill } from "@/curriculum";
 import { collectEvidence } from "@/features/mastery/evidence";
-import { recommendNext } from "@/features/mastery/recommend";
+import { explainNextStep } from "@/features/learning/derive";
+import { useDerivedLearning } from "@/features/learning/use-learning";
 import { startSession } from "./actions";
 import { buildReviewItems } from "./review";
 import { getLatestCompleted, getSessionById } from "./selectors";
@@ -26,6 +28,7 @@ export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId:
   const searchParams = useSearchParams();
   const sessionId = sessionIdProp ?? searchParams.get("session") ?? undefined;
   const state = usePracticeState();
+  const learning = useDerivedLearning(state);
 
   const found = state ? (sessionId ? getSessionById(state, sessionId) : getLatestCompleted(state, lessonId)) : null;
   const session = found && found.status === "completed" && found.lessonId === lessonId ? found : null;
@@ -39,9 +42,10 @@ export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId:
   const evidence = collectEvidence(session, lesson);
   const strengths = evidence.filter((e) => e.independent > 0 && e.assisted + e.incorrect === 0);
   const practice = evidence.filter((e) => e.assisted + e.incorrect > 0);
-  const items = buildReviewItems(session, lesson);
-  const recommendation = recommendNext(evidence, lesson, (id) => getSkill(id).title);
-  const recommendedSkill = recommendation.skillId ? getSkill(recommendation.skillId) : null;
+  const items = buildReviewItems(session, lesson, (qid) => state?.writingFeedback[`${session.id}:${qid}`]);
+  const next = learning?.top ?? null;
+  const nextSkill = next ? requireSkill(next.skillId) : null;
+  const nextReason = state && learning ? explainNextStep(state, learning) : "";
 
   const practiceAgain = () => {
     startSession(lesson);
@@ -118,18 +122,22 @@ export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId:
         <section className="rounded-[20px] border border-brand bg-brand-soft p-4" data-testid="recommendation">
           <div className="flex items-center gap-3">
             <Migo expression="happy" size={64} />
-            <p className="flex-1 rounded-2xl border border-line bg-surface px-3.5 py-3 text-sm font-medium leading-5">
-              {recommendation.reason}
+            <p className="flex-1 rounded-2xl border border-line bg-surface px-3.5 py-3 text-sm font-medium leading-5" data-testid="next-reason">
+              {nextReason}
             </p>
           </div>
-          <div className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3">
-            <p className="text-base font-semibold leading-6">
-              {recommendedSkill ? recommendedSkill.title : lesson.title}
-            </p>
-            <p className="text-xs font-medium text-muted">
-              About {recommendation.minutes} minutes · {recommendation.exercises} exercises
-            </p>
-          </div>
+          {nextSkill && next && (
+            <Link
+              href={`/practice/${next.skillId}`}
+              className="mt-3 block rounded-2xl border border-line bg-surface px-4 py-3 hover:bg-subtle"
+              data-testid="next-lesson-link"
+            >
+              <p className="text-base font-semibold leading-6">{nextSkill.title}</p>
+              <p className="text-xs font-medium text-muted">
+                About {nextSkill.estimatedMinutes} minutes · {nextSkill.questions.length} exercises · open lesson
+              </p>
+            </Link>
+          )}
         </section>
 
         <div className="mt-4 flex flex-col gap-2.5">

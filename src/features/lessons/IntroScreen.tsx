@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { getCurriculumSkill } from "@/curriculum";
 import { getLesson } from "@/data/lessons";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { Migo } from "@/components/mascot/Migo";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GrammarTag } from "@/components/ui/GrammarTag";
-import { startSession } from "@/features/practice/actions";
+import { startSessionRecommended } from "@/features/practice/actions";
 import { getActiveSession } from "@/features/practice/selectors";
 import { usePracticeState } from "@/features/practice/use-practice-state";
 
@@ -20,8 +21,10 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
   const state = usePracticeState();
   const active = state ? getActiveSession(state, lessonId) : null;
 
+  const skill = getCurriculumSkill(lessonId);
+
   const start = () => {
-    if (!active) startSession(lesson);
+    if (!active) startSessionRecommended(lesson);
     router.push(`/practice/${lessonId}/session`);
   };
 
@@ -70,6 +73,25 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
             ))}
           </ul>
         </Card>
+
+        {skill && (
+          <details className="rounded-[20px] border border-line bg-surface p-4" data-testid="refresher">
+            <summary className="min-h-6 cursor-pointer text-sm font-bold leading-5">Quick refresher: the rule</summary>
+            <p className="mt-2 text-sm font-medium leading-5 text-ink-2">{skill.explanation.summary}</p>
+            <ul className="mt-2 space-y-1 text-sm font-medium leading-5">
+              {skill.explanation.examples.map((ex) => (
+                <li key={ex.text}>
+                  “{ex.text}”{ex.note && <span className="text-ink-2"> ({ex.note})</span>}
+                </li>
+              ))}
+            </ul>
+            {skill.commonMistakes[0] && (
+              <p className="mt-2 text-xs font-medium leading-4 text-ink-2">
+                Common mix-up: “{skill.commonMistakes[0].mistake}” → “{skill.commonMistakes[0].correction}”
+              </p>
+            )}
+          </details>
+        )}
 
         <div className="mt-auto flex flex-col gap-2.5 pt-4">
           <Button onClick={start}>{active ? "Continue Lesson" : "Start Lesson"}</Button>

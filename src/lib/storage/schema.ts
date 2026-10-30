@@ -88,7 +88,7 @@ export function isSession(v: unknown): v is Session {
   );
 }
 
-const STEPS = ["welcome", "concerns", "confirm", "quiz", "profile", "recommendation"];
+const STEPS = ["welcome", "concerns", "transcript", "confirm", "quiz", "profile", "recommendation"];
 const STATUSES = ["not_started", "in_progress", "completed", "skipped"];
 
 function parseOnboarding(v: unknown): OnboardingState {

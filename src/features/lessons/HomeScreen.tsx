@@ -1,16 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Clock } from "lucide-react";
-import { DEFAULT_LESSON_ID, getLesson } from "@/data/lessons";
-import { getSkill } from "@/data/grammar/skills";
+import { requireSkill } from "@/curriculum";
+import { getLesson } from "@/data/lessons";
 import { AppShell } from "@/components/layout/AppShell";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { Migo } from "@/components/mascot/Migo";
-import { ButtonLink } from "@/components/ui/Button";
+import { MasteryBadge } from "@/components/ui/MasteryBadge";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { GrammarTag, type TagStyle } from "@/components/ui/GrammarTag";
-import { collectEvidence } from "@/features/mastery/evidence";
-import { recommendNext } from "@/features/mastery/recommend";
+import { GrammarTag } from "@/components/ui/GrammarTag";
+import { explainNextStep } from "@/features/learning/derive";
+import { useDerivedLearning } from "@/features/learning/use-learning";
+import { restartOnboarding } from "@/features/onboarding/actions";
 import { getActiveSession, getCompletedSessions } from "@/features/practice/selectors";
 import { summarizeSession } from "@/features/practice/summary";
 import { usePracticeState } from "@/features/practice/use-practice-state";
@@ -21,10 +26,18 @@ function Skeleton({ className }: { className: string }) {
 }
 
 export function HomeScreen() {
-  const lesson = getLesson(DEFAULT_LESSON_ID)!;
+  const router = useRouter();
   const state = usePracticeState();
+  const learning = useDerivedLearning(state);
 
-  if (!state) {
+  // A brand-new learner meets Migo first. Anyone with history (including v0.1 learners) is never forced.
+  const isNew = state ? state.onboarding.status === "not_started" && state.sessions.length === 0 : false;
+  const inFlow = state?.onboarding.status === "in_progress";
+  useEffect(() => {
+    if (isNew || inFlow) router.replace("/onboarding");
+  }, [isNew, inFlow, router]);
+
+  if (!state || !learning || isNew || inFlow) {
     return (
       <AppShell>
         <div className="mx-auto max-w-[1100px] px-4 pt-3 lg:px-14 lg:pt-5" aria-busy="true">
@@ -39,23 +52,24 @@ export function HomeScreen() {
     );
   }
 
-  const active = getActiveSession(state, lesson.id);
-  const completed = getCompletedSessions(state, lesson.id);
+  const active = getActiveSession(state);
+  const activeLesson = active ? getLesson(active.lessonId) : null;
+  const completed = getCompletedSessions(state);
   const latest = completed[0] ?? null;
-  const evidence = latest ? collectEvidence(latest, lesson) : [];
-  const recommendation = latest
-    ? recommendNext(evidence, lesson, (id) => getSkill(id).title)
-    : null;
   const latestSummary = latest ? summarizeSession(latest) : null;
+  const top = learning.top;
+  const topLesson = top ? getLesson(top.skillId) : null;
+  const dueReviews = learning.recommendations.filter((r) => r.kind === "review").slice(0, 3);
+  const profile = learning.profile;
+  const hasEvidence = profile.entries.some((e) => e.bucket !== "unassessed");
+  const skipped = state.onboarding.status === "skipped" && state.diagnosticRuns.length === 0;
 
-  const skillRows = [...new Map(lesson.questions.map((q) => [q.skillId, getSkill(q.skillId)])).values()];
-  const label = (skillId: string): { text: string; style: TagStyle } => {
-    const ev = evidence.find((e) => e.skillId === skillId);
-    if (!ev) return { text: "Not assessed", style: "neutral" };
-    if (ev.incorrect + ev.assisted > 0) return { text: "Needs practice", style: "warning" };
-    if (ev.independent > 0) return { text: "Learning", style: "info" };
-    return { text: "Not assessed", style: "neutral" };
-  };
+  const heroLesson = active ? activeLesson : topLesson;
+  const heroText = active
+    ? `You’re on question ${active.currentIndex + 1} of ${activeLesson?.questions.length}. Your progress was saved when you left.`
+    : top
+      ? explainNextStep(state, learning)
+      : "";
 
   return (
     <AppShell>
@@ -73,40 +87,75 @@ export function HomeScreen() {
                   {active ? "Lesson in progress" : "Recommended for you"}
                 </p>
                 <h2 id="next-step" className="mt-2 text-2xl font-bold leading-8 tracking-[-0.3px]">
-                  {lesson.title}
+                  {heroLesson?.title ?? "Pick a lesson"}
                 </h2>
                 <p className="mt-2 text-sm font-medium leading-5 text-ink-2" data-testid="next-step-text">
-                  {active
-                    ? `You’re on question ${active.currentIndex + 1} of ${lesson.questions.length}. Your progress was saved when you left.`
-                    : recommendation
-                      ? recommendation.reason
-                      : lesson.homeReason}
+                  {heroText}
                 </p>
               </div>
               <Migo expression="encouraging" size={99} className="hidden min-[380px]:inline-block" />
             </div>
-            <ButtonLink
-              href={active ? `/practice/${lesson.id}/session` : `/practice/${lesson.id}`}
-              className="mt-5"
-            >
-              {active ? "Continue Lesson" : "Start Practice"}
-            </ButtonLink>
+            {heroLesson && (
+              <ButtonLink
+                href={active ? `/practice/${heroLesson.id}/session` : `/practice/${heroLesson.id}`}
+                className="mt-5"
+              >
+                {active ? "Continue Lesson" : "Start Practice"}
+              </ButtonLink>
+            )}
             <p className="mt-4 text-xs font-medium leading-4 text-ink-2">
               {active ? (
                 <>
-                  <span className="font-bold text-ink">Saved {timeAgo(active.updatedAt)}</span> · You can pick up
-                  exactly where you stopped.
+                  <span className="font-bold text-ink">Saved {timeAgo(active.updatedAt)}</span> · You can pick up exactly where you stopped.
                 </>
               ) : (
                 <>
                   <span className="font-bold text-ink">Why this?</span>{" "}
-                  {latest ? "Based on your last session." : "A good place to start with verb tenses."}
+                  {hasEvidence ? "Based on your quick check and lessons." : "A friendly place to start."}{" "}
+                  <Link href="/library" className="font-bold text-brand-text underline underline-offset-4">
+                    Choose another lesson
+                  </Link>
                 </>
               )}
             </p>
           </section>
 
           <div className="flex flex-col gap-4">
+            {skipped && (
+              <Card className="p-5" aria-labelledby="meet-migo">
+                <h2 id="meet-migo" className="text-xl font-bold leading-7">Want a better starting point?</h2>
+                <p className="mt-1 text-sm font-medium leading-5 text-ink-2">
+                  Tell Migo what’s tricky and answer a few quick questions. It takes about two minutes.
+                </p>
+                <Button
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => {
+                    restartOnboarding("concerns");
+                    router.push("/onboarding");
+                  }}
+                >
+                  Tell Migo
+                </Button>
+              </Card>
+            )}
+
+            {dueReviews.length > 0 && (
+              <Card className="p-5" aria-labelledby="review-due" data-testid="review-due">
+                <h2 id="review-due" className="text-xl font-bold leading-7">Review due</h2>
+                <ul className="mt-2 space-y-2">
+                  {dueReviews.map((r) => (
+                    <li key={r.skillId}>
+                      <Link href={`/practice/${r.skillId}`} className="flex items-center justify-between gap-3 text-base font-medium leading-6 hover:underline">
+                        <span>{requireSkill(r.skillId).title}</span>
+                        <GrammarTag style="brand">Review</GrammarTag>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
             {latest && latestSummary && (
               <Card className="p-5" aria-labelledby="last-session">
                 <div className="flex items-center justify-between gap-3">
@@ -115,6 +164,7 @@ export function HomeScreen() {
                     <Clock size={13} aria-hidden /> {timeAgo(latest.completedAt ?? latest.updatedAt)}
                   </GrammarTag>
                 </div>
+                <p className="mt-1 text-sm font-semibold text-ink-2">{getLesson(latest.lessonId)?.title}</p>
                 <dl className="mt-3 space-y-2 text-base font-medium leading-6">
                   <div className="flex justify-between" data-testid="home-independent">
                     <dt className="text-ink-2">Correct on your own</dt>
@@ -134,41 +184,56 @@ export function HomeScreen() {
                 <p className="mt-2 text-xs font-medium text-muted">
                   {completed.length} {completed.length === 1 ? "session" : "sessions"} completed
                 </p>
-                <ButtonLink
-                  href={`/practice/${lesson.id}/review?session=${latest.id}`}
-                  variant="secondary"
-                  className="mt-4"
-                >
+                <ButtonLink href={`/practice/${latest.lessonId}/review?session=${latest.id}`} variant="secondary" className="mt-4">
                   Review last lesson
                 </ButtonLink>
               </Card>
             )}
 
-            <Card className="p-5" aria-labelledby="progress-title">
-              <h2 id="progress-title" className="text-xl font-bold leading-7">Your progress</h2>
-              {latest ? (
-                <ul className="mt-3 space-y-3">
-                  {skillRows.map((skill) => {
-                    const l = label(skill.id);
-                    return (
-                      <li key={skill.id} className="flex items-center justify-between gap-3 text-base font-medium leading-6">
-                        <span>{skill.title}</span>
-                        <GrammarTag style={l.style} className="shrink-0">{l.text}</GrammarTag>
+            <Card className="p-5" aria-labelledby="progress-title" data-testid="home-profile">
+              <h2 id="progress-title" className="text-xl font-bold leading-7">Your learning profile</h2>
+              {hasEvidence ? (
+                <>
+                  <ul className="mt-3 space-y-3">
+                    {[...profile.weaknesses, ...profile.inProgress, ...profile.strengths].slice(0, 5).map((e) => (
+                      <li key={e.skillId} className="flex items-center justify-between gap-3 text-base font-medium leading-6">
+                        <span>{e.title}</span>
+                        <span className="shrink-0"><MasteryBadge mastery={e.mastery} /></span>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs font-medium leading-4 text-muted">
+                    {profile.unassessed.length} {profile.unassessed.length === 1 ? "area isn’t" : "areas aren’t"} checked yet (not the same as weak). {profile.caveat}
+                  </p>
+                </>
               ) : (
                 <p className="mt-2 text-sm font-medium leading-5 text-ink-2">
-                  After a few questions, we’ll show what’s going well and what to review. Nothing is “weak”
-                  until we have evidence.
+                  After a few questions, we’ll show what’s going well and what to review. Nothing is “weak” until we have evidence.
                 </p>
               )}
-              {latest && (
-                <p className="mt-3 text-xs font-medium leading-4 text-muted">
-                  Based on your latest attempt. One lesson is a good step, not proof of mastery.
-                </p>
-              )}
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm font-bold text-brand-text">
+                <Link href="/library" className="min-h-11 py-2.5 underline underline-offset-4">Browse all lessons</Link>
+                <button
+                  type="button"
+                  className="min-h-11 py-2.5 underline underline-offset-4"
+                  onClick={() => {
+                    restartOnboarding("concerns");
+                    router.push("/onboarding");
+                  }}
+                >
+                  Update my goals
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 py-2.5 underline underline-offset-4"
+                  onClick={() => {
+                    restartOnboarding("quiz");
+                    router.push("/onboarding");
+                  }}
+                >
+                  Retake the quick check
+                </button>
+              </div>
             </Card>
           </div>
         </div>

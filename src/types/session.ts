@@ -90,7 +90,7 @@ export interface LearnerGoals {
   updatedAt: number;
 }
 
-export type OnboardingStep = "welcome" | "concerns" | "confirm" | "quiz" | "profile" | "recommendation";
+export type OnboardingStep = "welcome" | "concerns" | "transcript" | "confirm" | "quiz" | "profile" | "recommendation";
 export type OnboardingStatus = "not_started" | "in_progress" | "completed" | "skipped";
 
 export interface OnboardingState {

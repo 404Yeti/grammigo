@@ -225,5 +225,8 @@ export function explainRecommendationChange(input: {
     : "";
 
   if (same) return `${finished}We’re still suggesting “${titleOf(next.skillId)}”. ${next.reason}`;
+  if (previous.skillId === next.skillId) {
+    return `${finished}We’re still suggesting “${titleOf(next.skillId)}”, but for a different reason now. ${next.reason}`;
+  }
   return `${finished}Last time we suggested “${titleOf(previous.skillId)}”; now we suggest “${titleOf(next.skillId)}” instead. ${next.reason}`;
 }

@@ -4,19 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, BookOpen, Home } from "lucide-react";
 import type { ReactNode } from "react";
-import { DEFAULT_LESSON_ID } from "@/data/lessons";
 import { cn } from "@/lib/utils/cn";
 import { Wordmark } from "./Wordmark";
 
 const ITEMS = [
   { label: "Home", href: "/", icon: Home },
-  { label: "Practice", href: `/practice/${DEFAULT_LESSON_ID}`, icon: BookOpen },
+  { label: "Practice", href: "/library", icon: BookOpen },
   { label: "Progress", href: null, icon: BarChart3 },
 ] as const;
 
 function isActive(pathname: string, href: string | null): boolean {
   if (!href) return false;
-  return href === "/" ? pathname === "/" : pathname.startsWith("/practice");
+  return href === "/" ? pathname === "/" : pathname.startsWith("/practice") || pathname.startsWith("/library");
 }
 
 function NavItem({ item, pathname, layout }: { item: (typeof ITEMS)[number]; pathname: string; layout: "bottom" | "side" }) {

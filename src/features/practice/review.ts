@@ -1,5 +1,5 @@
 import type { Lesson, Question } from "@/types/lesson";
-import type { QuestionRecord, Session } from "@/types/session";
+import type { QuestionRecord, Session, StoredWritingFeedback } from "@/types/session";
 import type { ReviewDetail, ReviewResult } from "@/components/lesson/ReviewCard";
 
 export interface ReviewItem {
@@ -27,7 +27,11 @@ export function describeHelp(record: Pick<QuestionRecord, "hintsUsed" | "attempt
 }
 
 /** Builds review content only from the recorded attempt history. Nothing is hard-coded. */
-export function buildReviewItems(session: Session, lesson: Lesson): ReviewItem[] {
+export function buildReviewItems(
+  session: Session,
+  lesson: Lesson,
+  feedbackFor: (questionId: string) => StoredWritingFeedback | undefined = () => undefined,
+): ReviewItem[] {
   return lesson.questions.flatMap((question, index) => {
     const record = session.records[index];
     if (!record || record.resolution === "open") return [];
@@ -47,6 +51,11 @@ export function buildReviewItems(session: Session, lesson: Lesson): ReviewItem[]
       tone: record.resolution === "needs_review" ? undefined : "success",
     });
     details.push({ label: "Help used", value: describeHelp(record) });
+    const fb = feedbackFor(question.id);
+    if (fb?.status === "ready" && fb.explanation) {
+      details.push({ label: "Feedback", value: fb.explanation });
+      if (fb.suggestedCorrection) details.push({ label: "A corrected version", value: fb.suggestedCorrection });
+    }
 
     return [
       {

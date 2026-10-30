@@ -1,9 +1,12 @@
 import type { Lesson } from "@/types/lesson";
-import type { Session, StoredState } from "@/types/session";
-import { updateState } from "@/lib/storage/store";
+import { deriveLearning, snapshotOf } from "@/features/learning/derive";
+import type { RecommendationSnapshot } from "@/features/learning/recommend";
+import type { Session, StoredState, StoredWritingFeedback } from "@/types/session";
+import { getSnapshot, updateState } from "@/lib/storage/store";
 import {
   abandonSession,
   advance,
+  applyWritingEvaluation,
   createSession,
   markWhyViewed,
   retry,
@@ -24,19 +27,49 @@ function withActive(state: StoredState, sessions: Session[], preferred: string |
 }
 
 /** Starts a brand-new attempt. Completed attempts are never touched; an unfinished one is abandoned. */
-export function startSession(lesson: Lesson, now = Date.now()): string {
+export function startSession(lesson: Lesson, now = Date.now(), recommended?: RecommendationSnapshot | null): string {
   const id = newId();
   updateState((state) => {
     const sessions = state.sessions.map((s) => abandonSession(s, now));
-    return withActive(state, [...sessions, createSession(lesson, id, now)], id);
+    const next = withActive(state, [...sessions, createSession(lesson, id, now)], id);
+    // Remember what we were recommending when this lesson began, so we can explain what changed afterwards.
+    return recommended ? { ...next, lastRecommendation: recommended } : next;
   });
   return id;
+}
+
+/** Starts a lesson and remembers what we were recommending, so a later change can be explained. */
+export function startSessionRecommended(lesson: Lesson): string {
+  const now = Date.now();
+  const top = deriveLearning(getSnapshot(), now).top;
+  return startSession(lesson, now, snapshotOf(top, now));
 }
 
 function mutate(sessionId: string, fn: (session: Session) => Session): void {
   updateState((state) => {
     const sessions = state.sessions.map((s) => (s.id === sessionId ? fn(s) : s));
     return withActive(state, sessions, state.activeSessionId);
+  });
+}
+
+/** Stores optional AI writing feedback and, if it confidently confirms the goal, upgrades the answer. */
+export function attachWritingFeedback(
+  sessionId: string,
+  lesson: Lesson,
+  questionId: string,
+  feedback: StoredWritingFeedback,
+  now = Date.now(),
+): void {
+  updateState((state) => {
+    const sessions = state.sessions.map((s) =>
+      s.id === sessionId && feedback.status === "ready" && feedback.outcome && feedback.confidence
+        ? applyWritingEvaluation(s, lesson, questionId, { outcome: feedback.outcome, confidence: feedback.confidence }, now)
+        : s,
+    );
+    return {
+      ...withActive(state, sessions, state.activeSessionId),
+      writingFeedback: { ...state.writingFeedback, [`${sessionId}:${questionId}`]: feedback },
+    };
   });
 }
 

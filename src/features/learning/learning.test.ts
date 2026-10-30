@@ -293,6 +293,19 @@ describe("recommendation explanations", () => {
     expect(text).toMatch(/6 that needed help or were missed/);
   });
 
+  it("says so when the lesson is the same but the reason changed", () => {
+    const next = recs(sitting("a1-articles", "s1", eight("correct_first_try", 6)))[0];
+    const text = explainRecommendationChange({ previous: { skillId: next.skillId, kind: "new", at: NOW }, next, titleOf });
+    expect(text).toMatch(/still suggesting “Articles: a, an, the”, but for a different reason/);
+    expect(text).not.toMatch(/instead/);
+  });
+
+  it("names both lessons when the suggestion actually changes", () => {
+    const next = recs(sitting("a1-articles", "s1", eight("correct_first_try", 6)))[0];
+    const text = explainRecommendationChange({ previous: { skillId: "a2-comparatives", kind: "new", at: NOW }, next, titleOf });
+    expect(text).toMatch(/Last time we suggested “Comparatives and superlatives”; now we suggest “Articles: a, an, the” instead/);
+  });
+
   it("says when it is still the same suggestion", () => {
     const next = recs(sitting("a1-articles", "s1", eight("correct_first_try", 6)))[0];
     const text = explainRecommendationChange({ previous: { skillId: next.skillId, kind: next.kind, at: NOW }, next, titleOf });

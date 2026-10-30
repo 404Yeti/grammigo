@@ -13,7 +13,8 @@ import { MigoBubble } from "@/components/mascot/MigoBubble";
 import type { AnswerState } from "@/components/ui/AnswerOption";
 import { Button } from "@/components/ui/Button";
 import { GrammarTag } from "@/components/ui/GrammarTag";
-import { practiceActions } from "./actions";
+import { fetchAiStatus, requestWritingFeedback } from "@/features/ai/client";
+import { attachWritingFeedback, practiceActions } from "./actions";
 import { getActiveSession } from "./selectors";
 import { canRetry, currentQuestion, currentRecord, isLastQuestion } from "./session";
 import { usePracticeState } from "./use-practice-state";
@@ -36,6 +37,8 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [exitOpen, setExitOpen] = useState(false);
   const leaving = useRef(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const requested = useRef(new Set<string>());
 
   const promptRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -60,6 +63,31 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
     if (phase === "feedback") continueRef.current?.focus({ preventScroll: true });
     if (phase === "answering") inputRef.current?.focus({ preventScroll: true });
   }, [phase, index]);
+
+  useEffect(() => {
+    let live = true;
+    fetchAiStatus().then((s) => live && setAiAvailable(s.available));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // Optional AI feedback for writing that could not be verified deterministically. It never blocks
+  // Continue, and the answer is already saved as "needs review" before this runs.
+  const writingState = state;
+  useEffect(() => {
+    if (!aiAvailable || !session || !writingState || session.phase !== "feedback") return;
+    const q = lesson.questions[session.currentIndex];
+    const rec = session.records[session.currentIndex];
+    if (rec.resolution !== "needs_review") return;
+    const key = `${session.id}:${q.id}`;
+    if (writingState.writingFeedback[key] || requested.current.has(key)) return;
+    requested.current.add(key);
+    const sessionId = session.id;
+    requestWritingFeedback({ skillId: lesson.id, questionId: q.id, text: rec.finalAnswer ?? "" }).then((fb) =>
+      attachWritingFeedback(sessionId, lesson, q.id, fb ? { status: "ready", at: Date.now(), ...fb } : { status: "unavailable", at: Date.now() }),
+    );
+  }, [aiAvailable, session, writingState, lesson]);
 
   if (!session) {
     return <div className="min-h-dvh" aria-busy="true" />;
@@ -131,6 +159,30 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
     }
   };
 
+  const feedbackKey = `${session.id}:${question.id}`;
+  const stored = state?.writingFeedback[feedbackKey];
+  const aiNote =
+    kind === "needs-review" ? (
+      stored?.status === "ready" ? (
+        <div className="mt-3 rounded-2xl bg-surface/80 px-4 py-3 text-sm font-medium leading-5" data-testid="ai-feedback">
+          <p>{stored.explanation}</p>
+          {stored.suggestedCorrection && (
+            <p className="mt-2">
+              <span className="font-bold">A corrected version: </span>
+              {stored.suggestedCorrection}
+            </p>
+          )}
+          {stored.outcome === "needs_work" && (
+            <p className="mt-2 text-xs text-ink-2">This is feedback only. It doesn’t change your result.</p>
+          )}
+        </div>
+      ) : aiAvailable && !stored ? (
+        <p role="status" className="mt-3 text-sm font-semibold text-ink-2" data-testid="ai-pending">
+          Checking your writing… you can keep going.
+        </p>
+      ) : null
+    ) : null;
+
   const showWhy = kind === "exhausted" || (kind === "incorrect" && record.whyViewed);
   const announcement = kind ? `${title} ${body}` : "";
   const nextHint = record.hintsUsed > 0 ? question.hints[record.hintsUsed - 1] : null;
@@ -201,7 +253,9 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
               onContinue={onContinue}
               continueRef={continueRef}
               continueLabel={isLastQuestion(session) ? "Finish lesson" : "Continue"}
-            />
+            >
+              {aiNote}
+            </FeedbackPanel>
           ) : (
             <>
               <MigoBubble expression={retrying ? "encouraging" : hasDraft ? "idle" : "thinking"}>
