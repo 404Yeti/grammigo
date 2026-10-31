@@ -99,23 +99,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Phase 2 adds supabase/config.toml and the row-level-security isolation tests. Until then this job is skipped
-  # (shown as skipped, not failed). It runs the local Supabase stack on the runner's Docker; no cloud project is touched.
+  # Phase 2 adds supabase/config.toml and the row-level-security isolation tests. Until then the steps below are skipped and the
+  # job passes immediately. It runs the local Supabase stack on the runner's Docker; no cloud project is touched.
   db-isolation:
     name: Database isolation
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ hashFiles('supabase/config.toml') != '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: Is there a database project yet?
+        id: has_db
+        run: |
+          if [ -f supabase/config.toml ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "No supabase/config.toml yet: nothing to isolate-test."; fi
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.has_db.outputs.found == 'true'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - if: steps.has_db.outputs.found == 'true'
+        run: npm ci
       - name: Start the local Supabase stack
+        if: steps.has_db.outputs.found == 'true'
         run: npx --yes supabase@2.122.0 start
       - name: Run the isolation tests
+        if: steps.has_db.outputs.found == 'true'
         run: npm run test:db
