@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { UpstashRateLimiter } from "./rate-limit";
+import { guardRequest } from "./guard";
+import { readAiConfig } from "./config";
+import { UpstashRateLimiter, type RateLimiter } from "./rate-limit";
 
 /**
  * LIVE check of the durable limiter against a real Upstash Redis. Skipped unless credentials are
@@ -52,5 +54,62 @@ describe.skipIf(!url || !token)("UpstashRateLimiter against a real Upstash insta
   it("fails closed (throws) when the token is wrong, so the guard can answer 503", async () => {
     const bad = new UpstashRateLimiter(url!, "not-the-token");
     await expect(bad.hit(unique(), 1, 60)).rejects.toThrow();
+  });
+
+  describe("through the real request guard (throwaway key prefix, never touches production counters)", () => {
+    const prefixed = (run: string): RateLimiter => {
+      const real = limiter();
+      return { hit: (key, limit, windowSec) => real.hit(`${run}:${key}`, limit, windowSec) };
+    };
+    const req = () =>
+      new Request("https://grammigo.example/api/ai/writing-feedback", {
+        method: "POST",
+        headers: { origin: "https://grammigo.example", host: "grammigo.example", "content-length": "100", "x-forwarded-for": "203.0.113.7" },
+      });
+    const config = (cap: string) =>
+      readAiConfig({
+        NODE_ENV: "production",
+        AI_FEATURES_ENABLED: "true",
+        OPENAI_API_KEY: "placeholder-not-used",
+        UPSTASH_REDIS_REST_URL: url!,
+        UPSTASH_REDIS_REST_TOKEN: token!,
+        AI_DAILY_CALL_CAP: cap,
+      });
+
+    it("the global daily call cap stops everyone once it is spent (503 budget)", async () => {
+      const limiterForRun = prefixed(unique());
+      const cfg = config("3");
+      const statuses: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        // vary the client so only the GLOBAL cap, not a per-client limit, can be what stops us
+        const r = new Request("https://grammigo.example/api/ai/writing-feedback", {
+          method: "POST",
+          headers: { origin: "https://grammigo.example", host: "grammigo.example", "content-length": "100", "x-forwarded-for": `198.51.100.${i + 1}` },
+        });
+        const g = await guardRequest(r, "writing", cfg, limiterForRun, 10_000);
+        statuses.push(g.ok ? 200 : g.response.status);
+      }
+      expect(statuses).toEqual([200, 200, 200, 503, 503]);
+    });
+
+    it("one client is stopped by its own per-minute limit (429) before the global cap", async () => {
+      const limiterForRun = prefixed(unique());
+      const cfg = config("1000");
+      const perMinute = cfg.limits.perMinute.writing;
+      const statuses: number[] = [];
+      for (let i = 0; i < perMinute + 2; i++) {
+        const g = await guardRequest(req(), "writing", cfg, limiterForRun, 10_000);
+        statuses.push(g.ok ? 200 : g.response.status);
+      }
+      expect(statuses.slice(0, perMinute).every((s) => s === 200)).toBe(true);
+      expect(statuses.slice(perMinute)).toEqual([429, 429]);
+    });
+
+    it("fails closed with 503 when Upstash is unreachable", async () => {
+      const dead = new UpstashRateLimiter("https://127.0.0.1:1", "x");
+      const g = await guardRequest(req(), "writing", config("10"), dead, 10_000);
+      expect(g.ok).toBe(false);
+      expect(!g.ok && g.response.status).toBe(503);
+    });
   });
 });
