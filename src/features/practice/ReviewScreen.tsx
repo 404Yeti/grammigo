@@ -13,6 +13,7 @@ import { requireSkill } from "@/curriculum";
 import { collectEvidence } from "@/features/mastery/evidence";
 import { explainNextStep } from "@/features/learning/derive";
 import { useDerivedLearning } from "@/features/learning/use-learning";
+import { GuidedEntryCard } from "@/features/guided/ui/GuidedEntryCard";
 import { startSession } from "./actions";
 import { buildReviewItems } from "./review";
 import { getLatestCompleted, getSessionById } from "./selectors";
@@ -139,6 +140,8 @@ export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId:
             </Link>
           )}
         </section>
+
+        <GuidedEntryCard lessonId={lessonId} variant="review" />
 
         <div className="mt-4 flex flex-col gap-2.5">
           <ButtonLink href="/">Return Home</ButtonLink>

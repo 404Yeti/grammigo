@@ -13,6 +13,7 @@ import { GrammarTag } from "@/components/ui/GrammarTag";
 import { startSessionRecommended } from "@/features/practice/actions";
 import { getActiveSession } from "@/features/practice/selectors";
 import { usePracticeState } from "@/features/practice/use-practice-state";
+import { GuidedEntryCard } from "@/features/guided/ui/GuidedEntryCard";
 
 
 export function IntroScreen({ lessonId }: { lessonId: string }) {
@@ -92,6 +93,8 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
             )}
           </details>
         )}
+
+        <GuidedEntryCard lessonId={lessonId} variant="intro" />
 
         <div className="mt-auto flex flex-col gap-2.5 pt-4">
           <Button onClick={start}>{active ? "Continue Lesson" : "Start Lesson"}</Button>

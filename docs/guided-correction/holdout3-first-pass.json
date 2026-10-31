@@ -1,0 +1,1204 @@
+{
+  "evaluatorVersion": "1.0.0",
+  "note": "First-pass result on a set written after the evaluator was frozen. No tuning followed.",
+  "summary": {
+    "totals": {
+      "cases": 95,
+      "expectedCorrect": 53,
+      "expectedIncorrect": 29,
+      "expectedUncertain": 13,
+      "spoken": 8
+    },
+    "falseWrong": {
+      "total": 0,
+      "onValid": 0,
+      "onAmbiguous": 0,
+      "list": []
+    },
+    "errors": {
+      "detected": 27,
+      "missedToUncertain": 1,
+      "acceptedAsCorrect": 1,
+      "wrongCategory": 2,
+      "recall": 0.9310344827586207,
+      "missedList": [
+        "[transferUnfinished/typed] “I study English since I was twelve.” expected incorrect(since_without_perfect) got uncertain [no_tense_evidence]"
+      ],
+      "acceptedList": [
+        "[transferUnfinished/typed] “I have learned English for I was a child.” expected incorrect(since_for_confusion) got correct [present_perfect]"
+      ],
+      "wrongCategoryList": [
+        "[transferUnfinished/typed] “I learn English since four years.” expected incorrect(since_without_perfect) got incorrect(since_for_confusion) [since_with_duration]",
+        "[transferUnfinished/typed] “I have began to learn English two years ago.” expected incorrect(participle_form) got incorrect(pp_with_finished_time) [perfect_with_finished_marker]"
+      ]
+    },
+    "valid": {
+      "recognised": 53,
+      "missedToUncertain": 0,
+      "recognisedRate": 1,
+      "alternatives": 14,
+      "alternativesAccepted": 14,
+      "missedList": []
+    },
+    "unrelatedErrors": {
+      "cases": 3,
+      "ignored": 3
+    },
+    "ambiguous": {
+      "asExpected": 13,
+      "lenientlyCorrect": 0,
+      "lenientList": []
+    },
+    "uncertainRate": {
+      "overall": 0.14736842105263157,
+      "onValidAnswers": 0
+    },
+    "spoken": {
+      "cases": 8,
+      "falseWrong": 0
+    }
+  },
+  "perCase": [
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I cleaned the kitchen and listened to a podcast.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "We ordered pizza and watched a documentary about space.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I visited my aunt, she lives near the river.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Yesterday evening I had a long phone call with my best friend.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I was studying for my exam until midnight.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I didn't do much. I just lay on the sofa.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I've been tired all week, so I went to bed at eight.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form_in_separate_clause"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "After work I met my brother and we played tennis.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Not much, I stayed home.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I cooked a big dinner for my parents, who had arrived that afternoon.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I took my dog for a long walk in the park.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Yesterday evening I finally finished the book I started in March.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "We went bowling, which was great fun.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I wrote some emails and then I relaxed.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "spoken",
+      "text": "uh yesterday evening i i made some soup and i watched tv",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "spoken",
+      "text": "i went to my friends place for dinner",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "i helped my mum with the shopping",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I sat on the balcony and read the newspaper.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have washed the car yesterday evening.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Yesterday evening I have watched two episodes of my favourite series.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "We have eaten at a Thai restaurant last night.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I've written three letters yesterday.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have talked to my teacher an hour ago.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Last night I have slept very badly.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have repaired my laptop yesterday evening and then I went to bed.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "spoken",
+      "text": "i have seen my cousin yesterday evening",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have swam in the pool this week.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have drank too much coffee today.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "She has spoke to me about it already.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "Sorry, can you repeat the question?",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence",
+        "after_self_repair"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I usually watch TV in the evening.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "present_form_for_finished_question"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I am going to visit my grandparents tomorrow.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    },
+    {
+      "item": "main",
+      "source": "typed",
+      "text": "I have just come home.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "perfect_without_finished_marker"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I went to Portugal with my family.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "We spent a week in the mountains and we hiked every day.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I travelled around Japan last summer.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "Last year we stayed at a small hotel by the sea.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I didn't go anywhere. I stayed at home.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "Italy, it was wonderful.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I visited some old friends in Canada, whom I hadn't seen for years.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "We drove to the coast and camped for three nights.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "spoken",
+      "text": "um we went to to greece last august it was really hot",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "My last holiday was in Turkey.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I've been to Spain many times but my last holiday was in Wales.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_form_in_separate_clause"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I have gone to Croatia last summer.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "We have visited Rome two years ago.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "Last August I have travelled to Iceland.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I've been to the beach last weekend.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I have flew to Dubai twice.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "We have wrote postcards to everyone.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "Where do you think I should go?",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "present_form_for_finished_question"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I want to go to Australia one day.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "present_form_for_finished_question"
+      ]
+    },
+    {
+      "item": "transferFinished",
+      "source": "typed",
+      "text": "I go to the seaside every year.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "present_form_for_finished_question"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have been learning English for six years.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I've been learning it since 2019.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "For about three years.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "natural_short_answer"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "Since I was a teenager.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "natural_short_answer"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have studied English since I started secondary school.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I've learned English for ten months now.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "We have been doing lessons together for two years, my teacher and I.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "Not very long, only a few weeks.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "natural_short_answer"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "spoken",
+      "text": "i have been learning english for like four years now",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "spoken",
+      "text": "um since last september",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "natural_short_answer"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I started learning English in 2020 and I still study it every day.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have been studying english since last year",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I learn English since four years.",
+      "expected": "incorrect",
+      "expectedCategory": "since_without_perfect",
+      "got": "incorrect",
+      "gotCategory": "since_for_confusion",
+      "reasons": [
+        "since_with_duration"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I am learning English since 2021.",
+      "expected": "incorrect",
+      "expectedCategory": "since_without_perfect",
+      "got": "incorrect",
+      "gotCategory": "since_without_perfect",
+      "reasons": [
+        "since_without_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I study English since I was twelve.",
+      "expected": "incorrect",
+      "expectedCategory": "since_without_perfect",
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have been learning English since three years.",
+      "expected": "incorrect",
+      "expectedCategory": "since_for_confusion",
+      "got": "incorrect",
+      "gotCategory": "since_for_confusion",
+      "reasons": [
+        "since_with_duration"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I've studied English for 2018.",
+      "expected": "incorrect",
+      "expectedCategory": "since_for_confusion",
+      "got": "incorrect",
+      "gotCategory": "since_for_confusion",
+      "reasons": [
+        "for_with_point"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have learned English for I was a child.",
+      "expected": "incorrect",
+      "expectedCategory": "since_for_confusion",
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I have began to learn English two years ago.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "What a good question!",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_finite_verb"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I will learn English next year.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    },
+    {
+      "item": "transferUnfinished",
+      "source": "typed",
+      "text": "I learned English at school.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I tried octopus once and I didn't enjoy it.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "short_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I have. I tried durian in Malaysia and it smelled awful.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "short_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "No, never.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "short_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I've never tried anything I really hated.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, last year I ate a very spicy curry and I couldn't finish it.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "short_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Once, in a restaurant in Seoul, I tasted something that I didn't like at all.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_simple_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I have tried sushi, but I didn't like it.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I have tried liver. I hate it.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Mushrooms. I tried them as a child and I never liked them.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_simple_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "spoken",
+      "text": "yes um i tried blue cheese last year and i i didnt like it",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "past_simple_answer"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "spoken",
+      "text": "no i have never tried a food i didnt like",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I have tryed snails once.",
+      "expected": "correct",
+      "expectedCategory": null,
+      "got": "correct",
+      "gotCategory": null,
+      "reasons": [
+        "present_perfect"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I have tried a strange soup last week and I didn't like it.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I have eaten raw fish yesterday and it was horrible.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I have tasted goat cheese in 2019.",
+      "expected": "incorrect",
+      "expectedCategory": "pp_with_finished_time",
+      "got": "incorrect",
+      "gotCategory": "pp_with_finished_time",
+      "reasons": [
+        "perfect_with_finished_marker"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I have ate something terrible once.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "Yes, I have tasted worms. I have never forgot it.",
+      "expected": "incorrect",
+      "expectedCategory": "participle_form",
+      "got": "incorrect",
+      "gotCategory": "participle_form",
+      "reasons": [
+        "wrong_participle"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I like all food.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "What about you?",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_finite_verb"
+      ]
+    },
+    {
+      "item": "experience",
+      "source": "typed",
+      "text": "I will try new food tomorrow.",
+      "expected": "uncertain",
+      "expectedCategory": null,
+      "got": "uncertain",
+      "gotCategory": null,
+      "reasons": [
+        "no_tense_evidence"
+      ]
+    }
+  ]
+}

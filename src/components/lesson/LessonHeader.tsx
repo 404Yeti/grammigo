@@ -7,17 +7,21 @@ interface LessonHeaderProps {
   current: number;
   total: number;
   onExit: () => void;
+  /** Other activities reuse this header: they replace the default “Question n of total” wording. */
+  stepText?: string;
+  progressLabel?: string;
+  exitLabel?: string;
 }
 
 /** Minimal lesson header: exit, wordmark, 8-step progress and “Question n of 8”. */
-export function LessonHeader({ current, total, onExit }: LessonHeaderProps) {
+export function LessonHeader({ current, total, onExit, stepText, progressLabel = "Lesson progress", exitLabel = "Exit lesson" }: LessonHeaderProps) {
   return (
     <header className="flex flex-col gap-1.5">
       <div className="flex h-11 items-center">
         <button
           type="button"
           onClick={onExit}
-          aria-label="Exit lesson"
+          aria-label={exitLabel}
           className="grid size-11 place-items-center rounded-full bg-subtle text-ink hover:bg-sand"
         >
           <X size={18} aria-hidden />
@@ -29,11 +33,11 @@ export function LessonHeader({ current, total, onExit }: LessonHeaderProps) {
       </div>
       <div
         role="progressbar"
-        aria-label="Lesson progress"
+        aria-label={progressLabel}
         aria-valuemin={1}
         aria-valuemax={total}
         aria-valuenow={current + 1}
-        aria-valuetext={`Question ${current + 1} of ${total}`}
+        aria-valuetext={stepText ?? `Question ${current + 1} of ${total}`}
         className="flex gap-1"
       >
         {Array.from({ length: total }, (_, i) => (
@@ -47,7 +51,7 @@ export function LessonHeader({ current, total, onExit }: LessonHeaderProps) {
         ))}
       </div>
       <p className="text-xs font-medium leading-4 text-ink-2">
-        Question {current + 1} of {total}
+        {stepText ?? `Question ${current + 1} of ${total}`}
       </p>
     </header>
   );

@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { AlertCircle } from "lucide-react";
-import type { Ref } from "react";
+import type { KeyboardEventHandler, Ref } from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface TextFieldProps {
@@ -18,6 +18,9 @@ interface TextFieldProps {
   inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>;
   /** Shown as part of the helper, e.g. "saved on this device". */
   savedNote?: boolean;
+  /** Multiline only: show `helper` instead of the character count. */
+  helperInsteadOfCount?: boolean;
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 }
 
 /** Label above, helper or error below. Errors always include an icon and text. */
@@ -33,6 +36,8 @@ export function TextField({
   disabled,
   inputRef,
   savedNote,
+  helperInsteadOfCount,
+  onKeyDown,
 }: TextFieldProps) {
   const id = useId();
   const helperId = `${id}-helper`;
@@ -44,7 +49,7 @@ export function TextField({
     error ? "border-error-border" : "border-line-strong",
   );
 
-  const helperText = multiline
+  const helperText = multiline && !helperInsteadOfCount
     ? `${value.length} / ${maxLength ?? 500}${savedNote ? " · saved on this device" : ""}`
     : helper;
 
@@ -59,6 +64,7 @@ export function TextField({
           ref={inputRef as Ref<HTMLTextAreaElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
@@ -74,6 +80,7 @@ export function TextField({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
