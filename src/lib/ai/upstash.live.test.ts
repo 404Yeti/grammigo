@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { guardRequest } from "./guard";
 import { readAiConfig } from "./config";
@@ -7,12 +8,15 @@ import { UpstashRateLimiter, type RateLimiter } from "./rate-limit";
  * LIVE check of the durable limiter against a real Upstash Redis. Skipped unless credentials are
  * in the environment, so normal test runs never touch the network:
  *
- *   UPSTASH_REDIS_REST_URL=... UPSTASH_REDIS_REST_TOKEN=... npx vitest run src/lib/ai/upstash.live.test.ts
+ *   (UPSTASH_REDIS_REST_URL + _TOKEN, or KV_REST_API_URL + _TOKEN) npx vitest run src/lib/ai/upstash.live.test.ts
  *
  * It uses unique throwaway keys (expire in about a minute) and prints nothing secret.
  */
-const url = process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+// Credentials are resolved by the app's own config reader, so this also proves the app reads
+// whichever names are present (UPSTASH_REDIS_REST_* or Vercel's KV_REST_API_*).
+const durable = readAiConfig(process.env).durableLimiter;
+const url = durable?.url;
+const token = durable?.token;
 
 describe.skipIf(!url || !token)("UpstashRateLimiter against a real Upstash instance", () => {
   const limiter = () => new UpstashRateLimiter(url!, token!);
