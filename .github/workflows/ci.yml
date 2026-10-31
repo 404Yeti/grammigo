@@ -124,7 +124,8 @@ jobs:
         run: npm ci
       - name: Start the local Supabase stack
         if: steps.has_db.outputs.found == 'true'
-        run: npx --yes supabase@2.122.0 start
+        # Only what the tests need (database, Auth, REST gateway); the rest of the stack is excluded to keep this fast.
+        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
       - name: Run the isolation tests
         if: steps.has_db.outputs.found == 'true'
         run: npm run test:db

@@ -8,7 +8,7 @@
 | **Dependency audit** | `npm audit --audit-level=high` (moderate findings in dev-only linters are tracked, not blocking) |
 | **Secret scan** | gitleaks over the full history |
 | **CodeQL analysis** | JavaScript/TypeScript, `security-extended` queries (also weekly) |
-| *Database isolation* (required from Phase 2) | Starts the local Supabase stack and runs the row-level-security suite. Until `supabase/config.toml` exists (Phase 2) its steps are skipped and it passes immediately |
+| **Database isolation** | Starts the local Supabase stack on the runner and runs `npm run test:db` (catalogue, cross-account isolation, invitations, documents, deletion, REST API). It fails if the stack does not start or any check fails |
 
 Jobs have read-only repository permissions and no production secrets: no AI key, no Supabase key, no Google credentials. Third-party actions are pinned to commit SHAs. Dependabot proposes weekly updates for npm packages and Actions.
 
