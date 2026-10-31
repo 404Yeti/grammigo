@@ -18,6 +18,7 @@ const TABLES: Record<string, { authenticated: Priv[]; updatableColumns?: string[
   learner_document_versions: { authenticated: [] },
   audit_events: { authenticated: [] },
   deletion_ledger: { authenticated: [] },
+  rate_limits: { authenticated: [] },
 };
 
 type Who = "learner" | "server" | "nobody";
@@ -32,6 +33,13 @@ const FUNCTIONS: Record<string, Who> = {
   revoke_invitation: "server",
   delete_learner: "server",
   orphan_identities: "server",
+  rate_limit_hit: "server",
+  prune_rate_limits: "server",
+  release_reservation: "server",
+  release_expired_reservations: "server",
+  purge_orphan_identity: "server",
+  purge_orphan_identities: "server",
+  create_invitation: "server",
   touch_updated_at: "nobody",
   audit_events_guard: "nobody",
   deletion_ledger_guard: "nobody",

@@ -12,15 +12,19 @@
     "e2e": "npm run build && playwright test",
     "typecheck": "next typegen && tsc --noEmit",
     "e2e:only": "playwright test",
-    "test:db": "node scripts/test-db.mjs"
+    "test:db": "node scripts/test-db.mjs",
+    "test:e2e:accounts": "node scripts/test-e2e-accounts.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",
     "openai": "^7.45.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

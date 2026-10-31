@@ -101,8 +101,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Phase 2 adds supabase/config.toml and the row-level-security isolation tests. Until then the steps below are skipped and the
-  # job passes immediately. It runs the local Supabase stack on the runner's Docker; no cloud project is touched.
+  # Row-level-security isolation and account-flow integration tests against the local Supabase stack on the runner's Docker.
+  # No cloud project is touched. (The "is there a database project" guard is kept so this job stays valid on older branches.)
   db-isolation:
     name: Database isolation
     runs-on: ubuntu-latest
@@ -129,3 +129,35 @@ jobs:
       - name: Run the isolation tests
         if: steps.has_db.outputs.found == 'true'
         run: npm run test:db
+
+  # Phase 3: the account flows in a real browser. The app is built with accounts ON and run against the local Supabase stack
+  # (Auth, row-level security, invitation functions). Google's consent screen cannot run in CI, so signed-in people are created
+  # directly on the local stack; everything the app does with their session is real. No cloud project and no real Google is used.
+  accounts-e2e:
+    name: Accounts browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start the local Supabase stack
+        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build with accounts ON and run the browser tests
+        run: npm run test:e2e:accounts -- --workers=2 --retries=1
+        env:
+          CI: "true"
+      - name: Keep traces of failures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: accounts-playwright-failures
+          path: test-results
+          retention-days: 7

@@ -30,3 +30,10 @@ It FAILS (never skips) if Supabase is unavailable, the migrations are not applie
 * CI job **Database isolation** starts the stack on the runner's Docker and runs `npm run test:db`.
 
 Test users are created with a local-only password through the local Auth admin API, because Google sign-in cannot run locally. This is test scaffolding only; production has the Email provider off.
+
+## Phase 3 additions (`20261101000500_auth_support.sql`)
+
+All service-role only (listed in the catalogue test): `rate_limits` table + `rate_limit_hit` (one atomic upsert per hit, HMAC keys, no
+addresses stored) and `prune_rate_limits`; `release_reservation` and `release_expired_reservations` (same lock order as reserve / redeem /
+revoke); `purge_orphan_identity` and `purge_orphan_identities` (delete a user only if it has no profile and is not an admin, in one
+statement; audit a count only); `create_invitation` (audited, expiry 1 day to 90 days). See `docs/dev/auth.md`.

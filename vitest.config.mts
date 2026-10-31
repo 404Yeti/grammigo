@@ -7,7 +7,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { alias: { "@": path.resolve(root, "src") } },
+  resolve: { alias: { "@": path.resolve(root, "src"), "server-only": path.resolve(root, "src/tests/server-only-stub.ts") } },
   test: {
     environment: "happy-dom",
     pool: "threads",
