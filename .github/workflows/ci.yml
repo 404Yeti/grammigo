@@ -1,0 +1,130 @@
+name: CI
+
+# Every pull request and every push to main. Required checks for main are the job names below.
+# Nothing here has access to production secrets: jobs run with read-only repository permissions and no AI, Supabase or Google keys.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate Next.js route types (PageProps / LayoutProps exist only after this on a clean checkout)
+        run: npx next typegen
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx eslint .
+      - name: Unit and component tests
+        run: npx vitest run
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Production build (Guided Correction preview flags, as the browser tests expect)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_GUIDED_PREVIEW: "true"
+          NEXT_PUBLIC_GUIDED_VOICE: "true"
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Playwright (mobile and desktop)
+        run: npx playwright test --workers=2 --retries=1
+        env:
+          CI: "true"
+      - name: Keep traces of failures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-failures
+          path: test-results
+          retention-days: 7
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Fail on high or critical advisories
+        run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Phase 2 adds supabase/config.toml and the row-level-security isolation tests. Until then the steps below are skipped and the
+  # job passes immediately. It runs the local Supabase stack on the runner's Docker; no cloud project is touched.
+  db-isolation:
+    name: Database isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Is there a database project yet?
+        id: has_db
+        run: |
+          if [ -f supabase/config.toml ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "No supabase/config.toml yet: nothing to isolate-test."; fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.has_db.outputs.found == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.has_db.outputs.found == 'true'
+        run: npm ci
+      - name: Start the local Supabase stack
+        if: steps.has_db.outputs.found == 'true'
+        run: npx --yes supabase@2.122.0 start
+      - name: Run the isolation tests
+        if: steps.has_db.outputs.found == 'true'
+        run: npm run test:db
