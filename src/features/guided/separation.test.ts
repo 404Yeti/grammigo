@@ -1,0 +1,135 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
+import { getLesson } from "@/data/lessons";
+import { deriveLearning } from "@/features/learning/derive";
+import { createSession } from "@/features/practice/session";
+import { emptyState } from "@/lib/storage/schema";
+import type { Classification, Session, StoredState } from "@/types/session";
+import { dispatchGuided, startGuidedSession } from "./store/actions";
+import { guidedLocalStorage, resetGuidedStoreCache, setGuidedPersistence } from "./store/store";
+
+const ROOT = join(process.cwd(), "src");
+const GUIDED_DIRS = ["features/guided", "curriculum/guided"].map((d) => join(ROOT, d));
+const GUIDED_FILES = [join(ROOT, "types/guided.ts")];
+
+function sources(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return sources(p);
+    return /\.(ts|tsx)$/.test(name) && !/\.test\.tsx?$/.test(name) ? [p] : [];
+  });
+}
+const importsOf = (file: string): string[] => [...readFileSync(file, "utf8").matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
+const isGuidedPath = (p: string) => GUIDED_DIRS.some((d) => p.startsWith(d)) || GUIDED_FILES.includes(p);
+
+describe("guided code and learning code cannot see each other", () => {
+  const all = sources(ROOT);
+  const outside = all.filter((f) => !isGuidedPath(f));
+  const inside = all.filter(isGuidedPath);
+
+  it("no existing module (mastery, profile, recommendations, lessons, storage, UI…) imports anything guided", () => {
+    const offenders = outside.flatMap((f) => importsOf(f).filter((i) => /(^|\/)guided(\/|$)/.test(i)).map((i) => `${relative(ROOT, f)} → ${i}`));
+    expect(offenders).toEqual([]);
+  });
+
+  it("guided code imports nothing from mastery, the profile, recommendations, lessons, diagnostics, onboarding, UI or lesson storage", () => {
+    const forbidden = [/features\/learning/, /features\/practice/, /features\/diagnostic/, /features\/lessons/, /features\/onboarding/, /features\/ai/, /lib\/storage/, /types\/session/, /^@\/components/, /^@\/app/];
+    const offenders = inside.flatMap((f) => importsOf(f).filter((i) => forbidden.some((re) => re.test(i))).map((i) => `${relative(ROOT, f)} → ${i}`));
+    expect(offenders).toEqual([]);
+  });
+
+  it("the guided store never names the lesson storage keys", () => {
+    for (const f of inside) {
+      const text = readFileSync(f, "utf8");
+      expect(text, relative(ROOT, f)).not.toMatch(/grammigo:v[12]\b/);
+    }
+  });
+});
+
+const NOW = 1_800_000_000_000;
+
+function completedLesson(lessonId: string, outcomes: Classification[], n: number): Session {
+  const lesson = getLesson(lessonId)!;
+  let s = createSession(lesson, `seed-${lessonId}-${n}`, NOW - 90_000_000 + n * 1000);
+  s = { ...s, status: "completed", completedAt: NOW - 80_000_000 + n * 1000, activeMs: 300_000, currentIndex: 7, phase: "feedback" };
+  return {
+    ...s,
+    records: s.records.map((r, i) => ({
+      ...r,
+      attempts: [{ answer: "x", verdict: outcomes[i % outcomes.length] === "incorrect" ? ("incorrect" as const) : ("correct" as const), at: NOW - 85_000_000 + i, hintsUsedBefore: 0 }],
+      classification: outcomes[i % outcomes.length],
+      resolution: outcomes[i % outcomes.length] === "incorrect" ? ("exhausted" as const) : ("correct" as const),
+      finalAnswer: "x",
+    })),
+  };
+}
+
+const learnerState = (): StoredState => ({
+  ...emptyState(),
+  sessions: [
+    completedLesson("a1-be-present", ["correct_first_try", "correct_first_try", "correct_after_hint", "incorrect"], 1),
+    completedLesson("a1-articles", ["incorrect", "incorrect", "correct_after_retry", "incorrect"], 2),
+    completedLesson("a2-past-simple", ["correct_first_try", "correct_first_try", "correct_first_try", "correct_after_hint"], 3),
+    completedLesson("present-perfect-vs-past-simple", ["correct_first_try", "incorrect", "correct_after_retry", "correct_first_try"], 4),
+  ],
+  goals: { text: "articles", source: "typed", goals: [{ label: "Articles", skillIds: ["a1-articles"] }], skillIds: ["a1-articles"], extractedBy: "local", updatedAt: NOW },
+});
+
+/** Everything the learner sees about mastery, the profile and what to do next, in a comparable form. */
+const learningSnapshot = (state: StoredState) => {
+  const l = deriveLearning(state, NOW);
+  return JSON.stringify({ mastery: [...l.mastery.entries()], profile: l.profile, recommendations: l.recommendations, top: l.top, events: l.events });
+};
+
+describe("existing mastery calculations are unchanged by Guided Correction", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    setGuidedPersistence(guidedLocalStorage);
+    resetGuidedStoreCache();
+  });
+
+  it("mastery, profile, recommendations and evidence events are identical before and after any amount of guided activity", () => {
+    const state = learnerState();
+    const before = learningSnapshot(state);
+    expect(before.length).toBeGreaterThan(1000); // a real, non-trivial result, not an empty comparison
+
+    // success, mistakes, hints, Show me, voice failure, AI-confirmed, unverified, transfer, completion
+    startGuidedSession({ now: NOW, id: "g1" });
+    const send = (e: Parameters<typeof dispatchGuided>[1], t: number, ai = true) => dispatchGuided("g1", e, { now: NOW + t, aiAvailable: ai });
+    send({ type: "EDIT", draft: "I have watched a film yesterday evening." }, 1);
+    send({ type: "SUBMIT" }, 2);
+    send({ type: "REQUEST_HINT" }, 3);
+    send({ type: "START_RECORDING" }, 4);
+    send({ type: "TRANSCRIPT_FAILED", reason: "permission_denied" }, 5);
+    send({ type: "EDIT", draft: "I watched a film with my sister." }, 6);
+    send({ type: "SUBMIT" }, 7);
+    send({ type: "CONTINUE" }, 8);
+    send({ type: "START_TRANSFER" }, 9);
+    send({ type: "EDIT", draft: "I have been to Spain." }, 10);
+    send({ type: "SUBMIT" }, 11);
+    send({ type: "OPINION", result: { status: "ok", opinion: { fit: "fits", confidence: "high", suspected: null } } }, 12);
+    send({ type: "CONTINUE" }, 13);
+    send({ type: "FINISH" }, 14);
+    startGuidedSession({ now: NOW + 20, id: "g2" });
+    dispatchGuided("g2", { type: "SHOW_ME" }, { now: NOW + 21 });
+
+    expect(learningSnapshot(state)).toBe(before);
+  });
+
+  it("the same holds for a learner with no goals and for a brand-new learner", () => {
+    for (const state of [{ ...learnerState(), goals: null }, emptyState()]) {
+      const before = learningSnapshot(state);
+      startGuidedSession({ now: NOW, id: "gx" });
+      dispatchGuided("gx", { type: "SHOW_ME" }, { now: NOW + 1 });
+      expect(learningSnapshot(state)).toBe(before);
+      window.localStorage.clear();
+      resetGuidedStoreCache();
+    }
+  });
+
+  it("outcome weights are not mastery values: no learning module reads them", () => {
+    const learningDir = join(ROOT, "features/learning");
+    for (const f of sources(learningDir)) expect(readFileSync(f, "utf8"), relative(ROOT, f)).not.toMatch(/GUIDED_OUTCOME_VALUES|summarizeOutcomes|outcomeRecords|cycle\/outcome/);
+  });
+});

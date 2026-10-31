@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "frozenAt": "2026-10-31",
+  "files": [
+    "types.ts",
+    "lexicon.ts",
+    "normalize.ts",
+    "analyze.ts",
+    "evaluate.ts",
+    "index.ts"
+  ],
+  "sha256": "80280a89b058a907f2c1d6c1b0794ff67ca75736e5f4c351a67c96da33959561",
+  "note": "Evaluator rules are frozen for validation. Any change to these files requires a new version, a new unseen set, and owner approval. See docs/guided-correction/README.md."
+}
