@@ -16,3 +16,20 @@ describe("audio upload limit matches the intended 30-second recording", () => {
     expect(secondsAt32kbps).toBeLessThanOrEqual(90);
   });
 });
+
+describe("durable limiter configuration", () => {
+  it("accepts the documented UPSTASH_REDIS_REST_* names", () => {
+    const c = readAiConfig({ UPSTASH_REDIS_REST_URL: "https://x", UPSTASH_REDIS_REST_TOKEN: "t" });
+    expect(c.durableLimiter).toEqual({ url: "https://x", token: "t" });
+  });
+
+  it("accepts the KV_REST_API_* names Vercel's Upstash integration injects", () => {
+    const c = readAiConfig({ KV_REST_API_URL: "https://y", KV_REST_API_TOKEN: "k" });
+    expect(c.durableLimiter).toEqual({ url: "https://y", token: "k" });
+  });
+
+  it("never falls back to the read-only token, and needs both halves", () => {
+    expect(readAiConfig({ KV_REST_API_URL: "https://y", KV_REST_API_READ_ONLY_TOKEN: "ro" }).durableLimiter).toBeNull();
+    expect(readAiConfig({ KV_REST_API_URL: "https://y" }).durableLimiter).toBeNull();
+  });
+});

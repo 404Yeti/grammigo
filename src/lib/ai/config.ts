@@ -7,6 +7,7 @@
  *   OPENAI_MODEL          chat model for goals + writing feedback (default below)
  *   OPENAI_TRANSCRIBE_MODEL  speech-to-text model (default below)
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   durable rate limiting + daily budget
+ *                         (or KV_REST_API_URL / KV_REST_API_TOKEN, as injected by Vercel's Upstash integration)
  *   AI_USAGE_LOG          "true" logs counts-only usage lines (tokens, seconds, est. cost; never content)
  *   OPENAI_PRICE_IN_PER_M / OPENAI_PRICE_OUT_PER_M / OPENAI_PRICE_TRANSCRIBE_PER_MIN  assumed USD prices
  *   AI_DAILY_CALL_CAP     hard cap on AI calls per UTC day across all users (default below)
@@ -46,8 +47,10 @@ const num = (v: string | undefined, fallback: number) => {
 };
 
 export function readAiConfig(env: AiEnv = process.env): AiConfig {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
+  // Vercel's Upstash integration injects KV_REST_API_URL / KV_REST_API_TOKEN; accept either naming.
+  // (KV_REST_API_READ_ONLY_TOKEN is deliberately never used: it cannot write counters.)
+  const url = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
   return {
     enabled: env.AI_FEATURES_ENABLED === "true",
     apiKey: env.OPENAI_API_KEY?.trim() || null,
