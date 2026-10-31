@@ -1,7 +1,7 @@
 import { forItem, type Case } from "./helpers";
 
 /**
- * UNSEEN corpus 3 (evaluator v1.0.0, FROZEN). Written after the rules were frozen, without running
+ * UNSEEN corpus 3 (written for evaluator v1.0.0, FROZEN at the time; now a SEEN regression set: 1.1.0 was shaped by its failures). Written after the rules were frozen, without running
  * any of these sentences through the evaluator and without looking at the rule files while writing.
  * Labels are what a careful teacher would conclude. It is run ONCE; the first-pass result is recorded
  * in docs/guided-correction/holdout3-first-pass.json and reported as-is. Rules are NOT tuned on it.

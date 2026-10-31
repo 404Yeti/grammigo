@@ -1,3 +1,4 @@
+import type { TargetCategory } from "@/features/guided/evaluator/types";
 import { describe, expect, it } from "vitest";
 import type { OpinionConfidence, OpinionFit } from "@/types/guided";
 import { GUIDED_LIMITS } from "./config";
@@ -9,7 +10,7 @@ const UNSURE_TEXT = "I have watched a film."; // real evaluator: uncertain (a pr
 const GOOD = "I watched a film with my sister.";
 const BAD = "I have watched a film yesterday evening.";
 
-const ok = (fit: OpinionFit, confidence: OpinionConfidence, suspected: "pp_with_finished_time" | null = null): OpinionResult => ({ status: "ok", opinion: { fit, confidence, suspected } });
+const ok = (fit: OpinionFit, confidence: OpinionConfidence, suspected: TargetCategory | null = null): OpinionResult => ({ status: "ok", opinion: { fit, confidence, suspected } });
 
 describe("an uncertain answer asks for a bounded second opinion", () => {
   it("moves to 'checking' and returns an effect describing exactly what to ask; the answer is NOT marked wrong", () => {
@@ -109,14 +110,15 @@ describe("what the AI is allowed to conclude", () => {
     expect(viewExercise(r.ex).neutral).toContain("Does the verb fit?");
   });
 
-  it("an AI-suggested type that this item does not teach is ignored (feedback stays on the target skill)", () => {
-    const r = runner();
-    r.answer(UNSURE_TEXT);
-    r.send({ type: "OPINION", result: ok("grammar_concern", "high", null) });
-    expect(r.ex.clarify).toEqual({ kind: "grammar_guidance", suspected: null });
-    expect(viewExercise(r.ex).neutral).toBe(NEUTRAL.clarify.grammar_guidance);
-    // the transfer item for 'since/for' does not accept a made-up suspected type on a finished-time item
-    expect(decideOnOpinion({ fit: "grammar_concern", confidence: "high", suspected: "since_for_confusion" }, { clarificationsUsed: 0, itemCategories: ["pp_with_finished_time", "participle_form"] })).toEqual({ action: "clarify", kind: "grammar_guidance", suspected: null });
+  it("an AI concern with no category, or a category this item does not teach, is not corroborated: unverified, no guidance (feedback stays on the target skill)", () => {
+    for (const suspected of [null, "since_for_confusion"] as const) {
+      const r = runner();
+      r.answer(UNSURE_TEXT);
+      r.send({ type: "OPINION", result: ok("grammar_concern", "high", suspected) });
+      expect(r.ex).toMatchObject({ phase: "unverified", unverifiedReason: "opinion_concern_not_corroborated", clarify: null, clarificationsUsed: 0 });
+      expect(viewExercise(r.ex).neutral).not.toContain("verb");
+    }
+    expect(decideOnOpinion({ fit: "grammar_concern", confidence: "high", suspected: "since_for_confusion" }, { clarificationsUsed: 0, itemCategories: ["pp_with_finished_time", "participle_form"], evaluatorSuspected: "since_for_confusion" })).toEqual({ action: "unverified", reason: "concern_not_corroborated" });
   });
 
   it("'unclear', and low-confidence opinions of any kind, leave the answer unverified", () => {
@@ -134,7 +136,7 @@ describe("after an ungraded clarification", () => {
   const toClarify = () => {
     const r = runner();
     r.answer(UNSURE_TEXT);
-    r.send({ type: "OPINION", result: ok("grammar_concern", "high") });
+    r.send({ type: "OPINION", result: ok("grammar_concern", "high", "pp_with_finished_time") });
     return r;
   };
 
@@ -159,7 +161,7 @@ describe("after an ungraded clarification", () => {
   it("only one clarification is offered per exercise", () => {
     const r = toClarify();
     r.answer("I have cooked dinner.");
-    r.send({ type: "OPINION", result: ok("grammar_concern", "high") });
+    r.send({ type: "OPINION", result: ok("grammar_concern", "high", "pp_with_finished_time") });
     expect(r.ex).toMatchObject({ phase: "unverified", unverifiedReason: "opinion_clarification_used", clarificationsUsed: 1 });
   });
 
@@ -251,5 +253,29 @@ describe("the policy, exhaustively: no combination can produce a failure", () =>
     expect(out.effects).toEqual([]); // a clear mistake never asks the AI
     expect(r.ex.phase).toBe("repairing");
     expect(r.send({ type: "OPINION", result: ok("fits", "high") }).rejected).toBe("not_waiting_for_opinion");
+  });
+});
+
+describe("corrective grammar guidance needs BOTH signals (AI category + the on-device suspicion)", () => {
+  const ctx = (evaluatorSuspected: Parameters<typeof decideOnOpinion>[1]["evaluatorSuspected"]) => ({ clarificationsUsed: 0, itemCategories: ["pp_with_finished_time", "participle_form"], evaluatorSuspected });
+  const concern = (suspected: "pp_with_finished_time" | "participle_form" | null) => ({ fit: "grammar_concern" as const, confidence: "high" as const, suspected });
+
+  it("is shown when the evaluator suspected the same problem", () => {
+    expect(decideOnOpinion(concern("pp_with_finished_time"), ctx("pp_without_marker"))).toEqual({ action: "clarify", kind: "grammar_guidance", suspected: "pp_with_finished_time" });
+    expect(decideOnOpinion(concern("pp_with_finished_time"), ctx("pp_with_finished_time"))).toMatchObject({ action: "clarify" });
+  });
+
+  it("is NOT shown when the evaluator suspected nothing, or something else: the answer stays unverified", () => {
+    for (const e of [null, undefined, "present_for_past", "past_simple_for_ongoing", "participle_form"] as const) {
+      expect(decideOnOpinion(concern("pp_with_finished_time"), ctx(e)), String(e)).toEqual({ action: "unverified", reason: "concern_not_corroborated" });
+    }
+    expect(decideOnOpinion(concern("participle_form"), ctx("pp_without_marker"))).toEqual({ action: "unverified", reason: "concern_not_corroborated" });
+  });
+
+  it("an uncorroborated concern never reaches the learner as a prompt, a hint or a retry", () => {
+    const r = runner();
+    r.answer("I have watched a film."); // real evaluator suspects pp_without_marker
+    r.send({ type: "OPINION", result: ok("grammar_concern", "high", "participle_form") });
+    expect(r.ex).toMatchObject({ phase: "unverified", rung: 0, retriesUsed: 0, hintsUsed: 0, category: null });
   });
 });

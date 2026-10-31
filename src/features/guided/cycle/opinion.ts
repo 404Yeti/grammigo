@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TARGET_CATEGORIES, type TargetCategory } from "@/features/guided/evaluator/types";
+import { TARGET_CATEGORIES, type Suspected, type TargetCategory } from "@/features/guided/evaluator/types";
 import type { ClarifyKind, StoredOpinion } from "@/types/guided";
 import { GUIDED_LIMITS } from "./config";
 
@@ -39,7 +39,23 @@ export type OpinionDecision =
   /** Could not be judged. Neutral explanation; the learner moves on without a penalty. */
   | { action: "unverified"; reason: string };
 
-export function decideOnOpinion(opinion: StoredOpinion, ctx: { clarificationsUsed: number; itemCategories: readonly string[] }): OpinionDecision {
+/**
+ * What the deterministic evaluator must have suspected for the AI's suspected category to count as corroborated.
+ * Corrective grammar guidance needs BOTH signals; the AI alone is never enough (owner decision, Phase 5).
+ */
+export const CORROBORATION: Readonly<Record<TargetCategory, readonly Suspected[]>> = {
+  pp_with_finished_time: ["pp_with_finished_time", "pp_without_marker"],
+  since_without_perfect: ["since_without_perfect", "past_simple_for_ongoing", "present_with_for"],
+  since_for_confusion: ["since_for_confusion"],
+  participle_form: ["participle_form"],
+};
+
+export const isCorroborated = (ai: TargetCategory | null, evaluator: Suspected | null | undefined): boolean => !!ai && !!evaluator && CORROBORATION[ai].includes(evaluator);
+
+export function decideOnOpinion(
+  opinion: StoredOpinion,
+  ctx: { clarificationsUsed: number; itemCategories: readonly string[]; /** What the on-device check suspected for the same answer. */ evaluatorSuspected?: Suspected | null },
+): OpinionDecision {
   const canClarify = ctx.clarificationsUsed < GUIDED_LIMITS.maxClarifications;
   const suspected = opinion.suspected && ctx.itemCategories.includes(opinion.suspected) ? opinion.suspected : null;
 
@@ -51,8 +67,10 @@ export function decideOnOpinion(opinion: StoredOpinion, ctx: { clarificationsUse
       if (opinion.confidence === "low") return { action: "unverified", reason: "low_confidence" };
       return canClarify ? { action: "clarify", kind: opinion.fit, suspected: null } : { action: "unverified", reason: "clarification_used" };
     case "grammar_concern":
-      // A concern is guidance, never a verdict, whatever the confidence.
+      // A concern is guidance, never a verdict, whatever the confidence, and it is only shown when the on-device
+      // check independently suspected the same thing. An uncorroborated concern leaves the answer unverified, with no guidance.
       if (opinion.confidence === "low") return { action: "unverified", reason: "low_confidence" };
+      if (!isCorroborated(suspected, ctx.evaluatorSuspected)) return { action: "unverified", reason: "concern_not_corroborated" };
       return canClarify ? { action: "clarify", kind: "grammar_guidance", suspected } : { action: "unverified", reason: "clarification_used" };
     case "unclear":
       return { action: "unverified", reason: "unclear" };

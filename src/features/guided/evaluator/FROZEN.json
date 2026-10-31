@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "frozenAt": "2026-10-31",
   "files": [
     "types.ts",
@@ -9,6 +9,14 @@
     "evaluate.ts",
     "index.ts"
   ],
-  "sha256": "80280a89b058a907f2c1d6c1b0794ff67ca75736e5f4c351a67c96da33959561",
+  "sha256": "17c1efac3aad0f839ef8eed8529f99e3d74c91c8404624060eff0b509df3f25a",
+  "history": [
+    {
+      "version": "1.0.0",
+      "sha256": "80280a89b058a907f2c1d6c1b0794ff67ca75736e5f4c351a67c96da33959561",
+      "note": "Phase 1/2 freeze. First-pass on unseen set 3: 27/29 errors detected, 1 accepted as correct."
+    }
+  ],
+  "changes": "1.1.0 (owner-approved, Phase 5): P1 `for` + clause is a starting point (since_for_confusion); P2 `since` + clause after a finite main verb with no present perfect (since_without_perfect). Patch: docs/guided-correction/proposals/evaluator-1.1.0-analyze.patch.",
   "note": "Evaluator rules are frozen for validation. Any change to these files requires a new version, a new unseen set, and owner approval. See docs/guided-correction/README.md."
 }

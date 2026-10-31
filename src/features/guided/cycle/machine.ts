@@ -101,17 +101,25 @@ function resolve(e: GuidedExercise, kind: GuidedOutcomeKind, basis: OutcomeBasis
 }
 
 /**
- * Whether the learner was told something corrective before this answer: an earlier answer the
- * deterministic check marked incorrect (which brings the notice and the hints), a hint, or an
- * AI-triggered grammar clarification. An answer that was merely unverified, incomplete or off-topic
- * is none of these. With a clarification limit of one, guidance was shown exactly when the FIRST
- * clarification-eligible opinion was a grammar concern.
+ * Whether the learner was told something corrective before this answer: an earlier answer the deterministic
+ * check marked incorrect (which brings the notice and the hints), a hint, or corrective grammar guidance from
+ * the second opinion. An unverified answer, an AI concern the evaluator did not corroborate (no guidance was shown),
+ * or an incomplete / off-topic clarification is none of these. Guidance is re-derived with the same decision
+ * function that produced it, so the two cannot drift apart.
  */
 export function wasCorrectedBefore(e: GuidedExercise): boolean {
   const earlier = counted(e).slice(0, -1);
   if (earlier.some((a) => a.verdict === "incorrect") || e.hintsUsed > 0) return true;
-  const firstEligible = earlier.map((a) => a.opinion).find((o) => o && o.confidence !== "low" && (o.fit === "grammar_concern" || o.fit === "incomplete" || o.fit === "off_prompt"));
-  return firstEligible?.fit === "grammar_concern";
+  const categories = getGuidedItem(e.itemId)?.categories ?? [];
+  let clarifications = 0;
+  for (const a of earlier) {
+    if (!a.opinion) continue;
+    const d = decideOnOpinion(a.opinion, { clarificationsUsed: clarifications, itemCategories: categories, evaluatorSuspected: a.suspected });
+    if (d.action !== "clarify") continue;
+    if (d.kind === "grammar_guidance") return true;
+    clarifications++;
+  }
+  return false;
 }
 
 /**
@@ -202,7 +210,7 @@ function applyOpinion(ex: GuidedExercise, result: OpinionResult, ctx: CycleConte
   // Keep what the AI said on the answer it was about (history only; it is not a verdict).
   const attempts = ex.attempts.map((a, i, all) => (i === all.length - 1 ? { ...a, opinion: result.opinion } : a));
   const withOpinion: GuidedExercise = { ...ex, attempts };
-  const decision = decideOnOpinion(result.opinion, { clarificationsUsed: ex.clarificationsUsed, itemCategories: item.categories });
+  const decision = decideOnOpinion(result.opinion, { clarificationsUsed: ex.clarificationsUsed, itemCategories: item.categories, evaluatorSuspected: ex.attempts[ex.attempts.length - 1]?.suspected ?? null });
   const last = attempts[attempts.length - 1];
 
   switch (decision.action) {

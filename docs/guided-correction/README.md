@@ -7,7 +7,7 @@ The release gate (`src/features/guided/release.ts`) reports `releasable: false` 
 
 | File | Contents | Reviewer action |
 |---|---|---|
-| `labels-for-review.csv` | All 491 labelled learner sentences (dev 195, held-out-1 110, held-out-2 91, unseen held-out-3 95) with the label I assigned, what evaluator v1.0.0 returned, whether they match, and a `flag` column. | Fill `reviewer_verdict` (agree / disagree / unsure), and `reviewer_corrected_label` where you disagree. |
+| `labels-for-review.csv` | All 580 labelled learner sentences (dev 195, held-out-1 110, held-out-2 91, held-out-3 95 (seen), unseen held-out-4 89) with the label I assigned, what evaluator v1.1.0 returned, whether they match, and a `flag` column. | Fill `reviewer_verdict` (agree / disagree / unsure), and `reviewer_corrected_label` where you disagree. |
 | `explanations-for-review.csv` | Every authored question, model answer, hint-ladder rung, "understand" reason, neutral message, voice message, and (Phase 3) every line of on-screen wording and outcome message. | Fill `reviewer_verdict` (approve / revise / reject) and a revised text. |
 | `holdout3-first-pass.json` | First-pass result of the evaluator on the unseen set 3, recorded once. | Read-only record. |
 
@@ -35,7 +35,7 @@ Investigation, root causes, a **proposed (not applied)** rule change and its mea
 
 ## Evaluator freeze
 
-The deterministic evaluator rules are frozen at **1.0.0** (`src/features/guided/evaluator/FROZEN.json`, SHA-256 checked by a test).
+The deterministic evaluator rules are frozen at **1.1.0** (`src/features/guided/evaluator/FROZEN.json`, SHA-256 checked by a test).
 A change to a rule file fails that test. A rule change requires: a version bump, a *new* unseen set, one untuned run, owner approval.
 Sets dev, held-out-1 and held-out-2 were used while building the rules and are regression sets only. Set 3 was written after the freeze and run once.
 
@@ -50,3 +50,10 @@ First try 1.0, self-corrected 0.7, hint-assisted 0.5, shown 0, unverified = no v
 ## Visibility
 
 In a production build the activity is hidden (no entry card, `/practice/<lesson>/guided` is a 404) until the release gate is clear. A preview build opts in with `NEXT_PUBLIC_GUIDED_PREVIEW=true`. Browser tests need `NEXT_PUBLIC_GUIDED_PREVIEW=true npm run build` first.
+
+## Phase 5 additions
+
+* **`educator-review-priority.md`**: start here. The riskiest wording and labels first; both CSVs are sorted the same way (`review_priority` column).
+* **Evaluator 1.1.0** (owner-approved: `for`/`since` + clause rules) is frozen; set 3 is now *seen*; set 4 (89 sentences) was written after the freeze and run once, untuned: `holdout4-first-pass.json`.
+* **`real-device-test-checklist.md`** and `real-device-results.template.csv`: the checklist for real hardware. **Not run.** The release gate has a fifth blocker, `real-device-testing-pending`.
+* **Outcome weights** (1.0 / 0.7 / 0.5 / 0) are provisional *activity* metrics for Guided Correction only. They are not mastery, not a proficiency or level estimate, and must not be quoted as one. A test scans the learner-facing wording for such claims.

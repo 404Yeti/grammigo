@@ -1,3 +1,4 @@
+import type { TargetCategory } from "@/features/guided/evaluator/types";
 import { describe, expect, it } from "vitest";
 import type { OpinionConfidence, OpinionFit } from "@/types/guided";
 import { wasCorrectedBefore } from "./machine";
@@ -14,7 +15,7 @@ const UNSURE = "I have watched a film."; // real evaluator: uncertain
 const UNSURE2 = "I have cooked dinner."; // uncertain too
 const GOOD = "I watched a film with my sister.";
 const BAD = "I have watched a film yesterday evening.";
-const ok = (fit: OpinionFit, confidence: OpinionConfidence): OpinionResult => ({ status: "ok", opinion: { fit, confidence, suspected: null } });
+const ok = (fit: OpinionFit, confidence: OpinionConfidence, suspected: TargetCategory | null = null): OpinionResult => ({ status: "ok", opinion: { fit, confidence, suspected } });
 const kind = (r: ReturnType<typeof runner>) => r.ex.outcome?.kind;
 const earlier = (r: ReturnType<typeof runner>) => outcomeRecords([r.session])[0].earlierUnverified;
 
@@ -71,7 +72,7 @@ describe("earlier unverified submissions do not disqualify first try", () => {
     r.answer(UNSURE);
     r.send({ type: "OPINION", result: ok("incomplete", "high") }); // clarification used
     r.answer(UNSURE2);
-    r.send({ type: "OPINION", result: ok("grammar_concern", "high") }); // no second clarification: unverified
+    r.send({ type: "OPINION", result: ok("grammar_concern", "high", "pp_with_finished_time") }); // no second clarification: unverified
     expect(r.ex.phase).toBe("unverified");
     r.answer(GOOD);
     expect(kind(r)).toBe("first_try");
@@ -116,10 +117,30 @@ describe("corrective help before the correct answer still means it is not first 
   it("an AI grammar clarification is corrective guidance: fixing it afterwards is self-corrected, not first try", () => {
     const r = runner();
     r.answer(UNSURE);
-    r.send({ type: "OPINION", result: ok("grammar_concern", "high") });
+    r.send({ type: "OPINION", result: ok("grammar_concern", "high", "pp_with_finished_time") }); // corroborated by the evaluator's suspicion
     expect(r.ex.phase).toBe("clarifying");
     r.answer(GOOD);
     expect(kind(r)).toBe("self_corrected");
+  });
+
+  it("an AI concern the evaluator did NOT corroborate shows no guidance, so it cannot remove first try (owner decision, Phase 5)", () => {
+    for (const suspected of [null, "participle_form"] as const) {
+      const r = runner();
+      r.answer(UNSURE);
+      r.send({ type: "OPINION", result: ok("grammar_concern", "high", suspected) });
+      expect(r.ex.phase).toBe("unverified");
+      expect(wasCorrectedBefore({ ...r.ex, attempts: [...r.ex.attempts, { ...r.ex.attempts[0], verdict: "correct" }] })).toBe(false);
+      r.answer(GOOD);
+      expect(kind(r)).toBe("first_try");
+    }
+  });
+
+  it("only explicit, evaluator-supported corrective help counts: a verified mistake, a hint, or guidance", () => {
+    const r = runner({ aiAvailable: false });
+    r.answer(UNSURE);
+    r.answer(UNSURE2);
+    r.answer(GOOD);
+    expect(kind(r)).toBe("first_try"); // several unverified submissions and nothing corrective
   });
 
   it("Show me is never first try", () => {

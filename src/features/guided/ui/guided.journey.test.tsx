@@ -297,14 +297,23 @@ describe("answers the check cannot judge", () => {
     expect(outcomeOf()).toEqual(["first_try"]);
   });
 
-  it("the AI saying 'grammar concern' is guidance, not a mistake", async () => {
-    opinion.next = { status: "ok", opinion: { fit: "grammar_concern", confidence: "high", suspected: null } };
+  it("an AI grammar concern is shown as guidance only when the on-device check suspected the same thing", async () => {
+    opinion.next = { status: "ok", opinion: { fit: "grammar_concern", confidence: "high", suspected: "pp_with_finished_time" } };
     await open();
-    await check(UNSURE);
+    await check("I have watched a film."); // on-device suspicion: a present perfect where a finished time is asked about
     const card = await screen.findByTestId("neutral-card");
-    expect(card).toHaveTextContent(/verb tenses/i);
+    expect(card).toHaveTextContent(/does the verb fit/i);
     expect(screen.queryByTestId("retry-dots")).not.toBeInTheDocument(); // not a retry, nothing counted
     expect(screen.queryByTestId("resolved")).not.toBeInTheDocument();
+  });
+
+  it("an AI concern the on-device check did not share shows no guidance at all: neutral, not counted", async () => {
+    opinion.next = { status: "ok", opinion: { fit: "grammar_concern", confidence: "high", suspected: "pp_with_finished_time" } };
+    await open();
+    await check(UNSURE); // a future-tense answer: nothing the evaluator suspects about the tense choice
+    const cant = await screen.findByTestId("cant-check");
+    expect(cant).toHaveTextContent(/can’t judge this one for sure/i);
+    expect(cant.textContent).not.toMatch(/verb tenses|take another look/i);
   });
 
   it("while the AI is checking, typing is never blocked: the check can be skipped and nothing is counted", async () => {
