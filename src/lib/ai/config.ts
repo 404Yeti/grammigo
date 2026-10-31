@@ -32,10 +32,10 @@ export interface AiConfig {
     transcriptMax: number;
     /** Segments at or above this no-speech probability count as silence (initial value; tune from real usage logs). */
     noSpeechProb: number;
-    maxOutputTokens: { goals: number; writing: number };
-    timeoutMs: { goals: number; writing: number; transcribe: number };
-    perMinute: { goals: number; transcribe: number; writing: number };
-    perDay: { goals: number; transcribe: number; writing: number };
+    maxOutputTokens: { goals: number; writing: number; guided: number };
+    timeoutMs: { goals: number; writing: number; transcribe: number; guided: number };
+    perMinute: { goals: number; transcribe: number; writing: number; guided: number };
+    perDay: { goals: number; transcribe: number; writing: number; guided: number };
   };
 }
 
@@ -77,12 +77,12 @@ export function readAiConfig(env: AiEnv = process.env): AiConfig {
       audioBytesMax: 300_000,
       transcriptMax: 600,
       noSpeechProb: 0.6,
-      maxOutputTokens: { goals: 350, writing: 500 },
+      maxOutputTokens: { goals: 350, writing: 500, guided: 80 },
       // Real calls measured 1.4–4.2 s (goals) and ~1.5–2.2 s (writing); these leave ample headroom
       // without making a learner wait long when OpenAI is down.
-      timeoutMs: { goals: 8_000, writing: 12_000, transcribe: 20_000 },
-      perMinute: { goals: 6, transcribe: 4, writing: 6 },
-      perDay: { goals: 40, transcribe: 20, writing: 40 },
+      timeoutMs: { goals: 8_000, writing: 12_000, transcribe: 20_000, guided: 6_000 },
+      perMinute: { goals: 6, transcribe: 4, writing: 6, guided: 6 },
+      perDay: { goals: 40, transcribe: 20, writing: 40, guided: 40 },
     },
   };
 }

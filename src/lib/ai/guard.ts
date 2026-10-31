@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { aiAvailability, type AiConfig } from "./config";
 import { MemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "./rate-limit";
 
-export type AiKind = "goals" | "transcribe" | "writing";
+export type AiKind = "goals" | "transcribe" | "writing" | "guided";
 
 export function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {

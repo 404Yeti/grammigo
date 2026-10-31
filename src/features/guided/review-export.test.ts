@@ -9,6 +9,8 @@ import { HOLDOUT3 } from "./evaluator/corpus/holdout3";
 import { ITEM_ID } from "./evaluator/corpus/helpers";
 import { runCorpus } from "./evaluator/score";
 import { NEUTRAL, VOICE_MESSAGES } from "./cycle/messages";
+import { COPY, OUTCOME_LABEL, RESOLVED } from "./ui/copy";
+import { OPEN_REVIEW_ITEMS } from "./release";
 
 /**
  * Educator-review artifacts (docs/guided-correction/). Regenerate with:  GUIDED_REVIEW_EXPORT=1 npx vitest run src/features/guided/review-export.test.ts
@@ -19,9 +21,13 @@ const csv = (rows: (string | number | null | undefined)[][]) => rows.map((r) => 
 const SETS = [["dev", DEV], ["holdout-1", HOLDOUT], ["holdout-2", HOLDOUT2], ["holdout-3-unseen", HOLDOUT3]] as const;
 
 function labels() {
-  const rows: (string | number)[][] = [["set", "item_id", "source", "sentence", "label_expected_verdict", "label_category", "tags", "evaluator_verdict_v1.0.0", "evaluator_category", "reviewer_verdict (agree/disagree/unsure)", "reviewer_corrected_label", "reviewer_notes"]];
+  const rows: (string | number)[][] = [["set", "item_id", "source", "sentence", "label_expected_verdict", "label_category", "tags", "evaluator_verdict_v1.0.0", "evaluator_category", "evaluator_matches_label", "flag", "reviewer_verdict (agree/disagree/unsure)", "reviewer_corrected_label", "reviewer_notes"]];
   for (const [name, cases] of SETS)
-    for (const s of runCorpus(cases)) rows.push([name, ITEM_ID[s.case.item], s.case.source, s.case.text, s.case.expect, s.case.category ?? "", s.case.tags.join("|"), s.got.verdict, s.got.category ?? "", "", "", ""]);
+    for (const s of runCorpus(cases)) {
+      const open = OPEN_REVIEW_ITEMS.find((i) => i.sentence === s.case.text);
+      const matches = s.got.verdict === s.case.expect && (s.case.expect !== "incorrect" || s.got.category === s.case.category);
+      rows.push([name, ITEM_ID[s.case.item], s.case.source, s.case.text, s.case.expect, s.case.category ?? "", s.case.tags.join("|"), s.got.verdict, s.got.category ?? "", matches ? "yes" : "NO", open ? `REVIEW FIRST (${open.kind}): ${open.question}` : "", "", "", ""]);
+    }
   return rows;
 }
 
@@ -48,6 +54,14 @@ function explanations() {
     else for (const [kk, vv] of Object.entries(v)) add("neutral", `${k}.${kk}`, "text", vv);
   }
   for (const [k, v] of Object.entries(VOICE_MESSAGES)) add("voice", k, "text", v);
+  const walk = (kind: string, prefix: string, v: unknown) => {
+    if (typeof v === "string") add(kind, prefix, "text", v);
+    else if (Array.isArray(v)) v.forEach((x, i) => walk(kind, `${prefix}[${i}]`, x));
+    else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) walk(kind, prefix ? `${prefix}.${k}` : k, x);
+  };
+  walk("screen", "", COPY);
+  walk("outcome_label", "", OUTCOME_LABEL);
+  walk("outcome_message", "", RESOLVED);
   return rows;
 }
 

@@ -120,6 +120,8 @@ export interface AiService {
     text: string;
   }): Promise<WritingFeedback>;
   transcribe(audio: { bytes: Uint8Array; name: string; type: string }): Promise<string>;
+  /** A small structured call for features that own their own prompt and schema (Guided Correction). Returns unvalidated JSON. */
+  structured(input: { name: string; schema: object; system: string; user: string }): Promise<unknown>;
 }
 
 export function createAiService(
@@ -133,7 +135,7 @@ export function createAiService(
   const skillList = catalog.map((s) => `- ${s.id}: ${s.title} (${s.topic}; ${s.cefr})`).join("\n");
 
   async function chat<T>(opts: {
-    kind: "goals" | "writing";
+    kind: "goals" | "writing" | "guided";
     name: string;
     schema: object;
     system: string;
@@ -301,6 +303,19 @@ export function createAiService(
             assessedSkillIds: fb.assessedSkillIds.filter((id) => id === skill.id),
           };
         },
+      });
+    },
+
+    structured({ name, schema, system, user }) {
+      return chat({
+        kind: "guided",
+        name,
+        schema,
+        system,
+        user,
+        maxTokens: config.limits.maxOutputTokens.guided,
+        timeoutMs: config.limits.timeoutMs.guided,
+        parse: (raw) => raw,
       });
     },
 

@@ -3,7 +3,7 @@
  * model output or keys. Prices are ASSUMPTIONS (override with env vars) and must be checked
  * against OpenAI's current pricing page before being used for budgeting.
  */
-export type UsageKind = "goals" | "writing" | "transcribe";
+export type UsageKind = "goals" | "writing" | "transcribe" | "guided";
 
 export interface UsageEntry {
   kind: UsageKind;
@@ -65,7 +65,7 @@ export class UsageMeter {
 
   snapshot(): { byKind: Record<UsageKind, UsageTotals>; total: UsageTotals; prices: Prices; note: string } {
     const empty = (): UsageTotals => ({ calls: 0, failed: 0, promptTokens: 0, completionTokens: 0, audioSeconds: 0, estimatedUsd: 0, avgMs: 0 });
-    const byKind: Record<UsageKind, UsageTotals> = { goals: empty(), writing: empty(), transcribe: empty() };
+    const byKind: Record<UsageKind, UsageTotals> = { goals: empty(), writing: empty(), transcribe: empty(), guided: empty() };
     const total = empty();
     for (const e of this.entries) {
       for (const t of [byKind[e.kind], total]) {

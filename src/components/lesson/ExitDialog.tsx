@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/Button";
 interface ExitDialogProps {
   onContinue: () => void;
   onSaveAndExit: () => void;
+  /** Wording for other activities; the defaults are the lesson wording. */
+  copy?: { title: string; description: string; continueLabel: string; exitLabel: string };
 }
 
 /** “Leave this lesson?” Progress is saved automatically; the destructive path never sits in the primary slot. */
-export function ExitDialog({ onContinue, onSaveAndExit }: ExitDialogProps) {
+export function ExitDialog({ onContinue, onSaveAndExit, copy = { title: "Leave this lesson?", description: "Your progress so far will be saved.", continueLabel: "Continue Lesson", exitLabel: "Save & Exit" } }: ExitDialogProps) {
   const continueRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -31,17 +33,17 @@ export function ExitDialog({ onContinue, onSaveAndExit }: ExitDialogProps) {
         className="w-full max-w-[420px] rounded-3xl bg-surface p-6 shadow-xl"
       >
         <h2 id="exit-title" className="text-xl font-bold leading-7">
-          Leave this lesson?
+          {copy.title}
         </h2>
         <p id="exit-desc" className="mt-2 text-base font-medium leading-6 text-ink-2">
-          Your progress so far will be saved.
+          {copy.description}
         </p>
         <div className="mt-5 flex flex-col gap-2.5">
           <Button ref={continueRef} onClick={onContinue}>
-            Continue Lesson
+            {copy.continueLabel}
           </Button>
           <Button variant="secondary" onClick={onSaveAndExit}>
-            Save &amp; Exit
+            {copy.exitLabel}
           </Button>
         </div>
       </div>

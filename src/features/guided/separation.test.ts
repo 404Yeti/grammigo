@@ -23,26 +23,50 @@ function sources(dir: string): string[] {
 const importsOf = (file: string): string[] => [...readFileSync(file, "utf8").matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
 const isGuidedPath = (p: string) => GUIDED_DIRS.some((d) => p.startsWith(d)) || GUIDED_FILES.includes(p);
 
+/**
+ * The ONLY existing files allowed to import guided code, and exactly what each may import. They are
+ * entry points (a route, an API route, two screens that show an optional card); none of them is a
+ * mastery, profile, recommendation, lesson-progress or storage module, and none passes data across.
+ */
+const ENTRY_POINTS: Record<string, string[]> = {
+  "app/practice/[lessonId]/guided/page.tsx": ["@/curriculum/guided", "@/features/guided/visibility", "@/features/guided/ui/GuidedScreen"],
+  "app/api/ai/guided-check/route.ts": ["@/features/guided/ai/check"],
+  "features/lessons/IntroScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],
+  "features/practice/ReviewScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],
+};
+
 describe("guided code and learning code cannot see each other", () => {
   const all = sources(ROOT);
   const outside = all.filter((f) => !isGuidedPath(f));
   const inside = all.filter(isGuidedPath);
+  const rel = (f: string) => relative(ROOT, f).replace(/\\/g, "/");
 
-  it("no existing module (mastery, profile, recommendations, lessons, storage, UI…) imports anything guided", () => {
-    const offenders = outside.flatMap((f) => importsOf(f).filter((i) => /(^|\/)guided(\/|$)/.test(i)).map((i) => `${relative(ROOT, f)} → ${i}`));
+  it("no existing module (mastery, profile, recommendations, lessons, storage…) imports anything guided, except the named entry points", () => {
+    const offenders = outside.flatMap((f) =>
+      importsOf(f)
+        .filter((i) => /(^|\/)guided(\/|$)/.test(i) && !(ENTRY_POINTS[rel(f)] ?? []).includes(i))
+        .map((i) => `${rel(f)} → ${i}`),
+    );
     expect(offenders).toEqual([]);
   });
 
-  it("guided code imports nothing from mastery, the profile, recommendations, lessons, diagnostics, onboarding, UI or lesson storage", () => {
-    const forbidden = [/features\/learning/, /features\/practice/, /features\/diagnostic/, /features\/lessons/, /features\/onboarding/, /features\/ai/, /lib\/storage/, /types\/session/, /^@\/components/, /^@\/app/];
-    const offenders = inside.flatMap((f) => importsOf(f).filter((i) => forbidden.some((re) => re.test(i))).map((i) => `${relative(ROOT, f)} → ${i}`));
+  it("every entry point still exists and really is one (so the list cannot rot into a loophole)", () => {
+    for (const [file, allowed] of Object.entries(ENTRY_POINTS)) {
+      const imports = importsOf(join(ROOT, file));
+      expect(imports.some((i) => allowed.includes(i)), file).toBe(true);
+    }
+  });
+
+  it("guided code imports nothing from mastery, the profile, recommendations, lesson progress, diagnostics, onboarding, lesson data or lesson storage", () => {
+    const forbidden = [/features\/learning/, /features\/practice/, /features\/diagnostic/, /features\/lessons/, /features\/onboarding/, /features\/mastery/, /features\/profile/, /features\/recommendation/, /lib\/storage/, /types\/session/, /^@\/data/, /^@\/curriculum$/, /^@\/curriculum\/(?!guided)/];
+    const offenders = inside.flatMap((f) => importsOf(f).filter((i) => forbidden.some((re) => re.test(i))).map((i) => `${rel(f)} → ${i}`));
     expect(offenders).toEqual([]);
   });
 
   it("the guided store never names the lesson storage keys", () => {
     for (const f of inside) {
       const text = readFileSync(f, "utf8");
-      expect(text, relative(ROOT, f)).not.toMatch(/grammigo:v[12]\b/);
+      expect(text, rel(f)).not.toMatch(/grammigo:v[12]\b/);
     }
   });
 });
