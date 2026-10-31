@@ -3,7 +3,7 @@
 ## What runs (`.github/workflows`)
 | Check (required on `main`) | What it proves |
 |---|---|
-| **Quality** | `tsc --noEmit`, ESLint, the whole Vitest suite |
+| **Quality** | `next typegen` + `tsc --noEmit` (a clean checkout has no generated `PageProps`/`LayoutProps` types until typegen runs; locally use `npm run typecheck`), ESLint, the whole Vitest suite |
 | **Browser tests** | production build with the Guided Correction preview flags, then Playwright on Chromium (mobile and desktop), one retry allowed and reported |
 | **Dependency audit** | `npm audit --audit-level=high` (moderate findings in dev-only linters are tracked, not blocking) |
 | **Secret scan** | gitleaks over the full history |
