@@ -481,6 +481,33 @@ describe("accessibility", () => {
   });
 });
 
+describe("release configuration: Beta, typed-only", () => {
+  it("shows a Beta label and no voice controls when voice is not enabled for the build", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_GUIDED_VOICE", "");
+    await open();
+    expect(screen.getByText("Beta")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Speak" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /how do you want to answer/i })).not.toBeInTheDocument();
+    await check("I watched a film with my sister.");
+    expect(outcomeOf()).toEqual(["first_try"]); // the typed journey is complete without voice
+    vi.unstubAllEnvs();
+  });
+
+  it("the entry card says Beta, describes typing only, and keeps the honest note", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_GUIDED_PREVIEW", "true");
+    vi.stubEnv("NEXT_PUBLIC_GUIDED_VOICE", "");
+    render(<IntroScreen lessonId={LESSON} />);
+    const card = await screen.findByTestId("guided-entry");
+    expect(card).toHaveTextContent("Beta");
+    expect(card).toHaveTextContent(/type your answer/i);
+    expect(card).not.toHaveTextContent(/speak|say a sentence/i);
+    expect(screen.getByTestId("beta-note")).toHaveTextContent(/still checking this activity with teachers/i);
+    vi.unstubAllEnvs();
+  });
+});
+
 describe("entry points", () => {
   it("the lesson introduction offers Fix it with Migo for this lesson only", async () => {
     const { unmount } = render(<IntroScreen lessonId={LESSON} />);

@@ -22,6 +22,11 @@ export const RESOLVED = {
   unverified: { title: "I can’t judge this one for sure", body: "", migo: "Different isn’t the same as wrong." },
 } as const;
 
+export const BETA = {
+  label: "Beta",
+  note: "Beta: we’re still checking this activity with teachers. What you do here stays separate from your lesson progress.",
+} as const;
+
 export const COPY = {
   tag: "Past simple vs present perfect",
   fixIt: "Fix it",

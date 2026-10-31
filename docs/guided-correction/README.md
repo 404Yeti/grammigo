@@ -49,7 +49,7 @@ First try 1.0, self-corrected 0.7, hint-assisted 0.5, shown 0, unverified = no v
 
 ## Visibility
 
-In a production build the activity is hidden (no entry card, `/practice/<lesson>/guided` is a 404) until the release gate is clear. A preview build opts in with `NEXT_PUBLIC_GUIDED_PREVIEW=true`. Browser tests need `NEXT_PUBLIC_GUIDED_PREVIEW=true npm run build` first.
+In a production build the activity is hidden (no entry card, `/practice/<lesson>/guided` is a 404) until the release gate is clear. A preview build opts in with `NEXT_PUBLIC_GUIDED_PREVIEW=true`. Spoken answers are a separate switch, `NEXT_PUBLIC_GUIDED_VOICE=true`, **off in production builds** (typed-only) until real-device testing is done. The full browser suite needs `NEXT_PUBLIC_GUIDED_PREVIEW=true NEXT_PUBLIC_GUIDED_VOICE=true npm run build`; the release configuration is `NEXT_PUBLIC_GUIDED_PREVIEW=true` alone, tested with the spoken tests excluded.
 
 ## Phase 5 additions
 

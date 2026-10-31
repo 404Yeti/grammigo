@@ -12,7 +12,8 @@ import { TextField } from "@/components/ui/TextField";
 import { cn } from "@/lib/utils/cn";
 import type { GuidedExercise } from "@/types/guided";
 import { viewExercise } from "../cycle/messages";
-import { COPY, WORD_LEVEL_UNCERTAINTY } from "./copy";
+import { BETA, COPY, WORD_LEVEL_UNCERTAINTY } from "./copy";
+import { guidedVoiceEnabled } from "../visibility";
 import { Announcer, InfoCard, RetryDots } from "./parts";
 import { VoicePanel } from "./VoicePanel";
 import type { GuidedController } from "./use-guided";
@@ -42,6 +43,7 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
   const item = getGuidedItem(ex.itemId)!;
   const view = viewExercise(ex);
   const transfer = ex.kind === "transfer";
+  const voiceEnabled = guidedVoiceEnabled();
   const [explaining, setExplaining] = useState(false);
   const explained = useRef(false);
   const [sameNote, setSameNote] = useState(false);
@@ -51,7 +53,7 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
   const phase = ex.phase;
   const last = ex.attempts.filter((a) => !a.notAnAttempt).at(-1);
   const interactive = phase === "attempting" || phase === "repairing" || phase === "clarifying" || phase === "unverified";
-  const spoken = ex.inputMode === "spoken" && interactive;
+  const spoken = voiceEnabled && ex.inputMode === "spoken" && interactive;
   const confirming = phase === "confirming";
   const showField = (interactive && !spoken) || confirming || phase === "checking_opinion";
 
@@ -161,9 +163,12 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
         </p>
       )}
 
-      <GrammarTag className="w-fit">
-        {COPY.tag} · {transfer ? COPY.newSituation : COPY.fixIt}
-      </GrammarTag>
+      <div className="flex flex-wrap items-center gap-2">
+        <GrammarTag className="w-fit">
+          {COPY.tag} · {transfer ? COPY.newSituation : COPY.fixIt}
+        </GrammarTag>
+        <GrammarTag style="warning">{BETA.label}</GrammarTag>
+      </div>
       <h1 ref={headingRef} tabIndex={-1} className="text-[28px] font-extrabold leading-9 tracking-[-0.4px] outline-none" data-testid="guided-question">
         {item.question}
       </h1>
@@ -173,7 +178,7 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
       </div>
 
       {/* How to answer */}
-      {interactive && (
+      {interactive && voiceEnabled && (
         <div role="group" aria-label="How do you want to answer?" className="inline-flex w-fit rounded-full bg-subtle p-1">
           {(["typed", "spoken"] as const).map((mode) => {
             const disabled = mode === "spoken" && !g.voiceOk;
@@ -195,7 +200,7 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
           })}
         </div>
       )}
-      {interactive && !g.voiceOk && g.aiKnown && (
+      {interactive && voiceEnabled && !g.voiceOk && g.aiKnown && (
         <p className="text-xs font-medium leading-4 text-muted" data-testid="voice-off-note">
           {COPY.voiceUnavailableOnline}
         </p>

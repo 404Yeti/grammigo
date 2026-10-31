@@ -225,3 +225,14 @@ test.describe("entry points and layout", () => {
     await expect(page.getByTestId("transfer-intro")).toBeVisible();
   });
 });
+
+test.describe("release configuration (typed-only Beta build)", () => {
+  test("a build without voice shows the Beta label and no Speak control, and the typed journey works", async ({ page }) => {
+    await ai(page);
+    await open(page);
+    test.skip(await page.getByRole("button", { name: "Speak", exact: true }).isVisible(), "this build has voice enabled");
+    await expect(page.getByText("Beta", { exact: true }).first()).toBeVisible();
+    await typeAndCheck(page, "I watched a film with my sister.");
+    await expect(chips(page)).toHaveText("First try");
+  });
+});
