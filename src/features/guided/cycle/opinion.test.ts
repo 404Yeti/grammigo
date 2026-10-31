@@ -168,7 +168,7 @@ describe("after an ungraded clarification", () => {
     r.answer(UNSURE_TEXT);
     expect(r.send({ type: "EDIT", draft: GOOD }).rejected).toBeNull();
     r.send({ type: "SUBMIT" });
-    expect(r.ex.outcome?.kind).toBe("self_corrected"); // a later, checkable answer is credited conservatively
+    expect(r.ex.outcome?.kind).toBe("first_try"); // the first VERIFIED correct answer; an earlier unverified one does not disqualify it (owner decision, Phase 4)
     const r2 = runner({ aiAvailable: false });
     r2.answer(UNSURE_TEXT);
     r2.send({ type: "ACCEPT_AS_IS" });

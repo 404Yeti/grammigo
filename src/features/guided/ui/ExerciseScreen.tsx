@@ -12,7 +12,7 @@ import { TextField } from "@/components/ui/TextField";
 import { cn } from "@/lib/utils/cn";
 import type { GuidedExercise } from "@/types/guided";
 import { viewExercise } from "../cycle/messages";
-import { COPY } from "./copy";
+import { COPY, WORD_LEVEL_UNCERTAINTY } from "./copy";
 import { Announcer, InfoCard, RetryDots } from "./parts";
 import { VoicePanel } from "./VoicePanel";
 import type { GuidedController } from "./use-guided";
@@ -233,7 +233,7 @@ export function ExerciseScreen({ g, ex, onLater, editing }: Props) {
         <>
           <h2 className="text-2xl font-extrabold leading-8">{ex.attempts.length > 0 ? COPY.confirm.fixTitle : COPY.confirm.title}</h2>
           <p className="text-sm font-medium leading-5 text-ink-2">{COPY.confirm.body}</p>
-          {ex.pendingTranscript && ex.pendingTranscript.lowConfidenceWords.length > 0 && (
+          {WORD_LEVEL_UNCERTAINTY && ex.pendingTranscript && ex.pendingTranscript.lowConfidenceWords.length > 0 && (
             <InfoCard tone="warm" label={ex.pendingTranscript.lowConfidenceWords.length === 1 ? COPY.unsure.label : COPY.unsure.unsureMany} testId="unsure-words">
               <span className="font-bold">“{ex.pendingTranscript.lowConfidenceWords.join("”, “")}”</span> {COPY.unsure.body}
             </InfoCard>

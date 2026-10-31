@@ -1,0 +1,14 @@
+--- src/features/guided/evaluator/analyze.ts	2026-10-31 05:35:18.672996200 +0000
++++ src/features/guided/evaluator/analyze.ts	2026-10-31 08:18:32.078503700 +0000
+@@ -193,6 +193,11 @@
+     // hedged fragment that follows one ("I don't know exactly, maybe since 2020").
+     const sincePointRe = new RegExp(`\\bsince (?:(?:19|20)\\d\\d|last \\w+|yesterday|${WEEKDAYS}|${MONTHS})\\b`);
+     if (!hasPerfectHere && s.clauses.some((c) => sincePointRe.test(c.text) && hasFiniteVerb(withoutParentheticals(c.tokens)))) f.sinceWithoutPerfect = { sentence: si };
++    // PROPOSAL P1: "for" followed by a clause ("for I was a child") is a starting point, not a duration.
++    if (/\bfor (?:i|we|he|she|they) (?:was|were|am|started|began|came|moved|arrived|got|had|lived|first)\b/.test(st)) f.forPoint = true;
++    // PROPOSAL P2: "since I was twelve" after a finite main verb with no perfect anywhere in the sentence.
++    const sinceClauseRe = /\bsince (?:i|we|he|she|they) (?:was|were|started|began|came|moved|arrived|left|joined|graduated|got|had|first|lived)\b/;
++    if (!hasPerfectHere && !f.sinceWithoutPerfect && s.clauses.some((c) => { const i = c.tokens.indexOf("since"); return i > 0 && sinceClauseRe.test(c.text) && hasFiniteVerb(withoutParentheticals(c.tokens.slice(0, i))); })) f.sinceWithoutPerfect = { sentence: si };
+     if (new RegExp(`\\bfor (?:${NUMBER_WORDS}) (?:${UNITS})\\b`).test(st)) f.forDuration = true;
+   });
+ 

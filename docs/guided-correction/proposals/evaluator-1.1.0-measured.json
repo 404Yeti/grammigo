@@ -1,0 +1,45 @@
+{
+  "frozenAll": {
+    "cases": 491,
+    "falseWrong": 0,
+    "detected": "146/151",
+    "accepted": 1,
+    "wrongCategory": 2,
+    "validRecognised": "260/261",
+    "unrelatedIgnored": "11/11"
+  },
+  "protoAll": {
+    "cases": 491,
+    "falseWrong": 0,
+    "detected": "150/151",
+    "accepted": 0,
+    "wrongCategory": 2,
+    "validRecognised": "260/261",
+    "unrelatedIgnored": "11/11"
+  },
+  "frozenSet3": {
+    "cases": 95,
+    "falseWrong": 0,
+    "detected": "27/29",
+    "accepted": 1,
+    "wrongCategory": 2,
+    "validRecognised": "53/53",
+    "unrelatedIgnored": "3/3"
+  },
+  "protoSet3": {
+    "cases": 95,
+    "falseWrong": 0,
+    "detected": "29/29",
+    "accepted": 0,
+    "wrongCategory": 2,
+    "validRecognised": "53/53",
+    "unrelatedIgnored": "3/3"
+  },
+  "falseWrongProto": [],
+  "changed": [
+    "I speak English since I was a child. | label incorrect/since_without_perfect | frozen uncertain/- -> proto incorrect/since_without_perfect [since_without_perfect]",
+    "I played the piano since I was seven. | label incorrect/since_without_perfect | frozen uncertain/- -> proto incorrect/since_without_perfect [since_without_perfect]",
+    "I study English since I was twelve. | label incorrect/since_without_perfect | frozen uncertain/- -> proto incorrect/since_without_perfect [since_without_perfect]",
+    "I have learned English for I was a child. | label incorrect/since_for_confusion | frozen correct/- -> proto incorrect/since_for_confusion [for_with_point]"
+  ]
+}

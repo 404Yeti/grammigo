@@ -24,6 +24,8 @@ export interface OutcomeRecord {
   source: "typed" | "spoken" | null;
   /** The provisional value, or null when the outcome carries none. */
   value: number | null;
+  /** Earlier submissions that could not be verified (neither right nor wrong). Tracked on their own; they never change the outcome. */
+  earlierUnverified: number;
   at: number;
 }
 
@@ -33,7 +35,7 @@ export function outcomeRecords(sessions: readonly GuidedSession[]): OutcomeRecor
   return sessions.flatMap((s) =>
     s.exercises.flatMap((e) =>
       e.outcome
-        ? [{ sessionId: s.id, exerciseId: e.id, itemId: e.itemId, exerciseKind: e.kind, outcome: e.outcome.kind, basis: e.outcome.basis, source: e.outcome.source, value: outcomeValue(e.outcome.kind), at: e.outcome.at }]
+        ? [{ sessionId: s.id, exerciseId: e.id, itemId: e.itemId, exerciseKind: e.kind, outcome: e.outcome.kind, basis: e.outcome.basis, source: e.outcome.source, value: outcomeValue(e.outcome.kind), earlierUnverified: e.attempts.filter((a) => !a.notAnAttempt && a.verdict === "uncertain").length - (e.outcome.basis === "ai_second_opinion" ? 1 : 0), at: e.outcome.at }]
         : [],
     ),
   );
@@ -48,6 +50,8 @@ export interface OutcomeSummary {
   typed: number;
   /** Outcomes the AI helped confirm. Reported, never required. */
   aiConfirmed: number;
+  /** Unverified submissions made before a verified outcome, across all exercises. Informational only. */
+  earlierUnverified: number;
   /** Mean of the provisional values over valued outcomes only; null when there are none. Informational. */
   meanProvisionalValue: number | null;
 }
@@ -65,6 +69,7 @@ export function summarizeOutcomes(state: Pick<GuidedState, "sessions">): Outcome
     spoken: records.filter((r) => r.source === "spoken").length,
     typed: records.filter((r) => r.source === "typed").length,
     aiConfirmed: records.filter((r) => r.basis === "ai_second_opinion").length,
+    earlierUnverified: records.reduce((a, r) => a + r.earlierUnverified, 0),
     meanProvisionalValue: valued.length ? valued.reduce((a, r) => a + (r.value as number), 0) / valued.length : null,
   };
 }

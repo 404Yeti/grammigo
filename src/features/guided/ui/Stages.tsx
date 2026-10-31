@@ -7,9 +7,34 @@ import { Button } from "@/components/ui/Button";
 import { GrammarTag } from "@/components/ui/GrammarTag";
 import type { GuidedExercise, GuidedSession } from "@/types/guided";
 import { NEUTRAL, viewExercise } from "../cycle/messages";
-import { COPY, RESOLVED } from "./copy";
+import { getGuidedItem } from "@/curriculum/guided";
+import { CONTRAST, COPY, RESOLVED, type Contrast } from "./copy";
 import { Announcer, InfoCard, OutcomeChip } from "./parts";
 import type { GuidedController } from "./use-guided";
+
+/** Picks the contrast that fits what the learner just worked on, or none when it would not help (verb-form mistakes). */
+export function contrastFor(ex: GuidedExercise): Contrast | null {
+  if (ex.category === "participle_form") return null;
+  if (ex.category === "since_for_confusion") return CONTRAST.sinceFor;
+  if (ex.category === "since_without_perfect") return CONTRAST.unfinished;
+  if (ex.category === "pp_with_finished_time") return CONTRAST.finished;
+  const frame = getGuidedItem(ex.itemId)?.frame;
+  return frame === "finished" ? CONTRAST.finished : frame === "unfinished" ? CONTRAST.unfinished : frame === "experience" ? CONTRAST.experience : null;
+}
+
+function ContrastLines({ contrast }: { contrast: Contrast | null }) {
+  if (!contrast) return null;
+  return (
+    <span className="mt-3 block rounded-xl bg-surface px-3 py-2.5" data-testid="contrast">
+      <span className="block text-xs font-bold uppercase leading-4 tracking-[0.6px] text-ink-2">{contrast.label}</span>
+      {contrast.lines.map((l) => (
+        <span key={l} className="mt-1 block text-sm font-medium leading-5 text-ink">
+          {l}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 const lastCounted = (ex: GuidedExercise) => ex.attempts.filter((a) => !a.notAnAttempt).at(-1) ?? null;
 
@@ -35,6 +60,7 @@ export function ResolvedView({ g, ex, reasonOpen, onReason }: { g: GuidedControl
       {reasonOpen ? (
         <InfoCard label="Why this works" testId="reason-card">
           {view.reason}
+          <ContrastLines contrast={contrastFor(ex)} />
         </InfoCard>
       ) : kind === "shown" ? (
         <>
@@ -45,6 +71,7 @@ export function ResolvedView({ g, ex, reasonOpen, onReason }: { g: GuidedControl
           </InfoCard>
           <InfoCard label="Why" testId="reason-card">
             {view.reason}
+            <ContrastLines contrast={contrastFor(ex)} />
           </InfoCard>
         </>
       ) : kind === "unverified" ? (

@@ -100,9 +100,27 @@ function resolve(e: GuidedExercise, kind: GuidedOutcomeKind, basis: OutcomeBasis
   return { ...e, phase: "resolved", returnPhase: "resolved", outcome, pendingTranscript: null, clarify: null, notice: null, voiceIssue: null, updatedAt: now };
 }
 
-/** First counted answer correct → first try. Otherwise fixed after the neutral notice only, or after a hint. */
+/**
+ * Whether the learner was told something corrective before this answer: an earlier answer the
+ * deterministic check marked incorrect (which brings the notice and the hints), a hint, or an
+ * AI-triggered grammar clarification. An answer that was merely unverified, incomplete or off-topic
+ * is none of these. With a clarification limit of one, guidance was shown exactly when the FIRST
+ * clarification-eligible opinion was a grammar concern.
+ */
+export function wasCorrectedBefore(e: GuidedExercise): boolean {
+  const earlier = counted(e).slice(0, -1);
+  if (earlier.some((a) => a.verdict === "incorrect") || e.hintsUsed > 0) return true;
+  const firstEligible = earlier.map((a) => a.opinion).find((o) => o && o.confidence !== "low" && (o.fit === "grammar_concern" || o.fit === "incomplete" || o.fit === "off_prompt"));
+  return firstEligible?.fit === "grammar_concern";
+}
+
+/**
+ * The deciding answer is the first VERIFIED correct one. First try if nothing corrective came before it
+ * (earlier unverified submissions are tracked separately and do not disqualify); otherwise fixed after a hint,
+ * or fixed after the neutral notice only.
+ */
 function resolveSuccess(e: GuidedExercise, basis: OutcomeBasis, source: GuidedInputSource, now: number): GuidedExercise {
-  const kind: GuidedOutcomeKind = counted(e).length === 1 ? "first_try" : e.hintsUsed > 0 ? "hint_assisted" : "self_corrected";
+  const kind: GuidedOutcomeKind = !wasCorrectedBefore(e) ? "first_try" : e.hintsUsed > 0 ? "hint_assisted" : "self_corrected";
   return resolve(e, kind, basis, source, now);
 }
 

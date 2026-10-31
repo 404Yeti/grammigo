@@ -226,6 +226,37 @@ describe("typed journey: Attempt → Notice → Correct → Understand → Apply
   });
 });
 
+describe("the Understand step", () => {
+  it("shows a short contrast of two CORRECT sentences when it helps the tense rule", async () => {
+    await open();
+    await check("I have watched a film yesterday evening.");
+    setField("I watched a film yesterday evening.");
+    await click(/try again/i);
+    await click(/why does this fit/i);
+    const contrast = screen.getByTestId("contrast");
+    expect(contrast).toHaveTextContent(/same verb, two tenses/i);
+    expect(contrast).toHaveTextContent("I saw the film yesterday.");
+    expect(contrast).toHaveTextContent("I have seen the film, so I know the ending.");
+    expect(contrast.textContent).not.toMatch(/have seen it yesterday|have watched a film yesterday/i); // never a wrong sentence
+  });
+
+  it("is omitted for a verb-form mistake, where a tense contrast would not help", async () => {
+    await open();
+    await check("I have broke my glasses.");
+    setField("I broke my glasses.");
+    await click(/try again/i);
+    await click(/why does this fit/i);
+    expect(screen.getByTestId("reason-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("contrast")).not.toBeInTheDocument();
+  });
+
+  it("also appears with Show me", async () => {
+    await open();
+    await click(/^show me$/i);
+    expect(screen.getByTestId("contrast")).toBeInTheDocument();
+  });
+});
+
 describe("answers the check cannot judge", () => {
   const UNSURE = "I will go to bed early tonight.";
 
@@ -254,9 +285,8 @@ describe("answers the check cannot judge", () => {
     await waitFor(() => expect(field().value).toBe(UNSURE));
     setField("I watched a film with my sister.");
     await click(/try again/i);
-    // Phase 2 rule: only the FIRST counted answer earns "first try". An earlier unverified answer is
-    // never held against the learner, but it does not earn first try either. Flagged for the owner.
-    expect(outcomeOf()).toEqual(["self_corrected"]);
+    // Owner rule (Phase 4): the first VERIFIED correct answer earns first try; an earlier unverified one does not disqualify it.
+    expect(outcomeOf()).toEqual(["first_try"]);
   });
 
   it("an AI second opinion can confirm a fit (and only that)", async () => {
@@ -340,14 +370,16 @@ describe("spoken answers", () => {
     expect(outcomeOf()).toEqual(["self_corrected"]);
   });
 
-  it("an unsure word is flagged at the confirm step and is never treated as a mistake", async () => {
+  it("word-level uncertainty is NOT shown: the transcription service does not supply reliable data, so the state stays hidden", async () => {
     startGuidedSession({ now: 1, id: "g-unsure" });
     const send = (e: Parameters<typeof dispatchGuided>[1]) => dispatchGuided("g-unsure", e, { aiAvailable: false });
     send({ type: "START_RECORDING" });
     send({ type: "RECORDING_DONE" });
     send({ type: "TRANSCRIPT_READY", text: "I have seen it yesterday evening.", lowConfidenceWords: ["seen"] });
     await open();
-    expect(await screen.findByTestId("unsure-words")).toHaveTextContent(/“seen”.*won’t treat it as a mistake until you confirm/i);
+    await screen.findByRole("heading", { name: /did i hear you right/i });
+    expect(screen.queryByTestId("unsure-words")).not.toBeInTheDocument();
+    expect(field().value).toBe("I have seen it yesterday evening."); // the words are still the learner's to confirm or edit
     expect(getGuidedSnapshot().sessions[0].exercises[0].attempts).toHaveLength(0);
   });
 

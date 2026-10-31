@@ -9,7 +9,7 @@ import { HOLDOUT3 } from "./evaluator/corpus/holdout3";
 import { ITEM_ID } from "./evaluator/corpus/helpers";
 import { runCorpus } from "./evaluator/score";
 import { NEUTRAL, VOICE_MESSAGES } from "./cycle/messages";
-import { COPY, OUTCOME_LABEL, RESOLVED } from "./ui/copy";
+import { CONTRAST, COPY, OUTCOME_LABEL, RESOLVED } from "./ui/copy";
 import { OPEN_REVIEW_ITEMS } from "./release";
 
 /**
@@ -62,6 +62,7 @@ function explanations() {
   walk("screen", "", COPY);
   walk("outcome_label", "", OUTCOME_LABEL);
   walk("outcome_message", "", RESOLVED);
+  walk("contrast_example", "", CONTRAST);
   return rows;
 }
 

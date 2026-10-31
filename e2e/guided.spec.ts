@@ -23,6 +23,15 @@ async function open(page: Page) {
   await expect(page.getByTestId("guided-question")).toBeVisible();
 }
 
+/** Taps Speak → the mic button, and passes the one-time explainer if the browser has not already granted the microphone. */
+async function tapMic(page: Page) {
+  await page.getByRole("button", { name: "Speak", exact: true }).click();
+  await page.getByRole("button", { name: /Tap to speak/ }).click();
+  // The explainer decision is asynchronous (permission query), so wait for it rather than sampling once.
+  const explainer = page.getByTestId("mic-explainer");
+  if (await explainer.waitFor({ state: "visible", timeout: 1500 }).then(() => true, () => false)) await page.getByRole("button", { name: "Continue" }).click();
+}
+
 const sentence = (page: Page) => page.getByLabel("Your sentence");
 async function typeAndCheck(page: Page, text: string, button: RegExp = /^Check$/) {
   await sentence(page).fill(text);
@@ -137,10 +146,7 @@ test.describe("spoken journey", () => {
   test("record → confirm/edit the words → judged; fix by voice; keyboard-only", async ({ page }) => {
     await ai(page, { transcript: "I have watched a film yesterday evening." });
     await open(page);
-    await page.getByRole("button", { name: "Speak", exact: true }).click();
-    await page.getByRole("button", { name: /Tap to speak/ }).click();
-    const explainer = page.getByTestId("mic-explainer");
-    if (await explainer.isVisible()) await page.getByRole("button", { name: "Continue" }).click();
+    await tapMic(page);
     await page.getByRole("button", { name: /Stop recording/ }).click();
     await expect(page.getByRole("heading", { name: "Did I hear you right?" })).toBeVisible();
     // nothing judged until confirmed
@@ -150,8 +156,7 @@ test.describe("spoken journey", () => {
 
     await page.unroute("**/api/ai/transcribe");
     await page.route("**/api/ai/transcribe", (r) => r.fulfill({ json: { status: "ok", text: "I watched a film yesterday evening." } }));
-    await page.getByRole("button", { name: "Speak", exact: true }).click();
-    await page.getByRole("button", { name: /Tap to speak/ }).click();
+    await tapMic(page);
     await page.getByRole("button", { name: /Stop recording/ }).click();
     await expect(page.getByRole("heading", { name: "Did I hear your new sentence?" })).toBeVisible();
     await page.getByRole("button", { name: "Looks right — check it" }).click();
@@ -162,9 +167,7 @@ test.describe("spoken journey", () => {
   test("transcription fails: neutral message, nothing counted, typing carries on", async ({ page }) => {
     await ai(page, { transcript: null });
     await open(page);
-    await page.getByRole("button", { name: "Speak", exact: true }).click();
-    await page.getByRole("button", { name: /Tap to speak/ }).click();
-    if (await page.getByTestId("mic-explainer").isVisible()) await page.getByRole("button", { name: "Continue" }).click();
+    await tapMic(page);
     await page.getByRole("button", { name: /Stop recording/ }).click();
     await expect(page.getByTestId("voice-message")).toContainText("not on you");
     await typeAndCheck(page, "I watched a film with my sister.");
@@ -177,9 +180,7 @@ test.describe("spoken journey", () => {
       navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException("denied", "NotAllowedError"));
     });
     await open(page);
-    await page.getByRole("button", { name: "Speak", exact: true }).click();
-    await page.getByRole("button", { name: /Tap to speak/ }).click();
-    if (await page.getByTestId("mic-explainer").isVisible()) await page.getByRole("button", { name: "Continue" }).click();
+    await tapMic(page);
     await expect(page.getByTestId("mic-help")).toContainText("site settings");
     await typeAndCheck(page, "I watched a film with my sister.");
     await expect(chips(page)).toHaveText("First try");

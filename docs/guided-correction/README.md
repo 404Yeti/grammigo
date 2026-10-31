@@ -27,6 +27,12 @@ The rules were frozen before set 3 was written and were **not tuned** on it. Fir
 
 These four are also listed in code (`OPEN_REVIEW_ITEMS` in `src/features/guided/release.ts`, returned by `guidedReleaseStatus().reviewItems`) and flagged `REVIEW FIRST` in `labels-for-review.csv`. A test checks the list matches the recorded first pass.
 
+Investigation, root causes, a **proposed (not applied)** rule change and its measured effect: `evaluator-investigation.md`, `proposals/`.
+
+## Phase 4 live AI checks (development configuration, nothing deployed)
+
+`live-ai-check.json` (12 calls: schema, latency, tokens, timeout, guards) and `live-ai-corpus.json` (every labelled sentence the on-device check leaves uncertain, 53 calls). Both measure; neither tunes anything. Read the "false guidance" rows in the corpus file with an educator: the AI sometimes raises a grammar concern about a sentence that is fine.
+
 ## Evaluator freeze
 
 The deterministic evaluator rules are frozen at **1.0.0** (`src/features/guided/evaluator/FROZEN.json`, SHA-256 checked by a test).

@@ -54,3 +54,24 @@ export const COPY = {
 } as const;
 
 export const STEPS = ["Try", "Notice", "Fix", "Why", "Apply"] as const;
+
+/**
+ * The unsure-word flag needs reliable word-level uncertainty from the transcription service. The current
+ * endpoint returns text only, so the state stays hidden. Turn on only when the service supplies that data.
+ */
+export const WORD_LEVEL_UNCERTAINTY = false;
+
+/**
+ * A short contrast shown with the reason when it genuinely helps. Both sentences are correct English: the
+ * learner compares two good sentences, never a wrong one. Not shown for verb-form mistakes, where a tense contrast would not help.
+ */
+export interface Contrast {
+  label: string;
+  lines: readonly [string, string];
+}
+export const CONTRAST = {
+  finished: { label: "Same verb, two tenses", lines: ["Finished time → past simple: “I saw the film yesterday.”", "Connected to now → present perfect: “I have seen the film, so I know the ending.”"] },
+  unfinished: { label: "Finished or still true?", lines: ["Finished → past simple: “I lived in Rome in 2015.”", "Still true now → present perfect: “I have lived in Rome since 2015.”"] },
+  sinceFor: { label: "For or since?", lines: ["for + how long: “for three years”", "since + when it started: “since 2021”"] },
+  experience: { label: "Experience or a finished time?", lines: ["Experience, no time → present perfect: “I have tried sushi.”", "Finished time → past simple: “I tried sushi last year.”"] },
+} as const satisfies Record<string, Contrast>;
