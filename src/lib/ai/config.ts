@@ -68,7 +68,10 @@ export function readAiConfig(env: AiEnv = process.env): AiConfig {
     limits: {
       goalsTextMax: 600,
       writingTextMax: 600,
-      audioBytesMax: 600_000,
+      // Measured: a full 30 s recording at the recorder's 32 kbps is ~122 KB (Chromium) / ~136 KB
+      // (Firefox). 300 KB leaves ~2x headroom (e.g. higher-bitrate Safari) and caps a request at
+      // roughly 75 s of audio instead of ~150 s. Not yet measured on Safari/iOS.
+      audioBytesMax: 300_000,
       transcriptMax: 600,
       noSpeechProb: 0.6,
       maxOutputTokens: { goals: 350, writing: 500 },
