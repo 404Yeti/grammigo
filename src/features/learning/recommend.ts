@@ -78,7 +78,8 @@ export interface RecommendInput {
  * due reviews > in-progress skills > new skills near the learner's frontier. Levels are never gates:
  * a learner with B2 strengths and an A2 gap is sent to the A2 gap first.
  *
- * With stated goals, the learner's goals set the direction (in the order they were stated):
+ * With stated goals that are still being established (not yet "developing"), the learner's goals set
+ * the direction (in the order they were stated):
  *   - lessons that serve a goal (the goal itself, or a genuinely weak prerequisite in that goal's own
  *     dependency chain) always outrank lessons that do not;
  *   - prerequisite remediation is only ever created ahead of a goal, never for unrelated lessons;
@@ -93,9 +94,18 @@ export function recommendLessons(input: RecommendInput): Recommendation[] {
   const config = input.config ?? DEFAULT_MASTERY_CONFIG;
   const byId = new Map(skills.map((s) => [s.id, s]));
   // Stated order is kept (first stated = highest priority); unknown ids and repeats are dropped.
-  const goalList = [...new Set(input.goalSkillIds)].filter((id) => byId.has(id));
+  const stated = [...new Set(input.goalSkillIds)].filter((id) => byId.has(id));
+  // A goal sets the direction only while it is still being established: no evidence yet, thin
+  // evidence, or struggling. Once it is "developing" (adequate evidence, going well) or "strong" it has
+  // had its turn, so it must not keep winning over everything else (that would loop the learner through
+  // the same lesson). With no goal left to establish, ranking is exactly the no-goals behaviour.
+  const establishing = stated.filter((id) => {
+    const status = mastery.get(id)?.status ?? "not_assessed";
+    return status === "not_assessed" || status === "learning" || status === "needs_practice";
+  });
+  const hasGoals = establishing.length > 0;
+  const goalList = hasGoals ? establishing : stated;
   const goals = new Set(goalList);
-  const hasGoals = goalList.length > 0;
   const readinessOptions: ReadinessOptions = { reliableOnly: hasGoals };
   /** Added to anything that serves a goal: it outranks everything that does not, and earlier goals outrank later ones. */
   const goalBonus = (goalId: string) => (hasGoals ? 1000 + (goalList.length - goalList.indexOf(goalId)) * 200 : 0);

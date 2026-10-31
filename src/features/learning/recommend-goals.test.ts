@@ -144,6 +144,68 @@ describe("several stated goals", () => {
   });
 });
 
+/** One lesson sitting: `outcomes` are the 8 answers, in order. */
+function sitting(skillId: string, outcomes: Outcome[], n: number): EvidenceEvent[] {
+  return outcomes.map((outcome, i) => ({
+    skillId,
+    outcome,
+    source: "lesson" as const,
+    groupId: `sitting-${n}-${skillId}`,
+    questionKey: `${skillId}/q${i + 1}`,
+    at: NOW - 100_000 + n * 10_000 + i,
+  }));
+}
+const C: Outcome = "correct_first_try";
+const H: Outcome = "correct_after_hint";
+const X: Outcome = "incorrect";
+
+describe("a goal stops dominating once it has been genuinely established (no looping on one lesson)", () => {
+  const unrelatedWeakness = answers("a2-prepositions-time", "incorrect", 6);
+
+  it("after one decent goal lesson, a well-evidenced unrelated weakness takes over and the goal follows", () => {
+    const events = [...sitting("a1-articles", [C, C, C, C, C, C, C, X], 1), ...unrelatedWeakness];
+    const { mastery, recs } = recommend(events, ["a1-articles"]);
+    expect(mastery.get("a1-articles")?.status).toBe("developing");
+    expect(first(recs)).toMatchObject({ skillId: "a2-prepositions-time", kind: "weak" });
+    expect(rank(recs, "a1-articles")).toBeGreaterThan(0); // still reachable
+  });
+
+  it("even three ~75% sittings do not trap the learner on the goal lesson", () => {
+    const events = [
+      ...sitting("a1-articles", [C, C, C, H, C, X, C, H], 1),
+      ...sitting("a1-articles", [C, H, C, C, X, C, C, H], 2),
+      ...sitting("a1-articles", [C, C, H, C, C, X, H, C], 3),
+      ...unrelatedWeakness,
+    ];
+    expect(first(recommend(events, ["a1-articles"]).recs).skillId).toBe("a2-prepositions-time");
+  });
+
+  it("a goal that is still shaky after a lesson (not yet developing) stays first", () => {
+    const events = [...sitting("a1-articles", [C, C, C, H, H, H, X, X], 1), ...unrelatedWeakness];
+    const { mastery, recs } = recommend(events, ["a1-articles"]);
+    expect(mastery.get("a1-articles")?.status).toBe("learning");
+    expect(first(recs)).toMatchObject({ skillId: "a1-articles" });
+  });
+
+  it("a mastered goal behaves exactly like having no goals", () => {
+    const events = [
+      ...sitting("a1-articles", [C, C, C, C, C, C, C, C], 1),
+      ...sitting("a1-articles", [C, C, C, C, C, C, C, C], 2),
+      ...answers("a1-be-present", "incorrect", 4),
+    ];
+    const withMasteredGoal = recommend(events, ["a1-articles"]).recs.map((r) => [r.skillId, r.kind]);
+    const withoutGoals = recommend(events, []).recs.map((r) => [r.skillId, r.kind]);
+    expect(withMasteredGoal).toEqual(withoutGoals);
+    expect(withMasteredGoal[0]).toEqual(["a1-be-present", "remediation"]); // general remediation is back
+  });
+
+  it("with two goals, the finished one steps aside and the other leads", () => {
+    const events = [...sitting("a1-articles", [C, C, C, C, C, C, C, X], 1), ...answers("a2-comparatives", "incorrect", 5)];
+    const { recs } = recommend(events, ["a1-articles", "a2-prepositions-time"]);
+    expect(first(recs)).toMatchObject({ skillId: "a2-prepositions-time", kind: "goal" });
+  });
+});
+
 describe("no stated goals: behaviour is preserved", () => {
   it("a weak prerequisite still produces remediation for the lesson that depends on it", () => {
     const { recs } = recommend(answers("a1-be-present", "incorrect", 1, "diagnostic"), []);
