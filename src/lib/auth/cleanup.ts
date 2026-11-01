@@ -7,6 +7,9 @@ import { safeEqual } from "./flow";
  *
  * Security does not depend on this job. An identity without a profile has no access whether or not it has been deleted yet.
  */
+/** Longer than a seat's 24-hour hold, so a registration still waiting for its confirmation email is never swept. A profile-less identity has no access whatever its age. */
+export const ORPHAN_AGE = "25 hours";
+
 export type CleanupReport = { released: number | null; purged: number | null; pruned: number | null; failed: string[] };
 
 export async function runCleanup(service: SupabaseClient): Promise<CleanupReport> {
@@ -22,7 +25,7 @@ export async function runCleanup(service: SupabaseClient): Promise<CleanupReport
     }
   };
   report.released = await step("release_expired_reservations", () => service.rpc("release_expired_reservations"));
-  report.purged = await step("purge_orphan_identities", () => service.rpc("purge_orphan_identities", { p_older: "1 hour" }));
+  report.purged = await step("purge_orphan_identities", () => service.rpc("purge_orphan_identities", { p_older: ORPHAN_AGE }));
   report.pruned = await step("prune_rate_limits", () => service.rpc("prune_rate_limits"));
   return report;
 }

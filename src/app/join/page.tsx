@@ -35,6 +35,9 @@ export default function JoinPage({ searchParams }: PageProps<"/join">) {
         <button type="submit" className={primaryButtonClass}>Continue with Google</button>
       </form>
       <p className="text-sm font-medium text-ink-2">
+        No Google account, or you prefer a password? <Link href="/join/email" className="font-bold underline">Join with email and a password</Link>.
+      </p>
+      <p className="text-sm font-medium text-ink-2">
         Already have an account? <Link href="/signin" className="font-bold underline">Sign in</Link>
       </p>
     </AuthShell>

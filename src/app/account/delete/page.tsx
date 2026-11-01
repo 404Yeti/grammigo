@@ -23,6 +23,7 @@ export default function DeletePage({ searchParams }: PageProps<"/account/delete"
 }
 
 const NOTES: Record<string, string> = {
+  credentials: "That password doesn’t match this account. Nothing was changed.",
   rate: "Too many tries. Please wait a few minutes and try again.",
   server: "Something went wrong on our side. Nothing was changed. Please try again in a moment.",
 };
@@ -32,6 +33,8 @@ async function Body({ searchParams }: { searchParams: PageProps<"/account/delete
   const e = (await searchParams).e;
   const note = typeof e === "string" && Object.hasOwn(NOTES, e) ? NOTES[e] : null;
   const recent = await hasRecentSignIn(client, config.reauthWindowSeconds);
+  const me = (await client.auth.getUser()).data.user;
+  const usesPassword = me?.app_metadata?.provider === "email";
   return (
     <PageFrame title="Delete my account" back={{ href: "/account/data", label: "Your data" }}>
       {note && <p role="alert" className="rounded-2xl bg-error-soft p-3 text-sm font-semibold text-error">{note}</p>}
@@ -48,14 +51,32 @@ async function Body({ searchParams }: { searchParams: PageProps<"/account/delete
       {viewer.isAdmin ? (
         <p role="alert" className="rounded-2xl bg-warning-soft p-3 text-sm font-semibold">This is the owner account. It can’t be deleted here, so that the person who manages invitations is never removed by accident.</p>
       ) : recent ? (
-        <DeleteAccountForm accountId={viewer.id} />
+        <DeleteAccountForm accountId={viewer.id} method={usesPassword ? "password" : "google"} />
       ) : (
         <Card aria-labelledby="confirm" data-testid="reauth-card">
           <h2 id="confirm" className="text-xl font-bold leading-7">First, sign in again</h2>
+          {usesPassword ? (
+            <>
+              <p className="mb-3 mt-2 text-sm font-medium leading-6 text-ink-2">Before something that can’t be undone, enter your password again. You will come straight back here.</p>
+              <form action="/api/auth/password/signin" method="post" className="flex flex-col gap-3" data-testid="reauth-password-form">
+                <input type="hidden" name="reauth" value="1" />
+                <input type="hidden" name="email" value={me?.email ?? ""} />
+                <label className="flex flex-col gap-1.5 text-sm font-bold">
+                  Password
+                  <input name="password" type="password" required autoComplete="current-password" maxLength={200} data-testid="reauth-password" className="min-h-[52px] rounded-[14px] border-[1.5px] border-line-strong bg-surface px-4 text-base font-semibold" />
+                </label>
+                <Button type="submit" data-testid="reauth-button">Confirm with my password</Button>
+              </form>
+            </>
+          ) : null}
+          {!usesPassword && (
+            <>
           <p className="mb-3 mt-2 text-sm font-medium leading-6 text-ink-2">Before something that can’t be undone, choose your Google account again. You will come straight back here. Grammigo checks that the same account has just finished signing in. It cannot tell whether Google asked for your password.</p>
           <form action="/api/auth/reauth" method="post">
             <Button type="submit" data-testid="reauth-button">Sign in with Google again</Button>
           </form>
+            </>
+          )}
         </Card>
       )}
     </PageFrame>

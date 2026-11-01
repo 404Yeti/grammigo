@@ -20,15 +20,21 @@ Project `ugifdvaaaioiqmwfiksw` exists and is the only project; status ACTIVE_HEA
 ### Step 0. Merge what is built — DONE / in review
 PR #18 merged. PR #20 (timeouts, transfer, readiness checks, migration 9, region tool) is green apart from two CodeQL review threads that I fixed in code (the variables-file change); once its CI is green and the threads are closed it merges. PR "backup + journey + disclosures" follows. No production setting changes by merging.
 
-### Step 1. Supabase dashboard — mostly DONE by you; one item left (2 minutes, nothing written)
+### Step 1. Supabase dashboard — what is DONE and what is left (owner decision 2026-11-02: BOTH Google and Email + Password)
 Verified read-only on 2026-11-02 (public endpoints, no credentials changed):
-* **Google provider enabled and configured:** the sign-in start sends the browser to Google with the right client and the right Supabase callback (`https://ugifdvaaaioiqmwfiksw.supabase.co/auth/v1/callback`). ✔ (Your OAuth client was not touched or read.)
-* **Site URL = `https://www.grammigo.si`.** ✔ (This makes **`https://www.grammigo.si` the canonical address**; the apex `grammigo.si` already redirects to it, 308.)
-* **Redirect allow-list:** allows any path on `https://www.grammigo.si`, `https://grammigo.si` and `https://grammigo.vercel.app`; anything else (a look-alike host, another site) falls back to the Site URL. ✔ The exact callback `https://www.grammigo.si/api/auth/callback?flow=…` is accepted.
-* Anonymous sign-ins: off ✔. Sign-ups allowed ✔ (Google sign-in needs them). Phone, GitHub and every other provider: off ✔.
-* **LEFT FOR YOU — turn the Email provider OFF** (Authentication → Providers → Email). It is still ON. Nobody has an email login in Grammigo; leaving it on lets anyone try to sign up by email and bypass the invitation step of Google sign-in at the Supabase level. (The app would not give such a person an account, but the door should be shut.) Re-check after: I run the `auth` check.
-* **Recommended (optional, 1 minute):** remove the `http://localhost…` / `http://127.0.0.1…` entries from the production redirect list. They are harmless to students (they only work on the visitor's own machine) but a production allow-list should name only production addresses. Local development uses its own stack, not this project.
-* Not visible to me: Postgres "Upgrade project" availability (Settings → Infrastructure). Tell me yes/no.
+* **Google provider enabled and configured** ✔ (sign-in start reaches Google with the right Supabase callback). Your OAuth client was not touched or read.
+* **Email provider enabled** ✔ (kept on deliberately: one student signs in with email + password). **Email confirmation is required** (`mailer_autoconfirm` is false) ✔.
+* **Site URL = `https://www.grammigo.si`** ✔ (canonical address; the apex redirects to it). Redirect list allows any path on `www.grammigo.si`, `grammigo.si`, `grammigo.vercel.app` ✔; look-alike hosts fall back to the Site URL ✔.
+* Anonymous sign-ins off ✔. Sign-ups on ✔ (both methods need them). Phone and every other provider off ✔.
+* **Postgres:** you confirmed there is no upgrade option; we proceed on 17.11. The migrations are plain SQL and the same engine major version runs them in CI.
+
+**Left for you at the Supabase dashboard:**
+0. **Password-reset email template (Supabase dashboard, Authentication → Emails → Templates → "Reset Password"; needed so the reset link works on any browser or device).** Subject: `Reset your Grammigo password`. Body (HTML), the link exactly: `<h2>Reset your Grammigo password</h2><p>Press the link below to choose a new password. It works once, for one hour, in any browser or on any device.</p><p><a href="{{ .SiteURL }}/auth/reset?token_hash={{ .TokenHash }}">Choose a new password</a></p><p>If you did not ask for this, ignore this email; your password stays as it is.</p>` (the same text is in `supabase/templates/recovery.html`). `{{ .SiteURL }}` is the Site URL, `https://www.grammigo.si`. Leave the "Confirm signup" template as it is. Until this is changed the older same-browser link still works.
+1. **Custom SMTP (needed for Email + Password; the one real prerequisite).** Supabase's built-in email sender only delivers to addresses of *your own organisation team*, 2 per hour, and has no delivery guarantee: **it will not deliver the confirmation or reset email to your student.** Authentication → Emails → SMTP Settings: enter an SMTP service (a free tier of Resend, Brevo, Mailgun or similar is enough for five students), sender `no-reply@grammigo.si`, and use **Resend**: `grammigo.si` already has Resend's records (`send.grammigo.si` MX/SPF pointing to `send.forge.rmta.net`, and `resend._domainkey.grammigo.si` DKIM; `rmta.net` is Resend's mail-server domain), so add **no** other provider's or additional SPF records; confirm the domain shows "Verified" in Resend, create an API key limited to sending, and use it as the SMTP password (host `smtp.resend.com`, port 465 or 587, user `resend`); switch off open and click tracking for the domain (rewritten links can break the confirmation and reset links). Send yourself a test; then send one to the student's real mailbox provider (some providers in Russia filter aggressively: DKIM + SPF + a reply-to you read matter). Never paste the SMTP password in chat.
+2. **Authentication → Providers → Email:** keep it ON; "Confirm email" ON; set **Minimum password length 12** (our server enforces 12 too). (Leaked-password protection is a paid feature and is not needed: our rules already refuse the commonest passwords.)
+3. Authentication → Rate Limits: leave the defaults (custom SMTP defaults to 30 emails/hour, plenty).
+4. *Optional:* remove the `localhost` entries from the production redirect list.
+Re-check after: I run the `auth` readiness check (it now requires Google + Email on, confirmation required, nothing else).
 
 ### Step 2. First backup (empty project) and the migrations — APPROVE (one production write)
 Prerequisite: Step 1 done; you say **"apply the eight migrations plus the helper fix"**.
@@ -55,15 +61,16 @@ Prerequisites: Steps 1 to 5 done; a first encrypted backup taken (below); the **
 ### Step 7. Acceptance with disposable accounts — YOU + me (about 45 minutes), BEFORE any student is invited
 Needs: your owner account and **two disposable Google accounts** you control (T1, T2), added as Google test users.
 1. (me) Take the encrypted backup of the empty project and prove it restores (dry run).
-2. Owner creates a one-seat invitation in the app. T1 opens `https://www.grammigo.si/join`, enters the code, ticks 18+, continues with Google, lands on the dashboard.
+2. Owner creates a one-seat invitation in the app. **Google path:** T1 opens `https://www.grammigo.si/join`, enters the code, ticks 18+, continues with Google, lands on the dashboard.
 3. T1 edits the profile, completes a lesson, turns saving on, sees "Saved to your account", signs out.
 4. T1 signs in again **from a different browser/phone**: the lesson progress is there.
 5. T2 (uninvited) signs in with Google: "No account yet", nothing created. The used code cannot be reused.
 6. T1 downloads their data (only T1's), then deletes the account (the sign-in-again step works).
 7. Check afterwards (read-only, me): T1 and T2 leave no rows; the deletion ledger has one entry; advisor still clean.
 8. **Physical iPhone Safari**, the same journey once (`docs/dev/real-device-acceptance.md`, plus the transfer: on the iPhone open `https://www.grammigo.si/transfer/receive`, bring progress from `grammigo.vercel.app` by the pop-up and, if the pop-up is blocked, by the file).
+**Email + Password path (same disposable-account rules, a third address T3 you control):** (a) owner creates a one-seat invitation; (b) T3 opens `/join/email`, enters the code, address, a 12+ character password and the 18+ box; (c) the confirmation email arrives (check the spam folder once; note how long it took); (d) opening the link shows "Email confirmed" and signs nobody in; (e) T3 signs in with the password: dashboard, profile edit, a lesson with saving on, sign out, sign in again on another device: progress restored; (f) "Forgot your password?" sends a link, the same browser opens it, a new password is chosen, the old one stops working and the other device is signed out; (g) T3 downloads the data and deletes the account (the password is asked again if the sign-in is older than 10 minutes); (h) negative checks: a wrong invitation code sends no email; an address that belongs to a Google learner is refused; signing in before confirming says to confirm first.
 Pass = every step as written. A failure becomes a fix, not a workaround.
-**What is already proven before this**, in CI on every change: the whole journey except Google's own consent screen runs end to end on a real local stack (`e2e-accounts/student-journey.spec.ts`: invitation → real Google redirect → redeem → profile → lesson with **zero** account requests while answering → sync after the finished lesson → sign out → fresh device → progress restored → export → delete); no data crosses learners (isolation suites for every table and endpoint, the export/delete tests with two learners side by side); a **hung or refused Supabase never blocks a lesson or Guided Correction** (browser tests with a refusing server and a black-hole server; lessons complete in about 1 to 2 seconds while Supabase is dead).
+**What is already proven before this**, in CI on every change: the whole journey except Google's own consent screen runs end to end on a real local stack (`e2e-accounts/student-journey.spec.ts` for Google and `e2e-accounts/email-password.spec.ts` with the local mailbox for email + password: invitation → real Google redirect → redeem → profile → lesson with **zero** account requests while answering → sync after the finished lesson → sign out → fresh device → progress restored → export → delete); no data crosses learners (isolation suites for every table and endpoint, the export/delete tests with two learners side by side); a **hung or refused Supabase never blocks a lesson or Guided Correction** (browser tests with a refusing server and a black-hole server; lessons complete in about 1 to 2 seconds while Supabase is dead).
 
 ### Step 8. Invite the first five — APPROVE
 You create five one-seat invitations (or one five-seat) in the app, send the links yourself, and add each student's Google address to the Google test users (needed only while the consent screen is in Testing). Take a backup the day before and weekly after.
@@ -81,13 +88,14 @@ You create five one-seat invitations (or one five-seat) in the app, send the lin
 Lessons are local and unaffected by distance. The account pages talk to Singapore: from a Vercel function in a US/EU region each account page takes a few round trips (about a second). That is acceptable for five students. After launch, measure and, if wanted, set the function region to `sin1` (one small PR, prepared tool).
 
 ## Launch blockers (only these)
-1. **Email provider off** (the one Step 1 item left).
+1. **Custom SMTP working** (a real confirmation email reaches the student's mailbox).
+2. **Both sign-in methods pass the acceptance run** (Step 7), because accounts stay off until they do.
 2. The nine migrations applied and the post-migration security check clean.
 3. ~~Google OAuth client configured in Supabase~~ **done and verified**.
 4. Production environment variables set and the `env` readiness check PASS.
 5. ~~`grammigo.si` serving HTTPS~~ **done**. What remains is only that `AUTH_SITE_URL` equals the Supabase Site URL exactly: `https://www.grammigo.si`.
-6. Step 7 acceptance, including one real iPhone Safari pass, and a first backup.
-7. **Privacy notice: operator legal name, contact address and privacy email filled in by you** (the notice is a draft and says so; I will not claim legal approval). Whether a lawyer must review before adults other than people you know personally use it is **your decision**; the draft states plainly that it has not been reviewed.
+7. Step 7 acceptance, including one real iPhone Safari pass, and a first backup.
+8. **Privacy notice: operator legal name, contact address and privacy email filled in by you** (the notice is a draft and says so; I will not claim legal approval). Whether a lawyer must review before adults other than people you know personally use it is **your decision**; the draft states plainly that it has not been reviewed.
 
 ## Not blockers (after launch)
 Supabase Pro; Postgres upgrade if none is offered; `sin1` region; redirecting the old address and the transfer banner; Google brand verification; a physical-device second pass; re-consent flow; lawyer review (see 7); independent security review; point-in-time recovery.

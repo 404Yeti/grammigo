@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { answerLessonQuestion, cont, expectQuestion, LESSON, playWholeLesson } from "../e2e/helpers";
+import { answerLessonQuestion, cont, expectQuestion, LESSON } from "../e2e/helpers";
 import { BASE, browserHeaders, createAccount, q, sessionCookies, signInAgain } from "./helpers";
 import { expect, test } from "./fixtures";
 

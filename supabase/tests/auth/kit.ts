@@ -83,15 +83,15 @@ export function sessionFor(cookies: Cookies): { jar: CookieSession; client: Supa
 }
 export const viewerOf = (p: Person) => getViewer(sessionFor(p.cookies).client);
 
-export type RtOptions = { db?: Partial<AccountDb>; exchange?: "ok" | "fail" };
-/** A runtime on real clients. Only the code exchange is stubbed (it needs a code from Google). */
+export type RtOptions = { db?: Partial<AccountDb>; exchange?: "ok" | "fail" | "real" };
+/** A runtime on real clients. The code exchange is stubbed (it needs a code from Google) unless `exchange: "real"`, which uses the real Auth server and the PKCE verifier in the cookies (the password-reset link). */
 export function runtimeFor(cookies: Cookies, o: RtOptions = {}) {
   const { jar, client } = sessionFor(cookies);
   const real = sessionAuth(client);
   const rt: AuthRuntime = {
     config,
     db: { ...db, ...o.db },
-    auth: { ...real, exchangeCodeForSession: async () => ({ ok: o.exchange !== "fail" }) },
+    auth: o.exchange === "real" ? real : { ...real, exchangeCodeForSession: async () => ({ ok: o.exchange !== "fail" }) },
     jar: flowJar(config, jar),
     now: () => Date.now(),
     log: () => undefined,

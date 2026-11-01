@@ -96,6 +96,7 @@ export async function handleReauth(rt: AuthRuntime, input: { headers: Headers })
     return { status: 303, location: "/account/delete?e=server" };
   }
   if (!user) return { status: 303, location: "/signin?e=session" };
+  if (user.app_metadata?.provider !== "google") return { status: 303, location: "/account/delete" }; // a password account confirms itself with its password, on the delete page
   const started = await startGoogle(rt, { intent: "reauth", uid: user.id });
   if (!started.ok) return { status: 303, location: "/account/delete?e=server" };
   rt.log("reauth", { outcome: "started" });
