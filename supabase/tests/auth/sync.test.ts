@@ -169,7 +169,8 @@ describe("saving and reading progress through the real handlers", () => {
     const a = await createPerson({ label: "two-docs", learner: true });
     await consent(a);
     expect((await put(a, "guided_v1", 0, { version: 1, sessions: [], activeSessionId: null })).status).toBe(200);
-    expect((await put(a, "guided_v1", 0, doc(["lesson-shaped"]))).status).toBe(409); // wrong revision AND wrong shape: still refused
+    // the shape is checked BEFORE the revision, so a lesson-shaped document is refused as invalid whatever revision it claims
+    expect((await put(a, "guided_v1", 0, doc(["lesson-shaped"]))).status).toBe(422);
     expect((await put(a, "guided_v1", 1, doc(["lesson-shaped"]))).status).toBe(422); // the lesson document is not a valid guided document
     expect((await state(a)).body).toMatchObject({ documents: { lessons_v2: null, guided_v1: { revision: 1 } } });
   });
@@ -256,7 +257,9 @@ describe("two devices, one account, the real database", () => {
     laptop.finish("laptop-lesson");
     await clock.run(15_000);
     await clock.run(15_000);
+    // The laptop learns of the phone's lesson at ITS next checkpoint (a page load, a finished lesson, "Save now"): here, "Save now".
     phone.engine.syncNow();
+    laptop.engine.syncNow();
     await clock.run(5_000);
     const row = await stored(a.id, "lessons_v2");
     expect(row?.body.sessions.map((s) => s.id).sort()).toEqual(["laptop-lesson", "phone-lesson"]);
