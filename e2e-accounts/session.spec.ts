@@ -212,3 +212,9 @@ test.describe("signing out", () => {
     expect((await request.get("/api/account/me", { headers: ip() })).status()).toBe(200);
   });
 });
+
+test.describe("the guest transfer is off in this build", () => {
+  test("both transfer pages are 404 unless the build switches them on", async ({ request }) => {
+    for (const p of ["/transfer/send", "/transfer/receive"]) expect((await request.get(p, { maxRedirects: 0 })).status(), p).toBe(404);
+  });
+});

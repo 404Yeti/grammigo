@@ -9,6 +9,9 @@ const PORT = Number(process.env.E2E_ACCOUNTS_PORT ?? 3100);
 const OUTAGE_PORT = Number(process.env.E2E_OUTAGE_PORT ?? 3101);
 /** A third copy whose "recent sign-in" window is one second, so a stale sign-in (needed to delete an account) can be tested without waiting ten minutes. */
 const STRICT_PORT = Number(process.env.E2E_STRICT_PORT ?? 3102);
+/** A fourth copy whose Supabase HANGS (accepts connections, never answers): proves the server-side timeouts. Started with the black hole in global setup. */
+const HANG_PORT = Number(process.env.E2E_HANG_PORT ?? 3103);
+const BLACKHOLE_PORT = Number(process.env.E2E_BLACKHOLE_PORT ?? 9099);
 
 export default defineConfig({
   testDir: "./e2e-accounts",
@@ -39,6 +42,13 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 120_000,
       env: { ...(process.env as Record<string, string>), NEXT_DIST_DIR: ".next-accounts", AUTH_REAUTH_WINDOW_SECONDS: "1", AUTH_SITE_URL: `http://localhost:${STRICT_PORT}` },
+    },
+    {
+      command: `npx next start -p ${HANG_PORT}`,
+      url: `http://localhost:${HANG_PORT}/join`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: { ...(process.env as Record<string, string>), NEXT_DIST_DIR: ".next-accounts", SUPABASE_URL: `http://127.0.0.1:${BLACKHOLE_PORT}`, AUTH_REQUEST_TIMEOUT_MS: "2000", AUTH_SITE_URL: `http://localhost:${HANG_PORT}` },
     },
   ],
   projects: [

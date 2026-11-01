@@ -58,12 +58,17 @@ jobs:
         env:
           NEXT_PUBLIC_GUIDED_PREVIEW: "true"
           NEXT_PUBLIC_GUIDED_VOICE: "true"
+          # The guest-transfer tests use two local origins of this one build. Production has none of these set.
+          NEXT_PUBLIC_GUEST_TRANSFER: "on"
+          NEXT_PUBLIC_TRANSFER_SOURCE_ORIGIN: "http://localhost:3105"
+          NEXT_PUBLIC_TRANSFER_TARGET_ORIGIN: "http://localhost:3100"
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Playwright (mobile and desktop, plus Firefox, WebKit and emulated Mobile Safari for the @cross tests)
         run: npx playwright test --workers=2 --retries=1
         env:
           CI: "true"
+          E2E_TRANSFER: "1"
       - name: Keep traces of failures
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

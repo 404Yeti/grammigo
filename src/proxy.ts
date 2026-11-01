@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadAuthConfig } from "@/lib/auth/config";
 import { hardenCookie } from "@/lib/auth/supabase";
+import { fetchWithTimeout } from "@/lib/auth/timeout-fetch";
 
 /**
  * Runs ONLY for the private account paths (see `config.matcher`): the lessons, library, practice and every anonymous page never pass
@@ -32,6 +33,7 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(config.supabaseUrl, config.anonKey, {
     cookieOptions: { name: config.cookieNames.auth },
+    global: { fetch: fetchWithTimeout(config.requestTimeoutMs) }, // the proxy must not hang on a Supabase that never answers
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookies, headers) => {

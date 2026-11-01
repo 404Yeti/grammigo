@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { REAUTH_WINDOW_SECONDS } from "./constants";
+import { boundedTimeoutMs } from "./timeout-fetch";
 
 /**
  * Account configuration. Accounts are OFF unless NEXT_PUBLIC_ACCOUNTS is exactly "on"; with the flag off (the default) Grammigo is
@@ -21,6 +22,8 @@ export type AuthConfig = {
   cookieNames: { auth: string; flow: string; scope: string };
   /** How recent a sign-in must be to delete an account. 1 to 600 seconds: the environment can only make this STRICTER than the default. */
   reauthWindowSeconds: number;
+  /** How long any one request to Supabase may take before it is abandoned (1 to 15 seconds, default 8). */
+  requestTimeoutMs: number;
 };
 
 export type AuthConfigState =
@@ -81,6 +84,7 @@ export function loadAuthConfig(env: Record<string, string | undefined> = process
       secureCookies,
       cookieNames: { auth: `${prefix}gm-auth`, flow: `${prefix}gm-flow`, scope: `${prefix}gm-scope` },
       reauthWindowSeconds,
+      requestTimeoutMs: boundedTimeoutMs(env.AUTH_REQUEST_TIMEOUT_MS),
     },
   };
 }
