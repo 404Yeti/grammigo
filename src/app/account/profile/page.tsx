@@ -53,6 +53,7 @@ async function Body({ searchParams }: { searchParams: PageProps<"/account/profil
         </dl>
       </Card>
       <ButtonLink href="/account/profile/edit" variant="secondary">Edit profile</ButtonLink>
+      <Link href="/account/data" className="text-center text-sm font-bold text-brand-text underline underline-offset-4" data-testid="data-link">Your data and privacy</Link>
       {viewer.isAdmin && <Link href="/account/invitations" className="text-center text-sm font-bold text-brand-text underline underline-offset-4">Manage invitations</Link>}
       <form action="/api/auth/signout" method="post">
         <button type="submit" className="min-h-11 w-full text-sm font-bold underline underline-offset-4">Sign out</button>

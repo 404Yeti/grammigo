@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/Wordmark";
+import { accountsEnabled } from "@/features/accounts/enabled";
+import { PrivacyAccounts } from "@/features/accounts/PrivacyAccounts";
 
 export const metadata: Metadata = { title: "Privacy — Grammigo" };
 
@@ -9,6 +11,8 @@ export default function PrivacyPage() {
     <div className="mx-auto flex min-h-dvh w-full max-w-[638px] flex-col gap-4 px-4 pb-10 pt-6">
       <Wordmark />
       <h1 className="text-[28px] font-extrabold leading-9 tracking-[-0.4px]">Privacy</h1>
+      {accountsEnabled() && <PrivacyAccounts />}
+      {!accountsEnabled() && (
       <section className="space-y-2 text-sm font-medium leading-6 text-ink-2">
         <h2 className="text-base font-bold text-ink">Stays on your device</h2>
         <p>
@@ -42,6 +46,7 @@ export default function PrivacyPage() {
           how long it may keep API data.
         </p>
       </section>
+      )}
       <Link href="/" className="mt-2 text-sm font-bold underline">
         Back to Grammigo
       </Link>
