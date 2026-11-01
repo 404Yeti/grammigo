@@ -3,6 +3,9 @@
 #
 #   ./apply-production-migrations.sh check     read-only: verifies the checkout, the connection and the database state, writes nothing
 #   ./apply-production-migrations.sh apply     asks you to type the project reference, then applies 3..9 in order, stopping at the first problem
+#   ./apply-production-migrations.sh check9    read-only: the state expected AFTER migrations 1-8 (for finishing migration 9 only)
+#   ./apply-production-migrations.sh apply9    applies ONLY migration 9 (guard + file + history row in one transaction); safe to run again after a dropped
+#                                              connection: it re-reads the state before every attempt and never applies twice
 #
 # Never uses the Supabase CLI, `db push` or `migration repair`; never touches migrations 1 and 2; never prints or stores the password.
 # For each migration ONE transaction (psql --single-transaction) runs: [1] the guard, [2] the migration file, [3] its history row.
@@ -26,10 +29,11 @@ PENDING=(
 )
 ALL_FILES="20261101000100_core_schema.sql 20261101000200_invitations.sql 20261101000300_learner_documents.sql 20261101000400_deletion_and_cleanup.sql 20261101000500_auth_support.sql 20261102000100_owner_tools.sql 20261103000100_sync_consent.sql 20261104000100_lifecycle.sql 20261105000100_revoke_platform_helper.sql"
 BASE_TABLES="app_admins,audit_events,consents,deletion_ledger,invitation_reservations,invitations,profiles"
+TEN_TABLES="app_admins,audit_events,consents,deletion_ledger,invitation_reservations,invitations,learner_document_versions,learner_documents,profiles,rate_limits"
 
 die() { printf '\nSTOP: %s\nNothing further was run.\n' "$1" >&2; exit 1; }
 MODE="${1:-}"
-[[ "$MODE" == "check" || "$MODE" == "apply" ]] || die "usage: $0 check|apply"
+[[ "$MODE" == "check" || "$MODE" == "apply" || "$MODE" == "check9" || "$MODE" == "apply9" ]] || die "usage: $0 check|apply|check9|apply9"
 
 # ---------------------------------------------------------------- 1. the checkout
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -65,7 +69,10 @@ sorted_history() { # $@ = "version name" entries -> "v1 n1,v2 n2" sorted by vers
 }
 guard_sql() { # $1 = expected history string, $2 = "base" to also require the exact base table list
   local tables_check=""
-  if [[ "$2" == "base" ]]; then
+  if [[ "$2" == "ten" ]]; then
+    tables_check="select coalesce(string_agg(tablename, ',' order by tablename), '') into t from pg_tables where schemaname = 'public';
+      if t <> '${TEN_TABLES}' then raise exception 'GUARD: public tables are [%], expected [${TEN_TABLES}]', t; end if;"
+  elif [[ "$2" == "base" ]]; then
     tables_check="select coalesce(string_agg(tablename, ',' order by tablename), '') into t from pg_tables where schemaname = 'public';
       if t <> '${BASE_TABLES}' then raise exception 'GUARD: public tables are [%], expected [${BASE_TABLES}]', t; end if;"
   else
@@ -87,6 +94,52 @@ end
 \$guard\$;
 SQL
 }
+
+# ---------------------------------------------------------------- 3b. migration 9 only (recovery / finishing)
+if [[ "$MODE" == "check9" || "$MODE" == "apply9" ]]; then
+  M9="${PENDING[6]}"; V9="${M9%% *}"; N9="${M9#* }"
+  before=("${EXISTING[@]}" "${PENDING[@]:0:6}"); after=("${before[@]}" "$M9")
+  exp_before="$(sorted_history "${before[@]}")"; exp_after="$(sorted_history "${after[@]}")"
+  state() { "${PSQL[@]}" -c "select coalesce(string_agg(version || ' ' || name, ',' order by version), '') from supabase_migrations.schema_migrations"; }
+  look() {
+    "${PSQL[@]}" -c "select 'user=' || current_user || ' database=' || current_database()" \
+      -c "select 'history: ' || coalesce(string_agg(version || ' ' || name, ', ' order by version), '(empty)') from supabase_migrations.schema_migrations" \
+      -c "select 'auth.users: ' || count(*) from auth.users" \
+      -c "select 'public tables: ' || count(*) from pg_tables where schemaname = 'public'" \
+      -c "select 'rls_auto_enable executable by anon/authenticated/public: ' || coalesce(has_function_privilege('anon', to_regprocedure('public.rls_auto_enable()'), 'execute')::text, '(function absent)') || '/' || coalesce(has_function_privilege('authenticated', to_regprocedure('public.rls_auto_enable()'), 'execute')::text, '-') || '/' || coalesce(has_function_privilege('public', to_regprocedure('public.rls_auto_enable()'), 'execute')::text, '-')"
+  }
+  echo "--- connecting (read-only look) ..."
+  look || die "could not read the database"
+  cur="$(state)" || die "could not read the migration history"
+  if [[ "$cur" == "$exp_after" ]]; then echo "Migration 9 is ALREADY recorded. Nothing to do."; exit 0; fi
+  [[ "$cur" == "$exp_before" ]] || die "the history is [$cur]; expected exactly migrations 1-8 [$exp_before]"
+  "${PSQL[@]}" -c "begin read only" -c "$(guard_sql "$exp_before" ten)" -c "rollback" >/dev/null || die "the state guard for migration 9 does not hold"
+  echo "state guard for migration 9 holds: history = migrations 1-8 exactly, 0 users, exactly the ten expected tables."
+  [[ "$MODE" == "check9" ]] && { echo "CHECK finished. Nothing was written."; exit 0; }
+  echo; echo "About to apply ONLY: $V9 $N9   sha256 $(sha256sum "supabase/migrations/${V9}_${N9}.sql" | cut -c1-16)…"
+  read -r -p "Type the project reference to continue (${REF}): " typed
+  [[ "$typed" == "$REF" ]] || die "reference not typed correctly"
+  for attempt in 1 2 3; do
+    # Re-read the state first on EVERY attempt: if an earlier attempt committed but the connection dropped before we heard, we stop here, not apply twice.
+    if ! cur="$(state 2>/dev/null)"; then echo "attempt $attempt: could not reach the database; waiting before trying again"; sleep 5; continue; fi
+    if [[ "$cur" == "$exp_after" ]]; then echo "Migration 9 is recorded. Done."; break; fi
+    [[ "$cur" == "$exp_before" ]] || die "the history is [$cur]; expected exactly migrations 1-8; nothing was applied by this attempt"
+    echo "--- attempt $attempt: migration $V9 $N9"
+    if "${PSQL[@]}" --single-transaction \
+         -c "set local lock_timeout = '10s'; set local statement_timeout = '60s'; $(guard_sql "$exp_before" ten)" \
+         -f "supabase/migrations/${V9}_${N9}.sql" \
+         -c "insert into supabase_migrations.schema_migrations (version, name) values ('${V9}', '${N9}')"; then
+      echo "    applied and recorded."
+    else
+      echo "    attempt $attempt did not complete (a connection drop before COMMIT rolls everything back). Re-reading the state before any retry."; sleep 5
+    fi
+  done
+  cur="$(state)" || die "could not read the history to confirm; run  $0 check9  to see the state"
+  [[ "$cur" == "$exp_after" ]] || die "migration 9 is NOT recorded after 3 attempts; nothing partial was kept. Run  $0 check9  and send me the output"
+  echo; echo "--- final state (read-only)"; look
+  echo "DONE. Tell Claude: migration 9 is in. Accounts stay disabled."
+  exit 0
+fi
 
 # ---------------------------------------------------------------- 4. read-only look at the current state
 hist_now="$(sorted_history "${EXISTING[@]}")"
