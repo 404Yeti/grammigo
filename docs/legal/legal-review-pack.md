@@ -6,6 +6,10 @@ This pack is what a qualified privacy lawyer needs to review the notice (`src/fe
 [`privacy-notice-draft.md`](privacy-notice-draft.md)) and the product behind it. Everything below is a statement of what the software does today, verified against the code and its tests.
 Where something is not yet known or decided it is marked **[OPEN]**.
 
+## 0. Who the operator is
+
+**Grammigo is operated by one individual, in their own name. It is not a registered company, and no company name, business address or legal entity is stated or implied anywhere in the product or its documents.** The operator's legal name, contact address, privacy email address, and the jurisdiction-specific disclosures that depend on them are **left for the operator to confirm** and are bracketed in the notice. Consequences for counsel to assess: the operator is personally the controller (and personally liable); their address or an alternative contact may have to be published; whether a representative or registration is needed depends on where they live and where learners live; contracts with processors, and any future school or teacher arrangement, are made by an individual.
+
 ## 1. What the product is
 
 An English-grammar practice app. Anyone can use it **without an account**: progress stays in their browser and nothing is sent to us. An **optional, invitation-only account** (Google sign-in, adults 18+ only)
@@ -51,7 +55,7 @@ Not collected: advertising or analytics trackers, location, contacts, payment da
 
 ## 5. Questions for counsel **[OPEN]**
 
-1. Which jurisdiction(s) and regimes apply (operator location, learners' locations)? Is there a controller/processor split, and who is the controller?
+1. Which jurisdiction(s) and regimes apply (the operator's location, learners' locations)? **The controller is an individual operating in their own name, not a company**: what does that change (personal liability, what contact details must be published and whether a non-home address or a postal box is acceptable, registration or representative duties, insurance)? Is there any controller/processor split?
 2. Lawful basis for each purpose (contract, consent, legitimate interests); is a separate cloud-saving consent sufficient and appropriately worded?
 3. **Students**: if learners are enrolled through a school/teacher, does that change roles or consent? Is "18 and over only" the right product rule, and is the self-declaration + date record sufficient?
 4. Retention periods stated in the notice (especially audit ≥ 90 days, ledger 35 days, backups) and whether an audit log with a cleared actor link is acceptable.
