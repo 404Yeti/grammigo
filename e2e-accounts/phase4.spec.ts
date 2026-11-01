@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { seedReturningLearner } from "../e2e/helpers";
-import { BASE, browserHeaders, createAccount, q, sessionCookies, uniqueIp } from "./helpers";
+import { BASE, browserHeaders, createAccount, q, seedAccountLearner, sessionCookies, uniqueIp } from "./helpers";
 import { expect, test } from "./fixtures";
 
 const ip = () => ({ "x-real-ip": uniqueIp() });
@@ -23,7 +22,8 @@ test.describe("the learner dashboard and profile", () => {
   test("a returning learner sees their own next step, skills and the honest caveat", async ({ context, page }) => {
     const ana = await createAccount({ name: "Returning Ana", learner: true });
     await context.addCookies(sessionCookies(ana));
-    await seedReturningLearner(page);
+    await seedAccountLearner(page, ana.id); // this learner's OWN saved progress (the dashboard never reads the guest's)
+    await context.addCookies([{ name: "gm-scope", value: ana.id, url: BASE }]);
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-next")).toContainText("YOUR NEXT STEP");
     await expect(page.getByTestId("dashboard-skills")).toBeVisible();

@@ -1,5 +1,5 @@
 import { answerCorrectly, cont, expectQuestion, LESSON, startFromHome } from "../e2e/helpers";
-import { BASE, createAccount, sessionCookies, type Account } from "./helpers";
+import { BASE, createAccount, sessionCookies, signInAgain, type Account } from "./helpers";
 import { expect, test } from "./fixtures";
 
 /**
@@ -78,7 +78,7 @@ test.describe("shared device", () => {
 
     // 6. B signs out, A signs back in: A's progress is exactly as A left it
     await signOut(page);
-    await context.addCookies(sessionCookies(a));
+    await context.addCookies(sessionCookies(await signInAgain(a))); // sign-out ended A's session, so A signs in afresh
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-continue")).toContainText("Question 4 of 8");
     expect(await read(page, scopedKey(a))).toBe(aRaw);
