@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { onScopeChange } from "@/lib/scope/storage-scope";
 import { useStorageScope } from "@/features/accounts/scope-client";
 import { useSyncEngine } from "../hooks";
-import { addedToAnotherAccount, alreadyAddedTo, importGuest, readGuest, summarizeGuest, type GuestSummary } from "../guest-import";
+import { addedToAnotherAccount, alreadyAddedTo, getLastAdded, importGuest, readGuest, snapshotAdded, subscribeLastAdded, summarizeGuest, type GuestSummary } from "../guest-import";
 
 const EMPTY = JSON.stringify(summarizeGuest(null));
 let memo: { raw: string; out: string } = { raw: "\u0000", out: EMPTY };
@@ -40,7 +40,9 @@ export function ImportCard({ userId }: { userId: string }) {
   const key = useSyncExternalStore(subscribeGuest, guestKey, () => EMPTY);
   const summary = useMemo<GuestSummary>(() => JSON.parse(key) as GuestSummary, [key]);
   const [dismissed, setDismissed] = useState(false);
-  const [done, setDone] = useState<GuestSummary | null>(null);
+  // The confirmation lives outside this component, so it is not lost if the dashboard re-creates the card (see getLastAdded).
+  useSyncExternalStore(subscribeLastAdded, snapshotAdded, () => null);
+  const done = getLastAdded(userId);
   const [failed, setFailed] = useState(false);
 
   if (scope !== userId) return null; // only ever offered into the account that is actually signed in and active
@@ -81,9 +83,8 @@ export function ImportCard({ userId }: { userId: string }) {
           fullWidth={false}
           onClick={() => {
             try {
-              const r = importGuest(userId, Date.now());
+              importGuest(userId, Date.now());
               engine?.enable(); // asking to add it is also the learner's agreement to keep their progress in their account
-              setDone(r.added);
             } catch {
               setFailed(true);
             }

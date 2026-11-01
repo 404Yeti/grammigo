@@ -69,6 +69,25 @@ export function summarizeGuest(g: { lessons: StoredState; guided: GuidedState } 
   };
 }
 
+/**
+ * What was just added, kept for the rest of this page's life so the confirmation survives the dashboard re-laying itself out (it switches from
+ * its "new account" layout to its normal one the moment the account has progress, which re-creates the card that showed the confirmation).
+ */
+let lastAdded: { accountId: string; summary: GuestSummary } | null = null;
+const addedListeners = new Set<() => void>();
+/** The confirmation of the last import, ONLY for the account that did it: another learner on the same page never sees it. */
+export const getLastAdded = (forAccount: string): GuestSummary | null => (lastAdded && lastAdded.accountId === forAccount ? lastAdded.summary : null);
+const snapshotAdded = () => lastAdded;
+export { snapshotAdded };
+export function subscribeLastAdded(l: () => void): () => void {
+  addedListeners.add(l);
+  return () => addedListeners.delete(l);
+}
+export function forgetLastAdded(): void {
+  lastAdded = null;
+  addedListeners.forEach((l) => l());
+}
+
 /** Has THIS progress already been added to THIS account? */
 export const alreadyAddedTo = (accountId: string, fingerprint: string): boolean => readLedger().entries.some((e) => e.account === accountTag(accountId) && e.fingerprint === fingerprint);
 
@@ -92,5 +111,7 @@ export function importGuest(accountId: string, now: number): { added: GuestSumma
   } catch {
     // the merge itself is already done and safe; the worst case is being offered the same progress once more
   }
+  lastAdded = { accountId, summary };
+  addedListeners.forEach((l) => l());
   return { added: summary };
 }

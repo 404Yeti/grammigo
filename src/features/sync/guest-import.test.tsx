@@ -23,7 +23,8 @@ function guestActivity() {
   dispatchGuided("gg", { type: "EDIT", draft: "I have watched a film yesterday evening." }, { now: NOW + 1, aiAvailable: true });
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  (await import("./guest-import")).forgetLastAdded();
   resetApp();
   setGuidedPersistence(guidedLocalStorage);
   resetGuidedStoreCache();
@@ -178,6 +179,17 @@ describe("the import card asks first, and declining costs nothing", () => {
     expect(await screen.findByTestId("import-done")).toHaveTextContent(/guest copy on this device is unchanged/);
     expect(getSnapshot().sessions).toHaveLength(1);
     expect(enable).toHaveBeenCalledTimes(1);
+  });
+
+  it("the confirmation survives the dashboard re-creating the card (it does, the moment the account has progress)", async () => {
+    playQuestions(8);
+    setStorageScope(A);
+    const first = await card(A);
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Add to my account" }));
+    expect(await screen.findByTestId("import-done")).toBeInTheDocument();
+    first.unmount();
+    await card(A); // a brand-new instance, as after the layout switch
+    expect(await screen.findByTestId("import-done")).toBeInTheDocument();
   });
 
   it("warns when this same progress already went to an account on this device", async () => {

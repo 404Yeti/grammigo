@@ -374,9 +374,10 @@ test.describe("measured latency", () => {
     await page.getByRole("button", { name: "Turn on saving to my account" }).click();
     await finishLesson(page, LESSON);
     await expect.poll(async () => Number((await lessonsDoc(ana.id))?.revision), { timeout: 30_000 }).toBe(1);
+    await page.goto("/account"); // the "Save now" button lives on the dashboard, not on the lesson-complete page
     for (let i = 0; i < 4; i++) {
-      await page.getByRole("button", { name: "Save now" }).click().catch(() => undefined);
-      await page.waitForTimeout(600);
+      await page.getByRole("button", { name: "Save now" }).click({ timeout: 10_000 });
+      await expect(page.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 10_000 });
     }
     const ms = seen.map((s) => s.ms).filter((x): x is number => typeof x === "number").sort((x, y) => x - y);
     expect(ms.length).toBeGreaterThan(2);
