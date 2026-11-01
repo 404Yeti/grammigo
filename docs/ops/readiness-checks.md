@@ -4,7 +4,7 @@
 
 | Command | Reads | Needs (in YOUR terminal's environment) |
 |---|---|---|
-| `… env [--env-file f] [--ref ugifdvaaaioiqmwfiksw]` | variable **presence and shape** only: present, long enough, different where they must differ, HTTPS canonical domain, the right project, no secret-looking `NEXT_PUBLIC_` name | the variables themselves (or an env file) |
+| `… env [--vars-file f] [--ref ugifdvaaaioiqmwfiksw]` | variable **presence and shape** only: present, long enough, different where they must differ, HTTPS canonical domain, the right project, no secret-looking `NEXT_PUBLIC_` name | the variables themselves (or an env file: **only this check reads one**, because it sends nothing; the checks that make requests use your terminal's environment only) |
 | `… auth [--expect-google on\|off]` | `GET /auth/v1/settings` with the **public anon key**: Google on/off as expected, no other provider (email, phone, others), sign-ups allowed, anonymous sign-ins off if reported | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `… rest` | the Data API as an anonymous caller: no table returns rows, nothing is listed in the API description | same |
 | `… db` | `SELECT`s in a read-only transaction: applied migrations equal the repository's, tables and RLS, anon has no privilege, learners hold only their three `SELECT`s and four updatable profile columns, no unexpected function is executable | `SUPABASE_DB_URL` |

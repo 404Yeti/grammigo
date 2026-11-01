@@ -393,9 +393,9 @@ describe("Phase 7B preparation: timeouts, guest transfer, readiness checks", () 
   it("the readiness scripts print results through the redactor only, and never an environment value", () => {
     const cli = stripComments(read(path.join(ROOT, "scripts/check-production-readiness.mjs")));
     const logs = [...cli.matchAll(/console\.(log|error)\(([^;]*)\);/g)].map((m) => m[2]);
-    for (const l of logs.filter((x) => !x.startsWith('"Usage:'))) expect(l, l).not.toMatch(/\benv\b(?!-file)|process\.env|SERVICE|ANON|PEPPER|SECRET|PASSWORD|DB_URL/i);
+    for (const l of logs.filter((x) => !x.startsWith('"Usage:') && !x.startsWith('"--vars-file'))) expect(l, l).not.toMatch(/\benv\b(?!-file)|process\.env|SERVICE|ANON|PEPPER|SECRET|PASSWORD|DB_URL/i);
     expect(cli).toMatch(/renderReport\(sections, redact\)/);
-    expect(cli).toMatch(/redactor\(env\)/);
+    expect(cli).toMatch(/redactor\(\{ \.\.\.process\.env, \.\.\.fileEnv \}\)/);
     const checks = stripComments(read(path.join(ROOT, "scripts/readiness/checks.mjs")));
     expect(checks).not.toMatch(/console\./);
   });

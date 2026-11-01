@@ -38,6 +38,16 @@ describe("environment check", () => {
   it("reports accounts OFF when the switch is anything but exactly 'on'", () => {
     for (const v of [undefined, "", "ON", "true", "1"]) expect(checks.checkEnvironment({ ...goodEnv, NEXT_PUBLIC_ACCOUNTS: v }, {}).find((i: { id: string }) => i.id === "NEXT_PUBLIC_ACCOUNTS")?.detail).toMatch(/OFF/);
   });
+  it("an env file is read only by the check that sends nothing; the checks that make requests refuse it", async () => {
+    const { spawnSync } = await import("node:child_process");
+    for (const cmd of ["auth", "rest", "db", "all"]) {
+      const r = spawnSync("node", ["scripts/check-production-readiness.mjs", cmd, "--vars-file", "/nonexistent/file"], { cwd: ROOT, encoding: "utf8" });
+      expect(r.status, cmd).toBe(2);
+      expect(r.stderr).toMatch(/only used by the `env` check/);
+    }
+    const src = readFileSync(path.join(ROOT, "scripts/check-production-readiness.mjs"), "utf8");
+    expect(src).toMatch(/const env = cmd === "env" \? \{ \.\.\.process\.env, \.\.\.fileEnv \} : process\.env;/);
+  });
   it("parses an env file (comments, export, quotes) without keeping anything else", () => {
     expect(cli.parseEnvFile('# c\nexport A="1"\nB=\'2\'\nC=3\n\nnot a line\n')).toEqual({ A: "1", B: "2", C: "3" });
   });

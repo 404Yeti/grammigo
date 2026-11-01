@@ -2,13 +2,13 @@
 // READ-ONLY production readiness checks. Safe to run: it performs GETs of public endpoints with the public anon key, SELECTs in a read-only
 // database transaction, and inspects environment values. It changes nothing, applies nothing, and never prints a secret.
 //
-//   node scripts/check-production-readiness.mjs env  [--env-file <path>] [--ref <project ref>]
+//   node scripts/check-production-readiness.mjs env  [--vars-file <path>] [--ref <project ref>]      (the only check that reads an env file; it sends nothing)
 //   node scripts/check-production-readiness.mjs auth [--expect-google on|off]     needs SUPABASE_URL, SUPABASE_ANON_KEY
 //   node scripts/check-production-readiness.mjs rest                               needs SUPABASE_URL, SUPABASE_ANON_KEY
 //   node scripts/check-production-readiness.mjs db                                 needs SUPABASE_DB_URL (a read-only role is best)
 //   node scripts/check-production-readiness.mjs all
 //
-// Values come from the environment of the terminal you run it in (or --env-file, e.g. from `vercel env pull`: delete that file afterwards).
+// Values come from the environment of the terminal you run it in (or --vars-file, e.g. from `vercel env pull`: delete that file afterwards).
 // Never paste a key into a chat or a ticket. The exit code is 1 if any check fails, 2 for a usage error.
 import { readdirSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -45,11 +45,15 @@ async function main() {
   const [, , cmd, ...rest] = process.argv;
   const arg = (n) => { const i = rest.indexOf(`--${n}`); return i >= 0 ? rest[i + 1] : undefined; };
   if (!["env", "auth", "rest", "db", "all"].includes(cmd ?? "")) {
-    console.error("Usage: check-production-readiness.mjs env|auth|rest|db|all [--env-file path] [--ref ref] [--expect-google on|off]");
+    console.error("Usage: check-production-readiness.mjs env|auth|rest|db|all [--vars-file path] [--ref ref] [--expect-google on|off]");
     process.exit(2);
   }
-  const env = { ...process.env, ...(arg("env-file") ? parseEnvFile(readFileSync(arg("env-file"), "utf8")) : {}) };
-  const redact = redactor(env);
+  // An env file is read ONLY by the `env` check, which sends nothing anywhere. The checks that make requests (auth, rest, db) use the terminal's own
+  // environment and never anything loaded from a file, so a changed file cannot redirect a key to another host.
+  if (arg("vars-file") && cmd !== "env") { console.error("--vars-file is only used by the `env` check. Put values for the other checks in your terminal's environment."); process.exit(2); }
+  const fileEnv = arg("vars-file") ? parseEnvFile(readFileSync(arg("vars-file"), "utf8")) : {};
+  const env = cmd === "env" ? { ...process.env, ...fileEnv } : process.env;
+  const redact = redactor({ ...process.env, ...fileEnv });
   const sections = [];
   const run = async (name, f) => {
     try { sections.push({ name, items: await f() }); }
