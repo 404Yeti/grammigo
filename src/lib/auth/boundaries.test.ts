@@ -89,3 +89,50 @@ describe("the learning code does not know accounts exist", () => {
     for (const p of paths) expect(p).toMatch(/^\/(account|api\/account|api\/admin)(\/|$)/);
   });
 });
+
+describe("Phase 4: learner data never goes through privileged credentials", () => {
+  const learnerFiles = () => files.filter((f) => !isTest(f) && /^(lib\/auth\/(profile-api|page|viewer)\.ts|app\/api\/account\/|app\/account\/(?!invitations)|features\/accounts\/(Dashboard|ProfileForm)\.tsx)/.test(rel(f)));
+  it("finds the learner-facing files", () => expect(learnerFiles().length).toBeGreaterThanOrEqual(7));
+  it("none of them can reach the service role (no service client, no service key, no `.service`)", () => {
+    const offenders = learnerFiles().filter((f) => /createServiceClient|rt\.service|\.service\b|SERVICE_ROLE|serviceKey/.test(read(f))).map(rel);
+    expect(offenders).toEqual([]);
+  });
+  it("the profile API takes the learner's id from the verified session, never from the request", () => {
+    const src = read(path.join(SRC, "lib/auth/profile-api.ts"));
+    expect(src).toMatch(/\.eq\("id", d\.viewer\.id\)/);
+    expect(src).not.toMatch(/searchParams|params\.id|raw\.id|body\.id/);
+  });
+  it("every private page starts by requiring a learner", () => {
+    const pages = files.filter((f) => /app\/account\/.*page\.tsx$/.test(f.replaceAll("\\", "/")));
+    expect(pages.length).toBeGreaterThanOrEqual(4);
+    for (const f of pages) expect(read(f), rel(f)).toMatch(/requireLearner\(|accountsEnabled\(\)/);
+    for (const f of pages.filter((p) => !/\/account\/page\.tsx$/.test(p.replaceAll("\\", "/")) || true)) expect(read(f), rel(f)).toMatch(/requireLearner\(/);
+  });
+});
+
+describe("Phase 4: owner-only invitation management", () => {
+  it("the owner pages demand an owner (a plain 404 for everyone else)", () => {
+    expect(read(path.join(SRC, "app/account/invitations/page.tsx"))).toMatch(/requireLearner\(\{ admin: true \}\)/);
+  });
+  it("every owner operation passes the owner gate first", () => {
+    const src = read(path.join(SRC, "lib/auth/admin.ts"));
+    for (const fn of ["createInvitation", "listInvitations", "revokeInvitation", "expireInvitation"]) {
+      const body = new RegExp(`export async function ${fn}\\([^)]*\\)[^{]*\\{\\s*const refused = await gate\\(`).test(src);
+      expect(body, fn).toBe(true);
+    }
+  });
+  it("the invitation list query selects explicit columns, never the code hash", () => {
+    const src = read(path.join(SRC, "lib/auth/admin.ts"));
+    const select = /\.select\("([^"]+)"\)/.exec(src)?.[1] ?? "";
+    expect(select).toContain("code_hint");
+    expect(select).not.toMatch(/code_hash|\*/);
+  });
+  it("the screen that shows a secret never writes it to storage, cookies, the URL or the console", () => {
+    const src = read(path.join(SRC, "features/accounts/InvitationManager.tsx"));
+    expect(src).not.toMatch(/localStorage|sessionStorage|indexedDB|document\.cookie|console\.|history\.(push|replace)State|router\.(push|replace)|location\.(href|hash|search)\s*=/);
+  });
+  it("no server code in the account system writes to the console directly (only the content-free logger)", () => {
+    const offenders = files.filter((f) => !isTest(f) && /^lib\/auth\//.test(rel(f)) && /console\./.test(read(f)) && rel(f) !== "lib/auth/runtime.ts").map(rel);
+    expect(offenders).toEqual([]);
+  });
+});

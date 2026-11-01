@@ -33,6 +33,8 @@ const ENTRY_POINTS: Record<string, string[]> = {
   "app/api/ai/guided-check/route.ts": ["@/features/guided/ai/check"],
   "features/lessons/IntroScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],
   "features/practice/ReviewScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],
+  // The learner dashboard shows a counts-only activity card, labelled Beta, provisional and separate from lesson progress.
+  "features/accounts/Dashboard.tsx": ["@/features/guided/ui/GuidedActivityCard"],
 };
 
 describe("guided code and learning code cannot see each other", () => {

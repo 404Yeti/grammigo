@@ -85,3 +85,13 @@ export async function revokeInvitation(d: AdminDeps, id: string): Promise<AdminR
   if (error) return { status: 500, body: { error: "revoke_failed" } };
   return { status: 200, body: { revoked: true } };
 }
+
+/** Ends an invitation's validity now (see `expire_invitation`): nobody new can start with it; people mid sign-in can finish. Owner only, audited. */
+export async function expireInvitation(d: AdminDeps, id: string): Promise<AdminResult> {
+  const refused = await gate(d, true);
+  if (refused) return refused;
+  if (!z.uuid().safeParse(id).success) return { status: 400, body: { error: "invalid_request" } };
+  const { error } = await d.service.rpc("expire_invitation", { p_id: id, p_actor: d.viewer.kind === "learner" ? d.viewer.id : null });
+  if (error) return { status: 500, body: { error: "expire_failed" } };
+  return { status: 200, body: { expired: true } };
+}
