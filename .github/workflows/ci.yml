@@ -130,7 +130,7 @@ jobs:
       - name: Start the local Supabase stack
         if: steps.has_db.outputs.found == 'true'
         # Only what the tests need (database, Auth, REST gateway); the rest of the stack is excluded to keep this fast.
-        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
+        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
       - name: Run the isolation tests
         if: steps.has_db.outputs.found == 'true'
         run: npm run test:db
@@ -152,7 +152,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Start the local Supabase stack
-        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
+        run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Build with accounts ON and run the browser tests

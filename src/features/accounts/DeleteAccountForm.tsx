@@ -12,7 +12,7 @@ import { removeAccountFromDevice } from "./local-cleanup";
  * which account to delete. The confirmation is never put in the address bar or in any storage, and never logged.
  */
 /** `accountId` comes from the verified session on the server (not from the browser's folder cookie), so the right folder is removed whatever the cookie says. */
-export function DeleteAccountForm({ accountId }: { accountId: string }) {
+export function DeleteAccountForm({ accountId, method = "google" }: { accountId: string; method?: "google" | "password" }) {
   const [phrase, setPhrase] = useState("");
   const [understood, setUnderstood] = useState(false);
   const [removeLocal, setRemoveLocal] = useState(true);
@@ -41,7 +41,7 @@ export function DeleteAccountForm({ accountId }: { accountId: string }) {
   }
 
   const messages = {
-    reauth: "Your last sign-in was more than 10 minutes ago. Please sign in with Google again, then try once more.",
+    reauth: "Your last sign-in was more than 10 minutes ago. Please sign in again, then try once more.",
     rate: "Too many tries. Please wait a few minutes.",
     confirmation: "The words didn’t match. Nothing was deleted.",
     owner: "This is the owner account, which can’t be deleted here. Nothing was deleted.",
@@ -82,7 +82,10 @@ export function DeleteAccountForm({ accountId }: { accountId: string }) {
       {problem && (
         <div role="alert" className="rounded-2xl bg-error-soft p-3 text-sm font-semibold text-error" data-testid="delete-error">
           <p>{messages[problem]}</p>
-          {problem === "reauth" && (
+          {problem === "reauth" && method === "password" && (
+            <p className="mt-2"><a href="/account/delete" className="min-h-11 font-bold underline underline-offset-4" data-testid="delete-reauth">Enter my password again</a></p>
+          )}
+          {problem === "reauth" && method === "google" && (
             <p className="mt-2">
               <button type="submit" formAction="/api/auth/reauth" formNoValidate className="min-h-11 font-bold underline underline-offset-4" data-testid="delete-reauth">Sign in with Google again</button>
             </p>

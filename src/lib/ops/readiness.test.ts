@@ -70,7 +70,7 @@ describe("redaction", () => {
   });
 });
 
-const settings = (ext: Record<string, boolean>, extra: Record<string, unknown> = {}) => async () => new Response(JSON.stringify({ external: { email: false, phone: false, google: true, ...ext }, disable_signup: false, ...extra }), { status: 200 });
+const settings = (ext: Record<string, boolean>, extra: Record<string, unknown> = {}) => async () => new Response(JSON.stringify({ external: { email: true, phone: false, google: true, ...ext }, disable_signup: false, mailer_autoconfirm: false, ...extra }), { status: 200 });
 describe("where a request may go", () => {
   it("only a hosted Supabase project or a local stack; everything else is refused before anything is sent", async () => {
     expect(checks.supabaseOrigin("https://ugifdvaaaioiqmwfiksw.supabase.co/some/path")).toBe("https://ugifdvaaaioiqmwfiksw.supabase.co");
@@ -85,9 +85,13 @@ describe("where a request may go", () => {
 
 describe("authentication settings check", () => {
   const run = (f: typeof fetch, expectGoogle = true) => checks.checkAuthSettings({ fetchImpl: f, url: "https://abcdefghij0123456789.supabase.co", anonKey: ANON, expectGoogle });
-  it("passes Google-only", async () => expect(fails(await run(settings({}) as never))).toEqual([]));
-  it("fails when email, phone or any other provider is on", async () => {
-    for (const on of ["email", "phone", "github", "apple"]) expect(fails(await run(settings({ [on]: true }) as never)).length, on).toBeGreaterThan(0);
+  it("passes Google + email with confirmation required", async () => expect(fails(await run(settings({}) as never))).toEqual([]));
+  it("fails when phone or any other provider is on", async () => {
+    for (const on of ["phone", "github", "apple"]) expect(fails(await run(settings({ [on]: true }) as never)).length, on).toBeGreaterThan(0);
+  });
+  it("fails when the email provider is OFF (email + password would not work) or when email confirmation is not required", async () => {
+    expect(fails(await run(settings({ email: false }) as never)).map((i: { id: string }) => i.id)).toEqual(["the email provider is enabled (email + password sign-in is one of the two intended methods)"]);
+    expect(fails(await run(settings({}, { mailer_autoconfirm: true }) as never)).length).toBe(1);
   });
   it("fails when Google is not enabled (or is enabled too early)", async () => {
     expect(fails(await run(settings({ google: false }) as never)).length).toBe(1);

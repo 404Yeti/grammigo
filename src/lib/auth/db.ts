@@ -9,12 +9,20 @@ export type RedeemResult = "ok" | "invalid" | "expired" | "revoked" | "already_r
 export type ReserveResult = { grantId: string } | { error: "invalid" | "revoked" | "expired" | "full" };
 export type ProfileState = "active" | "suspended" | "none";
 
+export type EmailState = { userId: string; providers: string[]; confirmed: boolean; hasProfile: boolean };
+
 export interface AccountDb {
   reserve(codeHash: Buffer): Promise<ReserveResult>;
   redeem(args: { grantId: string; userId: string; displayName: string; adultConfirmedAt: string; noticeVersion: string }): Promise<RedeemResult>;
   release(grantId: string): Promise<void>;
   profileState(userId: string): Promise<ProfileState>;
   purgeOrphan(userId: string): Promise<boolean>;
+  /** Email + password: reserve a seat for ONE address (24 hour hold), record the 18+ confirmation with it. */
+  reserveForEmail(codeHash: Buffer, emailHash: Buffer, adultAtIso: string): Promise<ReserveResult>;
+  /** Redeem the open reservation made for exactly this (confirmed) address. */
+  redeemForEmail(a: { userId: string; emailHash: Buffer; displayName: string; noticeVersion: string }): Promise<RedeemResult>;
+  /** What the Auth system knows about this address (null: nothing). */
+  emailState(email: string): Promise<EmailState | null>;
   limiter: RateLimitStore;
 }
 
@@ -48,6 +56,23 @@ export function accountDb(client: SupabaseClient): AccountDb {
     async profileState(userId) {
       const row = must(await client.from("profiles").select("status").eq("id", userId).maybeSingle(), "profile lookup") as { status: string } | null;
       return !row ? "none" : row.status === "active" ? "active" : "suspended";
+    },
+    async reserveForEmail(codeHash, emailHash, adultAtIso) {
+      const rows = must(await client.rpc("reserve_invitation_for_email", { p_code_hash: hex(codeHash), p_email_hash: hex(emailHash), p_adult_at: adultAtIso }), "reserve") as { grant_id: string | null; error: string | null }[];
+      const row = rows?.[0];
+      if (!row) throw new Error("reserve returned nothing");
+      if (row.grant_id) return { grantId: row.grant_id };
+      const e = row.error;
+      return { error: e === "revoked" || e === "expired" || e === "full" ? e : "invalid" };
+    },
+    async redeemForEmail(a) {
+      const r = must(await client.rpc("redeem_reservation_for_email", { p_user: a.userId, p_email_hash: hex(a.emailHash), p_display_name: a.displayName, p_notice_version: a.noticeVersion }), "redeem") as string;
+      return r === "ok" || r === "expired" || r === "revoked" || r === "already_registered" ? r : "invalid";
+    },
+    async emailState(email) {
+      const rows = must(await client.rpc("email_identity_state", { p_email: email }), "email lookup") as { user_id: string; providers: string[]; confirmed: boolean; has_profile: boolean }[];
+      const row = rows?.[0];
+      return row ? { userId: row.user_id, providers: row.providers ?? [], confirmed: row.confirmed === true, hasProfile: row.has_profile === true } : null;
     },
     async purgeOrphan(userId) {
       return must(await client.rpc("purge_orphan_identity", { p_user: userId }), "purge") as boolean;
