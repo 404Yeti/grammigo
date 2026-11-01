@@ -9,6 +9,8 @@ import { createServiceClient, createSessionClient, hardenCookie } from "./supaba
 /** What the account handlers need. Real in production (see `buildRuntime`); fakes in unit tests; real database in integration tests. */
 export interface SessionAuth {
   exchangeCodeForSession(code: string): Promise<{ ok: boolean }>;
+  /** Checks the one-time token from a password-reset email and starts the recovery session. Needs no cookie from the browser that asked, so the link works on any browser or device. */
+  verifyRecoveryToken(tokenHash: string): Promise<{ ok: boolean }>;
   getUser(): Promise<AuthUser | null>;
   signOut(): Promise<void>;
   /** The Google authorize URL, with PKCE (the code verifier is stored in the jar). Null if it could not be built. */
@@ -68,6 +70,10 @@ export function sessionAuth(client: SupabaseClient): SessionAuth {
   return {
     async exchangeCodeForSession(code) {
       const { error } = await client.auth.exchangeCodeForSession(code);
+      return { ok: !error };
+    },
+    async verifyRecoveryToken(tokenHash) {
+      const { error } = await client.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
       return { ok: !error };
     },
     async getUser() {

@@ -2,7 +2,7 @@ import { createReadStream } from "node:fs";
 import { answerLessonQuestion, cont, expectQuestion, LESSON } from "../e2e/helpers";
 import { BASE, browserHeaders, createAccount, q, sessionCookies } from "./helpers";
 import { expect, test } from "./fixtures";
-import { authLink, waitForMail } from "./mail";
+import { authLink, resetLink, waitForMail } from "./mail";
 
 /**
  * Email + password in a real browser, against the real local Auth server and its mailbox. Google and email are tested separately: this file never
@@ -187,8 +187,10 @@ test.describe("forgot password", () => {
     await page.getByLabel("Email address").fill(address);
     await page.getByRole("button", { name: "Send the link" }).click();
     await expect(page.getByTestId("check-email-reset")).toBeVisible();
-    const mail = await waitForMail(address, { contains: /type=recovery/, after: t });
-    await page.goto(authLink(mail.text));
+    const mail = await waitForMail(address, { contains: /auth\/reset\?token_hash=/, after: t });
+    await page.goto(resetLink(mail.text));
+    await expect(page.getByTestId("reset-form")).toBeVisible(); // opening the link changes nothing; the button does
+    await page.getByRole("button", { name: "Choose a new password" }).click();
     await expect(page).toHaveURL(/\/auth\/new-password/);
     await page.getByLabel(/New password/).fill(NEW);
     await page.getByLabel("Type it again").fill("something else entirely 1");
@@ -223,7 +225,8 @@ test.describe("forgot password", () => {
     await expect(waitForMail(google.email, { after: t, timeoutMs: 2_000 })).rejects.toThrow(/no email/);
   });
 
-  test("a reset link opened in a different browser does nothing but explain", async ({ browser, request, context }) => {
+  test("a reset link opened in a DIFFERENT browser or device works, and fetching it first (a mail scanner) does not use it up", async ({ browser, request, context }) => {
+    test.setTimeout(240_000);
     const owner = await createAccount({ name: "Other Browser Owner", admin: true });
     const code = await invitationCode(request, owner, context);
     await context.clearCookies();
@@ -237,10 +240,7 @@ test.describe("forgot password", () => {
     await a.getByLabel(/I’m 18 or older/).check();
     await a.getByRole("button", { name: "Create my account" }).click();
     await a.goto(authLink((await waitForMail(address, { contains: /auth\/v1\/verify/, after: t })).text));
-    await a.goto(`${BASE}/auth/forgot`);
-    await a.getByLabel("Email address").fill(address);
-    await a.getByRole("button", { name: "Send the link" }).click();
-    // wait: the account has no profile yet (never signed in), so no reset email is sent. Sign in first so it has one.
+    // the account needs a profile before a reset email is sent: sign in once (this redeems the seat)
     await a.goto(`${BASE}/signin`);
     await a.getByTestId("password-signin").getByLabel("Email address").fill(address);
     await a.getByTestId("password-signin").getByLabel("Password").fill(GOOD);
@@ -252,10 +252,24 @@ test.describe("forgot password", () => {
     await a.goto(`${BASE}/auth/forgot`);
     await a.getByLabel("Email address").fill(address);
     await a.getByRole("button", { name: "Send the link" }).click();
-    const link = authLink((await waitForMail(address, { contains: /type=recovery/, after: t2 })).text);
+    const link = resetLink((await waitForMail(address, { contains: /auth\/reset\?token_hash=/, after: t2 })).text);
+    // a mail scanner / link preview fetches the link first: nothing is used up
+    expect((await request.get(link)).status()).toBe(200);
+    expect((await request.get(link)).status()).toBe(200);
+    // the person opens it on another device entirely (a new browser profile that never asked)
     const elsewhere = await (await browser.newContext()).newPage();
     await elsewhere.goto(link);
-    await expect(elsewhere).toHaveURL(/\/auth\/error\?r=recover/);
-    await expect(elsewhere.locator('p[role="alert"]')).toContainText("same browser");
+    await elsewhere.getByRole("button", { name: "Choose a new password" }).click();
+    await expect(elsewhere).toHaveURL(/\/auth\/new-password/);
+    await elsewhere.getByLabel(/New password/).fill(NEW);
+    await elsewhere.getByLabel("Type it again").fill(NEW);
+    await elsewhere.getByRole("button", { name: "Save new password" }).click();
+    await expect(elsewhere).toHaveURL(/\/signin\?e=pwchanged/);
+    // the link was single use
+    const again = await (await browser.newContext()).newPage();
+    await again.goto(link);
+    await again.getByRole("button", { name: "Choose a new password" }).click();
+    await expect(again).toHaveURL(/\/auth\/error\?r=recover/);
+    await expect(again.locator('p[role="alert"]')).toContainText("ask for a new one");
   });
 });

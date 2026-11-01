@@ -94,6 +94,7 @@ export function makeRuntime(over: Partial<Fakes> = {}, cookies: { name: string; 
     limiter: { async hit() { calls.push("limit"); if (f.limiter === "throw") throw new Error("db"); return f.limiter; } },
   };
   const auth: SessionAuth = {
+    async verifyRecoveryToken() { calls.push("verifyRecoveryToken"); if (f.exchangeThrows) throw new Error("net"); return { ok: f.exchangeOk }; },
     async exchangeCodeForSession() { calls.push("exchange"); if (f.exchangeThrows) throw new Error("net"); return { ok: f.exchangeOk }; },
     async getUser() { calls.push("getUser"); return f.user; },
     async signOut() { calls.push("signOut"); if (f.signOut === "throw") throw new Error("net"); },

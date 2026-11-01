@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { checkEmailIdentity, checkGoogleIdentity, type AuthUser } from "./identity";
-import { emailHash, handleForgot, handleNewPassword, handlePasswordSignIn, handleRecover, handleRegister } from "./password";
+import { emailHash, handleForgot, handleNewPassword, handlePasswordSignIn, handleRecover, handleRecoverToken, handleRegister } from "./password";
 import { normaliseEmail, passwordProblem } from "./password-policy";
 import { generateCode } from "./invite-code";
 import { GRANT, googleUser, makeRuntime, NOW, postHeaders, testConfig, USER_ID } from "./testkit";
@@ -215,6 +215,24 @@ describe("the reset link and the new password", () => {
     expect(await handleRecover(makeRuntime({ exchangeOk: false }).rt, { code: "abc" })).toMatchObject({ location: "/auth/error?r=recover" });
     expect(await handleRecover(makeRuntime().rt, { code: null })).toMatchObject({ location: "/auth/error?r=recover" });
     expect(await handleRecover(makeRuntime().rt, { code: "x".repeat(3000) })).toMatchObject({ location: "/auth/error?r=recover" });
+  });
+  it("the emailed token works on any browser: an email-only account with a profile goes on; everything else is refused and the session ended; a foreign origin or a malformed token never reaches the Auth server", async () => {
+    const token = "a1B2c3D4e5F6g7H8i9J0-_kLmNoPqRsT";
+    const ok = makeRuntime({ user: emailUser(), profile: "active" });
+    expect(await handleRecoverToken(ok.rt, { headers: postHeaders(cfg), tokenHash: token })).toMatchObject({ location: "/auth/new-password" });
+    expect(ok.calls).toContain("verifyRecoveryToken");
+    for (const [user, profile] of [[googleUser(), "active"], [emailUser(), "none"], [emailUser({ email_confirmed_at: null }), "active"]] as const) {
+      const m = makeRuntime({ user, profile });
+      expect(await handleRecoverToken(m.rt, { headers: postHeaders(cfg), tokenHash: token })).toMatchObject({ location: "/auth/error?r=recover" });
+      expect(m.calls).toContain("signOut");
+    }
+    expect(await handleRecoverToken(makeRuntime({ exchangeOk: false }).rt, { headers: postHeaders(cfg), tokenHash: token })).toMatchObject({ location: "/auth/error?r=recover" });
+    const untouched = makeRuntime({ user: emailUser(), profile: "active" });
+    for (const bad of ["", "short", "has spaces in it 0123456789", "x".repeat(300), "../../etc/passwd-0123456789"]) {
+      expect(await handleRecoverToken(untouched.rt, { headers: postHeaders(cfg), tokenHash: bad })).toMatchObject({ location: "/auth/error?r=recover" });
+    }
+    expect(await handleRecoverToken(untouched.rt, { headers: new Headers({ origin: "https://evil.example" }), tokenHash: token })).toMatchObject({ status: 403 });
+    expect(untouched.calls).not.toContain("verifyRecoveryToken");
   });
   it("a new password is checked, saved, and then EVERY session is ended", async () => {
     const m = makeRuntime({ user: emailUser(), profile: "active" });

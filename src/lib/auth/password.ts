@@ -225,20 +225,52 @@ export async function handleForgot(rt: AuthRuntime, input: { headers: Headers; e
   return done;
 }
 
-/** GET /api/auth/recover?code=…: the reset email's link. Exchanges the code in THIS browser (the one that asked), then sends the person to choose a password. */
+const RECOVER_ERROR: HandlerResult = { status: 303, location: "/auth/error?r=recover" };
+
+/** After a reset link has produced a session: only an email-only account that has a profile may go on to choose a new password. */
+async function finishRecovery(rt: AuthRuntime): Promise<HandlerResult> {
+  const user = await rt.auth.getUser();
+  if (!user || !checkEmailIdentity(user).ok || (await rt.db.profileState(user.id)) !== "active") {
+    await endSession(rt);
+    rt.log("recover", { outcome: "refused" });
+    return RECOVER_ERROR;
+  }
+  rt.log("recover", { outcome: "ok" });
+  return { status: 303, location: "/auth/new-password" };
+}
+
+/**
+ * GET /api/auth/recover?code=…: the older, same-browser reset link (PKCE). Kept for a project whose reset email still has the default link;
+ * it only works in the browser that asked for the reset.
+ */
 export async function handleRecover(rt: AuthRuntime, input: { code: string | null }): Promise<HandlerResult> {
-  if (!input.code || input.code.length > 2048) return { status: 303, location: "/auth/error?r=recover" };
+  if (!input.code || input.code.length > 2048) return RECOVER_ERROR;
   try {
     const exchanged = await rt.auth.exchangeCodeForSession(input.code);
-    if (!exchanged.ok) return { status: 303, location: "/auth/error?r=recover" };
-    const user = await rt.auth.getUser();
-    if (!user || !checkEmailIdentity(user).ok || (await rt.db.profileState(user.id)) !== "active") {
-      await endSession(rt);
-      rt.log("recover", { outcome: "refused" });
-      return { status: 303, location: "/auth/error?r=recover" };
-    }
-    rt.log("recover", { outcome: "ok" });
-    return { status: 303, location: "/auth/new-password" };
+    if (!exchanged.ok) return RECOVER_ERROR;
+    return await finishRecovery(rt);
+  } catch {
+    await endSession(rt);
+    return { status: 303, location: "/auth/error?r=server" };
+  }
+}
+
+/** The shape of the one-time token in the reset email (URL-safe characters only, bounded). */
+export const RECOVERY_TOKEN = /^[A-Za-z0-9_-]{16,200}$/;
+
+/**
+ * POST /api/auth/recover: the reset email's link opens /auth/reset (which changes nothing, so a mail scanner that fetches the link cannot use the
+ * one-time token up); pressing its button posts the token here. The token is checked by the Auth server and the person gets a recovery session
+ * on THIS browser, whichever browser or device asked for the reset. Same limits as before: email-only account with a profile, rate limited, origin checked.
+ */
+export async function handleRecoverToken(rt: AuthRuntime, input: { headers: Headers; tokenHash: string }): Promise<HandlerResult> {
+  if (!isTrustedOrigin(input.headers, rt.config.siteUrl)) return { status: 403 };
+  if (Number(input.headers.get("content-length") ?? 0) > MAX_FORM_BYTES) return { status: 413 };
+  if (!RECOVERY_TOKEN.test(input.tokenHash)) return RECOVER_ERROR;
+  try {
+    const verified = await rt.auth.verifyRecoveryToken(input.tokenHash);
+    if (!verified.ok) return RECOVER_ERROR;
+    return await finishRecovery(rt);
   } catch {
     await endSession(rt);
     return { status: 303, location: "/auth/error?r=server" };

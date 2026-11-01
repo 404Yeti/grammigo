@@ -1,11 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { handleDelete, readSignedInAt } from "@/lib/auth/lifecycle";
-import { handleForgot, handleNewPassword, handlePasswordSignIn, handleRegister } from "@/lib/auth/password";
+import { handleForgot, handleNewPassword, handlePasswordSignIn, handleRecoverToken, handleRegister } from "@/lib/auth/password";
 import { getViewer } from "@/lib/auth/viewer";
 import { closePool, q } from "../helpers";
 import { config, createPerson, db, freshHeaders, makeInvitation, runtimeFor, service, sessionFor, signIn } from "./kit";
-import { authLink, openAuthLink, waitForMail } from "./mail";
+import { authLink, openAuthLink, resetLink, waitForMail } from "./mail";
 import { randomUUID } from "node:crypto";
 
 /**
@@ -264,25 +264,27 @@ describe("forgot password and choosing a new one", () => {
     await new Promise((r) => setTimeout(r, 1_500));
     for (const e of [g.email, stranger]) await expect(waitForMail(e, { after: since, timeoutMs: 1_500 })).rejects.toThrow(/no email/);
   });
-  it("the whole reset: link -> session in the same browser -> new password -> every old session is dead -> old password refused, new one works", async () => {
+  it("the whole reset, from a DIFFERENT browser than the one that asked: emailed link -> button -> session -> new password -> every old session is dead -> old password refused, new one works; the link works once", async () => {
     const a = await learner("pw-reset");
     const since = t0();
-    const { rt: rt0, jar } = runtimeFor([]); // the browser that asks for the reset (it keeps the PKCE verifier)
+    const { rt: rt0 } = runtimeFor([]); // the browser that asks for the reset; nothing from it is needed later
     await handleForgot(rt0, { headers: freshHeaders(), email: a.email });
-    const mail = await waitForMail(a.email, { contains: /type=recovery/, after: since });
-    const back = await openAuthLink(authLink(mail.text));
-    const url = new URL(back);
-    expect(url.pathname).toBe("/api/auth/recover");
-    const code = url.searchParams.get("code");
-    expect(code).toBeTruthy();
-    // an old session on another device, and the recovery session in the asking browser
+    const mail = await waitForMail(a.email, { contains: /auth\/reset\?token_hash=/, after: since });
+    const url = new URL(resetLink(mail.text));
+    expect(url.pathname).toBe("/auth/reset");
+    const tokenHash = url.searchParams.get("token_hash") as string;
+    expect(tokenHash).toBeTruthy();
+    // an old session on another device
     const device2 = await signInWith(a.email, GOOD);
-    const { rt: rt1, jar: jar1 } = runtimeFor(jar.getAll(), { exchange: "real" });
-    const { handleRecover } = await import("@/lib/auth/password");
-    expect(await handleRecover(rt1, { code })).toMatchObject({ location: "/auth/new-password" });
-    // a link opened in a DIFFERENT browser (no verifier) does nothing useful
-    const { rt: rtOther } = runtimeFor([], { exchange: "real" });
-    expect(await handleRecover(rtOther, { code })).toMatchObject({ location: "/auth/error?r=recover" });
+    // a malformed or invented token is refused before it matters
+    const { rt: rtBad } = runtimeFor([]);
+    expect(await handleRecoverToken(rtBad, { headers: freshHeaders(), tokenHash: "A".repeat(40) })).toMatchObject({ location: "/auth/error?r=recover" });
+    // the person opens the link on a phone that never asked: no cookies at all, and it works
+    const { rt: rt1, jar: jar1 } = runtimeFor([]);
+    expect(await handleRecoverToken(rt1, { headers: freshHeaders(), tokenHash })).toMatchObject({ location: "/auth/new-password" });
+    // the link works once
+    const { rt: rtAgain } = runtimeFor([]);
+    expect(await handleRecoverToken(rtAgain, { headers: freshHeaders(), tokenHash })).toMatchObject({ location: "/auth/error?r=recover" });
     const { rt: rt2, jar: jar2 } = runtimeFor(jar1.getAll());
     expect(await handleNewPassword(rt2, { headers: freshHeaders(), password: NEWPW, confirm: NEWPW })).toMatchObject({ location: "/signin?e=pwchanged" });
     expect(jar2.getAll().length).toBe(0);
@@ -290,6 +292,18 @@ describe("forgot password and choosing a new one", () => {
     expect((await getViewer(sessionFor(device2.cookies).client)).kind).toBe("anonymous");
     expect((await signInWith(a.email, GOOD)).result).toMatchObject({ location: "/signin?e=credentials" });
     expect((await signInWith(a.email, NEWPW)).result).toMatchObject({ location: "/account" });
+  });
+  it("a reset link for a Google account, or for an account without a profile, gives no session", async () => {
+    const g = await createPerson({ label: "pw-reset-g", learner: true });
+    const { rt, jar } = runtimeFor([]);
+    // a recovery token cannot even be requested for a Google account through our flow; a token the Auth server issued directly is still refused here
+    const anon = createClient(API, ANON, { auth: { persistSession: false } });
+    const since = t0();
+    await anon.auth.resetPasswordForEmail(g.email);
+    const mail = await waitForMail(g.email, { contains: /auth\/reset\?token_hash=/, after: since });
+    const tokenHash = new URL(resetLink(mail.text)).searchParams.get("token_hash") as string;
+    expect(await handleRecoverToken(rt, { headers: freshHeaders(), tokenHash })).toMatchObject({ location: "/auth/error?r=recover" });
+    expect(jar.getAll().length).toBe(0);
   });
   it("a new password is refused without a session, for a mismatch, and when weak; nothing changes", async () => {
     const a = await learner("pw-newpw");

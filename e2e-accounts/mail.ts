@@ -27,6 +27,13 @@ export function authLink(text: string): string {
   return m[0].replace(/&amp;/g, "&");
 }
 
+/** The password-reset link in an email: it points at OUR /auth/reset page and carries the one-time token. */
+export function resetLink(text: string): string {
+  const m = /https?:\/\/[^\s"'<>)]+\/auth\/reset\?token_hash=[^\s"'<>)]*/.exec(text);
+  if (!m) throw new Error("no reset link found in the email");
+  return m[0].replace(/&amp;/g, "&");
+}
+
 /** Opens the link the way a browser would, without following the redirect: returns where the Auth server sends the person next. */
 export async function openAuthLink(link: string): Promise<string> {
   const res = await fetch(link, { redirect: "manual" });
