@@ -98,6 +98,7 @@ export class SyncEngine {
   private unsubscribers: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private stopped = false;
+  private leaving = false;
   private ring: CallMetric[] = [];
   private calls = 0;
   private byOp: Record<string, number> = {};
@@ -119,7 +120,17 @@ export class SyncEngine {
     for (const key of DOC_KEYS) this.unsubscribers.push(this.o.adapters[key].subscribe(() => this.onLocalChange(key)));
     this.unsaved = this.detectUnsaved();
     this.publish();
-    if (!this.metaCache.paused) this.schedule("start", this.o.startDelayMs);
+    // A fresh visit is the learner's own act, so it checks the account once even if the LAST visit ended in a back-off (one request per page
+    // load cannot hammer a server; waiting out an old penalty would leave a device stale for no reason).
+    if (!this.metaCache.paused) this.schedule("start", this.o.startDelayMs, true);
+  }
+
+  /**
+   * The page is going away (true), or came back from the back/forward cache (false). While it is going away, a request the browser cuts off
+   * is NOT a failed attempt: it must not start a back-off that would make the next page wait, and it is not shown as an error.
+   */
+  setLeaving(leaving: boolean): void {
+    this.leaving = leaving;
   }
 
   stop(): void {
@@ -276,6 +287,7 @@ export class SyncEngine {
   }
 
   private fail(f: Failure): void {
+    if (this.leaving) return; // cut off by the page closing or navigating: not the network's fault, and nobody is looking
     const failures = this.metaCache.failures + 1;
     const table = this.o.backoffMs;
     const base = table[Math.min(failures - 1, table.length - 1)];

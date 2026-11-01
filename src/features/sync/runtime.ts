@@ -45,14 +45,20 @@ export function startSyncFor(scope: string): () => void {
 
   const online = () => engine.onOnline();
   const visibility = () => (document.visibilityState === "hidden" ? engine.flush() : engine.onVisible());
-  const hide = () => engine.flush();
+  const hide = () => {
+    engine.setLeaving(true); // requests the browser now cuts off are not failures
+    engine.flush();
+  };
+  const show = () => engine.setLeaving(false); // restored from the back/forward cache
   window.addEventListener("online", online);
   window.addEventListener("pagehide", hide);
+  window.addEventListener("pageshow", show);
   document.addEventListener("visibilitychange", visibility);
 
   return () => {
     window.removeEventListener("online", online);
     window.removeEventListener("pagehide", hide);
+    window.removeEventListener("pageshow", show);
     document.removeEventListener("visibilitychange", visibility);
     engine.stop();
     if (current?.engine === engine) current = null;

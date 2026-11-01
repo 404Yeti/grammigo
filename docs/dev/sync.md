@@ -37,6 +37,10 @@ Two documents per account, the same versioned JSON the app already keeps on the 
   merge failed the associativity test, which is how this design was reached).
 * **Interrupted**: if a save lands but its answer is lost, the next run finds a conflict whose copy equals the device's, marks it saved and writes nothing twice.
 * **Edits during a save** are never lost: the fingerprint recorded is of what was *sent*; anything newer stays unsaved and goes next.
+* **Leaving a page is not a failure.** A request the browser cuts off because the page is closing or navigating is ignored (no back-off, no error), and a fresh page load always
+  checks the account once, even if the previous visit ended inside a back-off. (Found in CI: the two-device test navigated away mid-check, the cut-off request counted as a failure,
+  and the next page then waited out a 15-second penalty before pulling the other device's lesson. This was very likely the cause of the earlier unexplained flake. Regression tests:
+  `engine.test.ts` and `e2e-accounts/sync.spec.ts` "leaving a page while it is saving".)
 * **Failures back off** 15 s, 30 s, 1 min, 2 min, 5 min, then every 15 min (with jitter; `Retry-After` honoured). A 401 stops and asks to sign in; a document that is too large
   or from a newer app stops with a plain message instead of retrying forever.
 

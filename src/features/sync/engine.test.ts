@@ -557,6 +557,37 @@ describe("pause, flush, status and measurement", () => {
     expect(api.calls).toEqual([]);
   });
 
+  it("a request cut off because the page is closing is not a failure: no back-off, and the next visit checks the account straight away", async () => {
+    const acct = new Account();
+    acct.consent = true;
+    const meta = { ...consented() };
+    const first = setup(acct, meta);
+    first.dev.boot();
+    await first.clock.advance(2_000);
+    first.api.faults = [{ reason: "offline" }];
+    first.dev.engine.setLeaving(true); // pagehide fired; the browser aborts what is in flight
+    first.dev.engine.syncNow();
+    await first.clock.advance(1_000);
+    expect(first.dev.meta.failures).toBe(0);
+    expect(first.dev.meta.nextAttemptAt).toBeNull();
+    // the same failure when the page is NOT leaving does count
+    first.dev.engine.setLeaving(false);
+    first.api.faults = [{ reason: "offline" }];
+    first.dev.engine.syncNow();
+    await first.clock.advance(1_000);
+    expect(first.dev.meta.failures).toBe(1);
+  });
+
+  it("a new visit checks the account even if the previous visit ended inside a back-off, so a stale device catches up at once", async () => {
+    const acct = new Account();
+    acct.consent = true;
+    acct.docs.lessons_v2 = { revision: 3, body: { ...JSON.parse(JSON.stringify(emptyState())), sessions: [] } };
+    const { dev, api, clock } = setup(acct, { ...consented(), failures: 1, nextAttemptAt: 1_000_000 + 15_000 });
+    dev.boot();
+    await clock.advance(3_000); // far less than the 15 s left of the old back-off
+    expect(api.count("state")).toBe(1);
+  });
+
   it("records how long every call took, and summarises it", async () => {
     const acct = new Account();
     acct.consent = true;

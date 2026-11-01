@@ -371,6 +371,9 @@ test.describe("one account on two devices", () => {
     // the phone learns of the laptop's lesson at its next checkpoint
     await phone.goto(`${BASE}/account`);
     await phone.getByRole("button", { name: "Save now" }).click();
+    // The chip can already read "Saved" from before (nothing unsaved), so wait for the REAL effect: the laptop's lesson arriving on the phone.
+    // (Leaving the page first would cut the request off. That used to cost the next page a back-off, which is how this test once failed.)
+    await expect.poll(() => phone.evaluate((k) => (JSON.parse(window.localStorage.getItem(k) ?? "{}").sessions ?? []).length, `grammigo:v2:u:${ana.id}`), { timeout: 30_000 }).toBe(2);
     await expect(phone.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
     expect((await lessonsDoc(ana.id))?.body.sessions).toHaveLength(2);
 
@@ -381,6 +384,36 @@ test.describe("one account on two devices", () => {
         await expect(pg.getByTestId("lesson-card").and(pg.locator(`[data-skill="${skill}"]`)).getByTestId("completion")).toContainText("Completed 1×");
       }
     }
+    await Promise.all([phoneCtx.close(), laptopCtx.close()]);
+  });
+});
+
+test.describe("leaving a page while it is saving", () => {
+  test("a save cut off by navigating away is not treated as a failure: the next page catches up by itself, quickly", async ({ browser }) => {
+    test.setTimeout(150_000);
+    const ana = await createAccount({ name: "Navigating Ana", learner: true });
+    const phoneCtx = await browser.newContext();
+    const laptopCtx = await browser.newContext();
+    const phone = await phoneCtx.newPage();
+    const laptop = await laptopCtx.newPage();
+    await phoneCtx.addCookies(sessionCookies(ana));
+    await laptopCtx.addCookies(sessionCookies(await signInAgain(ana)));
+    await phone.goto(`${BASE}/account`);
+    await phone.getByRole("button", { name: "Turn on saving to my account" }).click();
+    await expect.poll(async () => hasConsent(ana.id), { timeout: 20_000 }).toBe(true);
+    await laptop.goto(`${BASE}/account`);
+    await expect(laptop.getByTestId("sync-label")).toBeVisible({ timeout: 20_000 });
+    await finishLesson(laptop, OTHER_LESSON);
+    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
+
+    // the phone starts to check the account, and its request is held back while the page is left
+    await phone.goto(`${BASE}/account`);
+    await phone.route("**/api/sync/state", (r) => r.abort("connectionreset"));
+    await phone.getByRole("button", { name: "Save now" }).click();
+    await phone.goto(`${BASE}/library`); // the page is left with the request failing
+    await phone.unroute("**/api/sync/state");
+    // the new page does not wait out a penalty: it pulls the laptop's lesson within a few seconds
+    await expect(phone.getByTestId("lesson-card").and(phone.locator(`[data-skill="${OTHER_LESSON}"]`)).getByTestId("completion")).toContainText("Completed 1×", { timeout: 15_000 });
     await Promise.all([phoneCtx.close(), laptopCtx.close()]);
   });
 });
