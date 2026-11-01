@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { primaryButtonClass } from "@/features/accounts/AuthShell";
-import { RECOVERY_TOKEN } from "@/lib/auth/recovery-token";
+
+// The same shape the server accepts (src/lib/auth/recovery-token.ts; a test keeps the two identical). Client files may not import server account code.
+export const CLIENT_RECOVERY_TOKEN = /^[A-Za-z0-9_-]{16,200}$/;
 
 /**
  * The reset email's link is /auth/reset#token_hash=… . A URL fragment is never sent to a server, so the token reaches neither Vercel's request logs nor
@@ -15,7 +17,7 @@ export function ResetForm() {
     const t = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token_hash");
     if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the fragment exists only in the browser, so it can only be read after hydration
-    setState({ token: t && RECOVERY_TOKEN.test(t) ? t : null });
+    setState({ token: t && CLIENT_RECOVERY_TOKEN.test(t) ? t : null });
   }, []);
   if (!state) return <p className="text-sm font-medium leading-6 text-ink-2">One moment…</p>;
   if (!state.token) {
