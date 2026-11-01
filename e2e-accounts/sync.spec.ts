@@ -85,6 +85,12 @@ test.describe("no round trip per answer", () => {
     await expect.poll(async () => hasConsent(ana.id), { timeout: 20_000 }).toBe(true);
     await finishLesson(page, LESSON);
     await expect.poll(async () => Number((await lessonsDoc(ana.id))?.revision), { timeout: 20_000 }).toBe(1);
+    // Leave the finished lesson and let the account settle: leaving a page saves anything changed since the last save (that is intended), so the
+    // number to measure from is the revision AFTER the dashboard says everything is saved, not the one the first checkpoint made.
+    await page.goto("/account");
+    await expect(page.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
+    await page.waitForTimeout(1_500);
+    const base = Number((await lessonsDoc(ana.id))?.revision);
 
     const seen = watchSync(page);
     await page.goto(`/practice/${OTHER_LESSON}`);
@@ -103,7 +109,7 @@ test.describe("no round trip per answer", () => {
     await answerLessonQuestion(page, OTHER_LESSON, 8);
     await cont(page);
     await expect(page).toHaveURL(new RegExp(`/practice/${OTHER_LESSON}/complete`));
-    await expect.poll(async () => Number((await lessonsDoc(ana.id))?.revision), { timeout: 20_000 }).toBe(2);
+    await expect.poll(async () => Number((await lessonsDoc(ana.id))?.revision), { timeout: 20_000 }).toBe(base + 1);
     await page.waitForTimeout(2_000);
     expect(puts(seen)).toHaveLength(1); // ONE save for the whole lesson
     expect((await lessonsDoc(ana.id))?.body.sessions).toHaveLength(2);

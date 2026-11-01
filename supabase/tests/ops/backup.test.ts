@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -60,7 +60,7 @@ describe("backup and restore against the local database", () => {
     const after = await withClient(async (c) => {
       await c.query("begin");
       await c.query("set local session_replication_role = replica");
-      await c.query(`truncate ${TABLES.map(([s, t]: string[]) => `"${s}"."${t}"`).join(", ")} restart identity cascade`);
+      await c.query(`truncate ${TABLES.map(([s, t]: string[]) => `"${s}"."${t}"`).join(", ")} cascade`);
       let restored: Awaited<ReturnType<typeof exportAll>> | undefined;
       const r = await restoreAll(c, data, { dryRun: true, beforeEnd: async () => { restored = await exportAll((sql: string) => c.query(sql)); } });
       expect(r.dryRun).toBe(true);
@@ -94,8 +94,13 @@ describe("backup and restore against the local database", () => {
       expect(ok.stdout).toMatch(/encrypted, owner-readable only/);
       expect(ok.stdout + ok.stderr).not.toContain(PASS);
       expect(ok.stdout + ok.stderr).not.toContain(DB_URL);
-      expect(statSync(out).mode & 0o077).toBe(0);
-      expect(verifyBackup(open(readFileSync(out), PASS))).toBe(true);
+      const fd = openSync(out, "r"); // one handle for both the permission check and the read
+      try {
+        expect(fstatSync(fd).mode & 0o077).toBe(0);
+        expect(verifyBackup(open(readFileSync(fd), PASS))).toBe(true);
+      } finally {
+        closeSync(fd);
+      }
       const again = spawnSync("node", ["scripts/backup/backup.mjs", "--out", out], { cwd: ROOT, env, encoding: "utf8" });
       expect(again.status).toBe(2);
       const inRepo = path.join(ROOT, "should-not-exist.gmbackup");
