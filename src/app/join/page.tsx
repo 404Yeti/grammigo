@@ -17,6 +17,12 @@ export default function JoinPage({ searchParams }: PageProps<"/join">) {
       <p className="text-sm font-medium leading-6 text-ink-2">
         Accounts are by invitation for now. You don’t need one to practise: lessons and your progress work on this device without signing in.
       </p>
+      <ul className="list-disc space-y-1 pl-5 text-sm font-medium leading-6 text-ink-2" data-testid="join-disclosures">
+        <li>You sign in with Google. Grammigo receives your email address and name, never your password.</li>
+        <li>We keep your profile. Your lesson progress is kept online only if you choose to turn that on, and you can turn it off.</li>
+        <li>You can download your data or delete your account at any time from your profile.</li>
+        <li>This is an early pilot for adults. The <Link href="/privacy" className="font-bold underline">privacy notice</Link> is a draft that has not yet been reviewed by a lawyer.</li>
+      </ul>
       <Suspense fallback={null}>
         <JoinError searchParams={searchParams} />
       </Suspense>

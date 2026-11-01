@@ -46,7 +46,7 @@ export function PrivacyAccounts() {
 
       <h2 className={H2}>Who handles your data</h2>
       <ul className={UL}>
-        <li><b>Supabase</b> runs our account database and sign-in. [Region and agreements to be confirmed.]</li>
+        <li><b>Supabase</b> runs our account database and sign-in, in Singapore. [Agreements and transfer wording to be confirmed by legal review.]</li>
         <li><b>Google</b> provides the sign-in.</li>
         <li><b>Vercel</b> hosts the app, and keeps ordinary request logs under its own policy.</li>
         <li><b>OpenAI</b> receives text or audio only for the AI features above.</li>
@@ -78,7 +78,7 @@ export function PrivacyAccounts() {
             <tr className="border-b border-line"><td className="py-1.5 pr-3">Abuse-prevention counters (a scrambled form of your network address)</td><td>Up to two days.</td></tr>
             <tr className="border-b border-line"><td className="py-1.5 pr-3">A record that an account was deleted (a scrambled id, no personal details)</td><td>35 days, so a restored backup can have your deletion applied again.</td></tr>
             <tr className="border-b border-line"><td className="py-1.5 pr-3">A log that an invitation was used, an export was made or an account was deleted (no names, no content)</td><td>At least 90 days.</td></tr>
-            <tr><td className="py-1.5 pr-3">Backups held by our database provider</td><td>[Period to be confirmed.] Deleted data can remain in backups until they expire.</td></tr>
+            <tr><td className="py-1.5 pr-3">Backups: our database plan has no automatic backups, so the operator makes encrypted copies by hand</td><td>Each copy is kept for at most 35 days, then destroyed. Deleted data can remain in a copy until then. If a copy is ever restored, deletions are applied again before anyone signs in.</td></tr>
           </tbody>
         </table>
       </div>

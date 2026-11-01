@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { checkDatabase, checkRestSurface } from "../../../scripts/readiness/checks.mjs";
-import { expectedMigrations } from "../../../scripts/check-production-readiness.mjs";
+import { expectedMigrationNames, expectedMigrations } from "../../../scripts/check-production-readiness.mjs";
 import { closePool, pool, q } from "../helpers";
 
 /**
@@ -23,7 +23,7 @@ const failures = (r: { level: string; id: string; detail: string }[]) => r.filte
 
 describe("production readiness checks against the local database", () => {
   it("pass: migrations, tables, RLS, grants, columns and functions are exactly as intended", async () => {
-    const r = await checkDatabase(query, { expectedMigrations: expectedMigrations(), platformFunctionsAllowed: [] });
+    const r = await checkDatabase(query, { expectedMigrations: expectedMigrations(), expectedMigrationNames: expectedMigrationNames(), platformFunctionsAllowed: [] });
     expect(failures(r), JSON.stringify(failures(r))).toEqual([]);
     expect(r.filter((i: { level: string }) => i.level === "pass").length).toBeGreaterThanOrEqual(8);
   });
@@ -32,12 +32,12 @@ describe("production readiness checks against the local database", () => {
     await q("create function public.zz_readiness_probe() returns int language sql as 'select 1'");
     try {
       await q("grant execute on function public.zz_readiness_probe() to anon");
-      const r = await checkDatabase(query, { expectedMigrations: expectedMigrations(), platformFunctionsAllowed: [] });
+      const r = await checkDatabase(query, { expectedMigrations: expectedMigrations(), expectedMigrationNames: expectedMigrationNames(), platformFunctionsAllowed: [] });
       expect(failures(r).map((i: { id: string }) => i.id)).toContain("anon can execute no public function");
     } finally {
       await q("drop function if exists public.zz_readiness_probe()");
     }
-    const after = await checkDatabase(query, { expectedMigrations: expectedMigrations(), platformFunctionsAllowed: [] });
+    const after = await checkDatabase(query, { expectedMigrations: expectedMigrations(), expectedMigrationNames: expectedMigrationNames(), platformFunctionsAllowed: [] });
     expect(failures(after)).toEqual([]);
   });
 

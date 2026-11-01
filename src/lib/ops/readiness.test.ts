@@ -122,9 +122,10 @@ describe("Data API check", () => {
 
 describe("database check (fake query function)", () => {
   const MIGS = cli.expectedMigrations();
+  const NAMES: string[] = cli.expectedMigrationNames();
   const world = (over: Record<string, unknown[]> = {}) => {
     const base: Record<string, unknown[]> = {
-      migrations: MIGS.map((version: string) => ({ version })),
+      migrations: MIGS.map((version: string, i: number) => ({ version: `2026110${i}`, name: NAMES[i] })), // versions differ from the file names on purpose
       tables: checks.EXPECTED_TABLES.map((name: string) => ({ name, rls: true })),
       tablePrivileges: ["consents", "learner_documents", "profiles"].map((name) => ({ name, role: "authenticated", priv: "select" })),
       profileColumns: [{ name: "id", can_update: false }, ...["display_name", "first_language", "time_zone", "preferences"].map((name) => ({ name, can_update: true }))],
@@ -134,8 +135,13 @@ describe("database check (fake query function)", () => {
     const merged = { ...base, ...over };
     return async (sql: string) => ({ rows: merged[Object.entries(checks.DB_QUERIES).find(([, q]) => q === sql)![0]] });
   };
-  const run = (w: ReturnType<typeof world>, platformFunctionsAllowed: string[] = [] as string[]) => checks.checkDatabase(w, { expectedMigrations: MIGS as string[], platformFunctionsAllowed: platformFunctionsAllowed as string[] });
-  it("passes the intended state", async () => expect(fails(await run(world()))).toEqual([]));
+  const run = (w: ReturnType<typeof world>, platformFunctionsAllowed: string[] = [] as string[]) => checks.checkDatabase(w, { expectedMigrations: MIGS as string[], expectedMigrationNames: NAMES, platformFunctionsAllowed: platformFunctionsAllowed as string[] });
+  it("passes the intended state, even when the migrations were applied with different version numbers but the same names", async () => expect(fails(await run(world()))).toEqual([]));
+  it("fails when a migration is missing, renamed or extra", async () => {
+    const names = (await Promise.resolve(NAMES)).map((name: string, i: number) => ({ version: `v${i}`, name }));
+    expect(fails(await run(world({ migrations: names.slice(1) }))).map((i: { id: string }) => i.id)).toContain("applied migrations are exactly the repository's");
+    expect(fails(await run(world({ migrations: [...names, { version: "v99", name: "surprise" }] }))).length).toBeGreaterThan(0);
+  });
   it("each deviation fails by name", async () => {
     const id = async (over: Record<string, unknown[]>, allowed?: string[]) => fails(await run(world(over), allowed)).map((i: { id: string }) => i.id);
     expect(await id({ migrations: [] })).toContain("applied migrations are exactly the repository's");
