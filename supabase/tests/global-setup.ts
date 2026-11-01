@@ -11,8 +11,8 @@ export default async function setup() {
     throw new Error(`Cannot reach the local database (${(error as Error).message}). Start it with: npx supabase@2.122.0 start`);
   }
   try {
-    const { rows } = await client.query("select to_regclass('public.profiles') as p, to_regclass('public.deletion_ledger') as d, to_regprocedure('public.reserve_invitation(bytea, interval)') as f, to_regprocedure('public.rate_limit_hit(bytea, integer, interval)') as r, to_regprocedure('public.expire_invitation(uuid, uuid)') as x");
-    if (!rows[0].p || !rows[0].d || !rows[0].f || !rows[0].r || !rows[0].x) throw new Error("Migrations are not applied. Run: npx supabase@2.122.0 db reset");
+    const { rows } = await client.query("select to_regclass('public.profiles') as p, to_regclass('public.deletion_ledger') as d, to_regprocedure('public.reserve_invitation(bytea, interval)') as f, to_regprocedure('public.rate_limit_hit(bytea, integer, interval)') as r, to_regprocedure('public.expire_invitation(uuid, uuid)') as x, to_regprocedure('public.record_consent(uuid, text)') as c");
+    if (!rows[0].p || !rows[0].d || !rows[0].f || !rows[0].r || !rows[0].x || !rows[0].c) throw new Error("Migrations are not applied. Run: npx supabase@2.122.0 db reset");
   } finally {
     await client.end();
   }

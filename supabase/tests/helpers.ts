@@ -83,6 +83,8 @@ export const docBody = (key: "lessons_v2" | "guided_v1", extra: Record<string, u
 export const schemaOf = (key: "lessons_v2" | "guided_v1") => (key === "lessons_v2" ? 2 : 1);
 
 export async function put(user: string, key: "lessons_v2" | "guided_v1", expected: number, body: unknown, schema = schemaOf(key)) {
+  // Storing progress needs the learner's recorded consent (enforced by the database); these tests are about the documents, so grant it.
+  await q("insert into public.consents (user_id, kind, version) select $1, 'cloud_storage', 'test' where not exists (select 1 from public.consents where user_id = $1 and kind = 'cloud_storage')", [user]);
   const { rows } = await q("select * from public.put_document($1, $2, $3, $4, $5::jsonb)", [user, key, expected, schema, JSON.stringify(body)]);
   return rows[0] as { ok: boolean; revision: string; error: string | null };
 }

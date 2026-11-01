@@ -4,7 +4,7 @@ Status: implemented and tested locally and in CI. **Not provisioned and not depl
 production Google OAuth client, and no DNS change. With `NEXT_PUBLIC_ACCOUNTS` unset (the default) Grammigo is exactly the anonymous,
 on-device app and every account page and endpoint answers 404.
 
-Phase 4 (profiles, dashboard, owner invitation management) is described in the last section. Out of scope until separately approved: **account recovery** (needs its own identity-verification threat model), learner profile
+Phase 4 (profiles, dashboard, owner invitation management) is described in the last section, and Phase 5 (saving progress, importing guest progress) in `docs/dev/sync.md`. Out of scope until separately approved: **account recovery** (needs its own identity-verification threat model), learner profile
 editing and dashboard (Phase 4), cloud sync and progress import (Phase 5), export/delete UI and privacy notice sign-off (Phase 6).
 
 ## Architecture in one page

@@ -13,7 +13,7 @@ test.describe("the learner dashboard and profile", () => {
     const res = await page.goto("/account");
     expect(res?.status()).toBe(200);
     await expect(page.getByTestId("dashboard-greeting")).toHaveText("Hi, Newcomer Ana");
-    await expect(page.getByText("Progress on this device")).toBeVisible();
+    await expect(page.getByTestId("sync-chip")).toContainText("Progress on this device");
     await expect(page.getByRole("heading", { name: "Let’s find your starting point" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Start the quick check" })).toHaveAttribute("href", "/onboarding");
     await expect(page.locator("body")).not.toContainText(/saved to your account/i);
@@ -27,7 +27,7 @@ test.describe("the learner dashboard and profile", () => {
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-next")).toContainText("YOUR NEXT STEP");
     await expect(page.getByTestId("dashboard-skills")).toBeVisible();
-    await expect(page.getByTestId("dashboard-caveat")).toContainText("not in your account yet");
+    await expect(page.getByTestId("dashboard-caveat")).toContainText("not in your account");
     await expect(page.getByTestId("guided-activity")).toHaveCount(0); // no activity, no card
   });
 

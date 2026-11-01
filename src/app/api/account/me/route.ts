@@ -10,6 +10,6 @@ export async function GET(req: NextRequest) {
   const { rt, cookies } = runtimeFor(gate.config, req);
   const viewer = await getViewer(rt.session);
   const status = statusFor(viewer);
-  const body = viewer.kind === "learner" ? { displayName: viewer.displayName } : { error: status === 401 ? "unauthenticated" : "forbidden" };
+  const body = viewer.kind === "learner" ? { displayName: viewer.displayName } : { error: status === 401 ? "unauthenticated" : status === 503 ? "unavailable" : "forbidden" };
   return withCookies(privateJson(status, body), cookies);
 }

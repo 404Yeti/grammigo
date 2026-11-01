@@ -27,7 +27,8 @@ describe("reading", () => {
     for (const [me, other] of [[A, B], [B, A]]) {
       expect((await attempt("authenticated", me, "select * from public.profiles")).rows).toBe(1);
       expect((await attempt("authenticated", me, "select * from public.profiles where id = $1", [other])).rows).toBe(0);
-      expect((await attempt("authenticated", me, "select * from public.consents")).rows).toBe(1);
+      // their own two consent records (age confirmation, and the cloud-saving consent the document tests grant), never the other learner's
+      expect((await attempt("authenticated", me, "select * from public.consents")).rows).toBe(2);
       expect((await attempt("authenticated", me, "select * from public.consents where user_id = $1", [other])).rows).toBe(0);
       expect((await attempt("authenticated", me, "select * from public.learner_documents")).rows).toBe(2);
       expect((await attempt("authenticated", me, "select * from public.learner_documents where user_id = $1", [other])).rows).toBe(0);

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 export type TagStyle = "brand" | "neutral" | "success" | "warning" | "info";
@@ -16,13 +16,15 @@ export function GrammarTag({
   style = "brand",
   className,
   children,
+  ...rest
 }: {
   style?: TagStyle;
   className?: string;
   children: ReactNode;
-}) {
+} & Omit<HTMLAttributes<HTMLSpanElement>, "className" | "children" | "style">) {
   return (
     <span
+      {...rest}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold leading-4 tracking-[0.6px]",
         styles[style],

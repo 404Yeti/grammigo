@@ -35,6 +35,12 @@ const ENTRY_POINTS: Record<string, string[]> = {
   "features/practice/ReviewScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],
   // The learner dashboard shows a counts-only activity card, labelled Beta, provisional and separate from lesson progress.
   "features/accounts/Dashboard.tsx": ["@/features/guided/ui/GuidedActivityCard"],
+  // Syncing Guided Correction activity as its OWN document: validating and saving it, never reading or feeding mastery.
+  "features/sync/guided-doc.ts": ["@/features/guided/store/schema", "@/features/guided/store/store", "@/types/guided"],
+  "features/sync/sim.ts": ["@/features/guided/store/schema", "@/types/guided"],
+  "features/sync/merge-guided.ts": ["@/features/guided/store/schema", "@/types/guided"],
+  // Adding the guest's saved Guided Correction activity to an account, on the learner's say-so.
+  "features/sync/guest-import.ts": ["@/features/guided/store/store", "@/types/guided"],
 };
 
 describe("guided code and learning code cannot see each other", () => {
