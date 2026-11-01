@@ -30,7 +30,7 @@ Needed: a real iPhone on current iOS Safari (and, if possible, one one-or-two ve
 ## D. Your data and deletion
 - [ ] "Download my data": the file saves (Files app / share sheet), opens, and contains only this account.
 - [ ] "Download a copy of my progress" (device copy) works the same way.
-- [ ] Delete: the confirm screen is usable with the keyboard; if the sign-in is older than 10 minutes you are asked to confirm with Google and return to the delete screen; after deleting you land on the goodbye page, are signed out, and the second device is signed out too.
+- [ ] Delete: the confirm screen is usable with the keyboard; if the sign-in is older than 10 minutes you are asked to sign in with Google again and return to the delete screen; after deleting you land on the goodbye page, are signed out, and the second device is signed out too.
 - [ ] Reopen the old invitation link or sign in with the same Google account: it does NOT restore the account.
 
 ## E. Accessibility on device

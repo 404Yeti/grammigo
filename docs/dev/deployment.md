@@ -48,6 +48,6 @@ Nothing below has been done. Production Supabase `ugifdvaaaioiqmwfiksw` is untou
 1. Verify the project's organisation, **region** (the design assumes ap-southeast-1) and that the schema is empty. Record the region in the privacy notice.
 2. Apply the reviewed migrations (including `20261104000100_lifecycle.sql`) only after approval; validate RLS with the isolation suite against a scratch copy first.
 3. Set secrets in the host (never in git): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `INVITE_CODE_PEPPER` (**also the deletion-ledger key: keep it, do not rotate casually**), `AUTH_FLOW_SECRET`, `AUTH_SITE_URL`, `CRON_SECRET`. Do **not** set `AUTH_REAUTH_WINDOW_SECONDS` (default 10 minutes is the maximum).
-4. Real Google OAuth: confirm what "confirm it's you" actually requires of a person who is already signed in to Google (see `security-review.md` §8.1) and adjust wording if it is weaker than it reads.
+4. Real Google OAuth: record what the "sign in again" step actually requires of a person who is already signed in to Google (`security-review.md` §7a) and keep the wording honest.
 5. **Restore drill** on a scratch Supabase project: take a backup, delete a test account, restore, run `scripts/replay-deletions.mjs`, confirm the deleted account is gone (`deletion-and-restore.md`). Record the provider's backup retention and put it in the notice.
 6. Legal gate (`docs/legal/legal-review-pack.md` §6) and the real-iPhone checklist (`real-device-acceptance.md`) are completed **before** the first student is invited.

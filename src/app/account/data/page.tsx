@@ -41,7 +41,7 @@ async function Body() {
       <Card aria-labelledby="delete">
         <h2 id="delete" className="flex items-center gap-2 text-xl font-bold leading-7"><Trash2 size={20} aria-hidden /> Delete my account</h2>
         <p className="mt-2 text-sm font-medium leading-6 text-ink-2">
-          Permanently deletes your account and everything saved in it. {viewer.isAdmin ? "The owner account can’t be deleted here." : "You will be asked to confirm it’s you first."}
+          Permanently deletes your account and everything saved in it. {viewer.isAdmin ? "The owner account can’t be deleted here." : "You will be asked to sign in with Google again first."}
         </p>
         {!viewer.isAdmin && <Link href="/account/delete" className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-error underline underline-offset-4" data-testid="delete-link">Delete my account…</Link>}
       </Card>

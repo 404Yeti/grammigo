@@ -115,6 +115,20 @@ describe("export", () => {
     expect((await handleExport(deps({}, { fail: "documents" }).d)).status).toBe(503);
   });
 
+  it("is generated in memory per request, never logged: the log says only that an export happened", async () => {
+    const { d, logs } = deps();
+    const r = await handleExport(d);
+    expect(r.status).toBe(200);
+    expect(logs).toEqual(['export:{"outcome":"ok"}']);
+    for (const l of logs) expect(l).not.toMatch(/Ana|ana@|mine|Spanish|2026|SECRET/);
+  });
+
+  it("carries no cache validators, and the response is marked as a download (the route adds no-store, nosniff and attachment)", async () => {
+    const r = await handleExport(deps().d);
+    expect(r.download?.filename).toMatch(/^grammigo-my-data-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(Object.keys(r)).not.toContain("etag");
+  });
+
   it("states what it does NOT include", async () => {
     const out = await buildExport(deps().d, USER_ID);
     expect(out?.notIncluded.join(" ")).toMatch(/Earlier saved versions/);
@@ -237,6 +251,11 @@ describe("the operator script", () => {
     const { ledgerHash: script } = (await import("../../../scripts/replay-deletions.mjs")) as { ledgerHash: (id: string, pepper: string) => Buffer };
     const pepper = "x".repeat(40);
     for (const id of [USER_ID, OTHER, USER_ID.toUpperCase()]) expect(script(id, pepper).equals(ledgerHash(id, Buffer.from(pepper)))).toBe(true);
+  });
+  it("the suspended-request tool uses the same key, so its deletions are replayed after a restore too", async () => {
+    const { ledgerHash: tool } = (await import("../../../scripts/suspended-requests.mjs")) as { ledgerHash: (id: string, pepper: string) => Buffer };
+    const pepper = "x".repeat(40);
+    for (const id of [USER_ID, OTHER]) expect(tool(id, pepper).equals(ledgerHash(id, Buffer.from(pepper)))).toBe(true);
   });
   it("dry run changes nothing; apply deletes the matches and reports owners it could not delete", async () => {
     const { replay } = (await import("../../../scripts/replay-deletions.mjs")) as { replay: (c: { query: (sql: string, p?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> }, pepper: string, apply: boolean) => Promise<{ checked: number; ledger: number; matches: number; deleted: number }> };

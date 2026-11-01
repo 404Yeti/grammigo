@@ -48,13 +48,13 @@ async function Body({ searchParams }: { searchParams: PageProps<"/account/delete
       {viewer.isAdmin ? (
         <p role="alert" className="rounded-2xl bg-warning-soft p-3 text-sm font-semibold">This is the owner account. It can’t be deleted here, so that the person who manages invitations is never removed by accident.</p>
       ) : recent ? (
-        <DeleteAccountForm />
+        <DeleteAccountForm accountId={viewer.id} />
       ) : (
         <Card aria-labelledby="confirm" data-testid="reauth-card">
-          <h2 id="confirm" className="text-xl font-bold leading-7">First, confirm it’s you</h2>
-          <p className="mb-3 mt-2 text-sm font-medium leading-6 text-ink-2">Before something that can’t be undone, sign in with Google again. You will come straight back here.</p>
+          <h2 id="confirm" className="text-xl font-bold leading-7">First, sign in again</h2>
+          <p className="mb-3 mt-2 text-sm font-medium leading-6 text-ink-2">Before something that can’t be undone, choose your Google account again. You will come straight back here. Grammigo checks that the same account has just finished signing in. It cannot tell whether Google asked for your password.</p>
           <form action="/api/auth/reauth" method="post">
-            <Button type="submit" data-testid="reauth-button">Confirm it’s me with Google</Button>
+            <Button type="submit" data-testid="reauth-button">Sign in with Google again</Button>
           </form>
         </Card>
       )}

@@ -27,7 +27,7 @@ describe("the delete form", () => {
   it("cannot be submitted until the words match AND the box is ticked, and sends nothing before that", async () => {
     const f = reply(200, { deleted: true });
     const user = userEvent.setup();
-    render(<DeleteAccountForm />);
+    render(<DeleteAccountForm accountId={A} />);
     const submit = screen.getByTestId("delete-submit");
     expect(submit).toBeDisabled();
     await user.type(screen.getByTestId("delete-phrase"), "delete");
@@ -47,7 +47,7 @@ describe("the delete form", () => {
     window.localStorage.setItem(`grammigo:v2:u:${B}`, "OTHER");
     const f = reply(200, { deleted: true });
     const user = userEvent.setup();
-    render(<DeleteAccountForm />);
+    render(<DeleteAccountForm accountId={A} />);
     await fill(user);
     await user.click(screen.getByTestId("delete-submit"));
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/auth/deleted"));
@@ -67,7 +67,7 @@ describe("the delete form", () => {
     window.localStorage.setItem(`grammigo:v2:u:${A}`, "a");
     reply(200, { deleted: true });
     const user = userEvent.setup();
-    render(<DeleteAccountForm />);
+    render(<DeleteAccountForm accountId={A} />);
     await fill(user);
     await user.click(screen.getByTestId("delete-local"));
     await user.click(screen.getByTestId("delete-submit"));
@@ -76,7 +76,7 @@ describe("the delete form", () => {
   });
 
   it.each([
-    [403, { error: "reauth_required" }, /last sign-in is too old/],
+    [403, { error: "reauth_required" }, /sign in with Google again/],
     [429, { error: "rate_limited" }, /Too many tries/],
     [400, { error: "confirmation" }, /words didn’t match/],
     [409, { error: "owner_account" }, /owner account/],
@@ -86,7 +86,7 @@ describe("the delete form", () => {
     window.localStorage.setItem(`grammigo:v2:u:${A}`, "a");
     reply(status, body);
     const user = userEvent.setup();
-    render(<DeleteAccountForm />);
+    render(<DeleteAccountForm accountId={A} />);
     await fill(user);
     await user.click(screen.getByTestId("delete-submit"));
     expect(await screen.findByTestId("delete-error")).toHaveTextContent(text);
@@ -98,7 +98,7 @@ describe("the delete form", () => {
   it("a network failure says nothing was deleted", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("offline"));
     const user = userEvent.setup();
-    render(<DeleteAccountForm />);
+    render(<DeleteAccountForm accountId={A} />);
     await fill(user);
     await user.click(screen.getByTestId("delete-submit"));
     expect(await screen.findByTestId("delete-error")).toHaveTextContent(/Nothing was deleted/);

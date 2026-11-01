@@ -58,12 +58,29 @@ The learner's identity always comes from the verified session, never from a requ
 | 3 | The deletion ledger could not be replayed (no key-based matching, no operator tool). | medium | fixed: keyed hash, three server-only functions, tested script |
 | 4 | A restore rolls the ledger back with the data. | medium | documented procedure saves and re-applies the ledger first (`deletion-and-restore.md`); needs a full drill on a scratch project |
 | 5 | Re-sign-in mismatch (a different Google account completes the flow) replaces the session before the callback can refuse it. | low | accepted: the new session is ended and cleared, i.e. the learner is signed out (fail closed); tested |
-| 6 | Suspended learners cannot self-serve export or deletion (row-level security requires an active profile). | low | open: manual owner-assisted process to be written (legal pack Q7) |
+| 6 | Suspended learners cannot self-serve export or deletion (row-level security requires an active profile). | low | fixed by a documented, tested owner-assisted process that never restores access (`suspended-requests.md`); counsel to approve its identity check |
 | 7 | Rate limits key on the client address; off Vercel `x-forwarded-for` can be spoofed, weakening per-address limits. | low | accepted; per-learner limits (export, delete) are unaffected; per-address ones are fine on Vercel |
+
+## 7a. The precise guarantee behind "sign in again" (read this before relying on it)
+
+Deleting an account requires that the session's **most recent authentication event is no more than 10 minutes old**. The time is the `amr` timestamp in the session token, which Supabase sets when it completes a sign-in (the OAuth code exchange). It is not the token's issue time, which moves on every refresh.
+
+**What this guarantees:**
+1. The Auth server verified the session just now (it is a real, unrevoked session of an active learner).
+2. Within the last 10 minutes someone completed a Google sign-in that ended at our callback with a valid flow cookie, nonce and PKCE exchange. A normal sign-in in the last 10 minutes therefore also counts; no second sign-in is asked for.
+3. When the learner presses *Sign in with Google again*, the flow is started from their own session, is tied to their account id in a signed cookie, and is accepted only if the **same** Google account (with an active profile) comes back. Any other account is refused and its session ended.
+4. The person also typed the confirmation words.
+
+**What this does NOT guarantee, and we do not claim:**
+* That Google asked for the account's **password** or a second factor. We request `prompt=select_account`, which forces the account chooser; whether Google also re-checks credentials depends on Google's own session state and policy.
+* That the person at the keyboard is the account's owner. Someone with an unlocked, signed-in browser on the same device can finish the flow.
+* Anything about Google's side of the authentication: we only learn that the code exchange succeeded.
+
+So the check defends against a **stolen or leaked session cookie used from elsewhere** and against **accidental or scripted deletion** (it needs a fresh, same-account sign-in, typed words, a same-origin request and is rate limited). It does not defend against a person with live access to the user's unlocked, signed-in device. The wording in the app says "Sign in with Google again" and states that it cannot tell whether Google asked for a password. Verifying how real Google behaves is a provisioning-phase task.
 
 ## 8. Residual risks, not yet verified (all need the owner's approval to test for real)
 
-1. **How strong Google's "confirm it's you" is.** We send `prompt=select_account`, which forces an interactive step, but Google may not ask for the password again if a Google session is active. Our freshness check measures the time of *our* sign-in, not Google's. Behaviour with real Google (and whether `prompt=login` is honoured) must be tested in the provisioning phase, and the wording adjusted if it is weaker than it sounds.
+1. **How strong Google's re-sign-in is** (see 7a): not guaranteed to re-check a password. Behaviour with real Google (and whether `prompt=login` is honoured) must be tested in the provisioning phase and the wording kept honest.
 2. **`amr` timestamps on refresh.** Locally verified with password sign-ins; Google OAuth sessions are expected to behave the same but unverified.
 3. **Real Google consent and code exchange** have never run (cannot, locally).
 4. **Backups / point-in-time restore** of the real provider are untested (see the restore document).

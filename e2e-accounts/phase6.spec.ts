@@ -161,7 +161,7 @@ test.describe("delete my account", () => {
 });
 
 test.describe("confirming it is you before deleting", () => {
-  test("a stale sign-in sees 'confirm it's you' instead of the form, the API refuses, and starting the re-sign-in goes to Google tied to this learner", async ({ browser }) => {
+  test("a stale sign-in sees 'sign in again' instead of the form, the API refuses, and starting the re-sign-in goes to Google tied to this learner", async ({ browser }) => {
     test.setTimeout(120_000);
     const ana = await createAccount({ name: "Stale Ana", learner: true });
     const ctx = await browser.newContext({ extraHTTPHeaders: { "x-real-ip": uniqueIp() } });

@@ -249,3 +249,99 @@ describe("backup restore and deletion-ledger replay (logical simulation on a dis
     expect(await count(AUTH[0], a.id)).toBe(1);
   });
 });
+
+
+type Suspended = {
+  findSuspended(c: unknown, email: string): Promise<{ found: boolean; id?: string; suspended?: boolean; owner?: boolean }>;
+  exportSuspended(c: unknown, id: string): Promise<Record<string, unknown>>;
+  deleteSuspended(c: unknown, id: string, pepper: string): Promise<void>;
+};
+const suspendedTool = async () => (await import("../../../scripts/suspended-requests.mjs")) as unknown as Suspended;
+const PEPPER = "integration-test-pepper-integration-test";
+const suspend = (id: string) => q("update public.profiles set status = 'suspended' where id = $1", [id]);
+
+describe("a SUSPENDED learner's export and deletion (owner-assisted; access is never restored)", () => {
+  it("the app's own export and deletion refuse a suspended learner, exactly as they refuse every other kind of 'no access'", async () => {
+    const a = await withData("susp-self", "SELF");
+    await suspend(a.id);
+    expect((await handleExport(await deps(a))).status).toBe(403);
+    expect((await handleDelete(await deps(a, { signedInAt: Math.floor(Date.now() / 1000) }), ok)).status).toBe(403);
+    expect(await count(AUTH[0], a.id)).toBe(1);
+  });
+
+  it("the owner's export is the same content as the app's, for that one person only, and does not restore access or change the status", async () => {
+    const tool = await suspendedTool();
+    const bystander = await withData("susp-bystander", "BYSTANDER-SECRET-44");
+    const a = await withData("susp-export", "SUSPENDED-MARKER-31");
+    const viaApp = (await handleExport(await deps(a))).body as Record<string, unknown>; // while still active: what the app would give
+    await suspend(a.id);
+    const viaOwner = await tool.exportSuspended(service, a.id);
+    const strip = (o: Record<string, unknown>) => ({ ...o, generatedAt: "x", notIncluded: undefined });
+    expect(strip(viaOwner)).toEqual(strip(viaApp));
+    const text = JSON.stringify(viaOwner);
+    expect(text).toContain("SUSPENDED-MARKER-31");
+    expect(text).not.toContain("BYSTANDER-SECRET-44");
+    expect(text).not.toContain(bystander.id);
+    expect((await q("select status from public.profiles where id = $1", [a.id])).rows[0].status).toBe("suspended"); // still suspended
+    expect((await getViewer(sessionFor(a.cookies).client)).kind).toBe("no_profile"); // and the learner still has no access
+    expect((await q("select count(*)::int n from public.audit_events where actor = $1 and kind = 'export_requested'", [a.id])).rows[0].n).toBe(2); // the app's, then the owner's
+  });
+
+  it("refuses an active learner, the owner, an uninvited identity, a malformed id and an unknown account", async () => {
+    const tool = await suspendedTool();
+    const active = await withData("susp-active", "x");
+    const owner = await createPerson({ label: "susp-owner", admin: true });
+    await suspend(owner.id);
+    const stranger = await createPerson({ label: "susp-stranger" });
+    for (const id of [active.id, owner.id, stranger.id, "not-an-id", "00000000-0000-4000-8000-000000000000"]) {
+      await expect(tool.exportSuspended(service, id), id).rejects.toThrow(/refused|account id|read the account/);
+      await expect(tool.deleteSuspended(service, id, PEPPER), id).rejects.toThrow(/refused|account id/);
+    }
+    expect(await count(AUTH[0], active.id)).toBe(1);
+    expect(await count(AUTH[0], owner.id)).toBe(1);
+  });
+
+  it("finds a suspended learner by email and reports only whether it is one", async () => {
+    const tool = await suspendedTool();
+    const a = await withData("susp-find", "x");
+    await suspend(a.id);
+    expect(await tool.findSuspended(service, a.email.toUpperCase())).toEqual({ found: true, id: a.id, suspended: true, owner: false });
+    expect(await tool.findSuspended(service, "nobody-at-all@test.invalid")).toEqual({ found: false });
+  });
+
+  it("deletes a suspended learner like self-service does: everything gone, ledger entry written, sessions dead, nobody else touched, access never restored", async () => {
+    const tool = await suspendedTool();
+    const bystander = await withData("susp-del-by", "x");
+    const a = await withData("susp-del", "x");
+    await suspend(a.id);
+    await expect(tool.deleteSuspended(service, a.id, "short")).rejects.toThrow(/INVITE_CODE_PEPPER/);
+    expect(await count(AUTH[0], a.id)).toBe(1);
+    await tool.deleteSuspended(service, a.id, PEPPER);
+    for (const sql of [...OWNED, ...AUTH]) expect(await count(sql, a.id), sql).toBe(0);
+    expect((await q("select count(*)::int n from public.deletion_ledger where user_hash = $1", [ledgerHash(a.id, config.pepper)])).rows[0].n).toBe(1);
+    expect((await getViewer(sessionFor(a.cookies).client)).kind).toBe("anonymous");
+    expect(await count(OWNED[2], bystander.id)).toBe(2);
+  });
+});
+
+describe("what a previously issued access token can still do after deletion", () => {
+  const API = process.env.SUPABASE_API_URL as string;
+  const ANON = process.env.SUPABASE_ANON_KEY as string;
+  const accessTokenOf = async (p: Person) => (await sessionFor(p.cookies).client.auth.getSession()).data.session?.access_token as string;
+  const rest = (path: string, token: string) => fetch(`${API}${path}`, { headers: { apikey: ANON, Authorization: `Bearer ${token}` } });
+
+  it("the signed token itself stays well-formed until it expires, but it opens nothing: the Auth server rejects it and no row is readable with it", async () => {
+    const a = await withData("token-life", "TOKEN-MARKER");
+    const token = await accessTokenOf(a);
+    expect(token.split(".")).toHaveLength(3);
+    expect((await rest("/auth/v1/user", token)).status).toBe(200); // while the user exists, the token works
+    expect((await handleDelete(await deps(a), ok)).status).toBe(200);
+    expect((await rest("/auth/v1/user", token)).status).toBeGreaterThanOrEqual(400); // the Auth server no longer knows the user or the session
+    for (const path of ["/rest/v1/profiles?select=*", "/rest/v1/learner_documents?select=*", "/rest/v1/consents?select=*"]) {
+      const r = await rest(path, token);
+      const body = r.status === 200 ? await r.json() : [];
+      expect(Array.isArray(body) ? body : [], path).toEqual([]); // either refused, or an empty answer: never a row
+    }
+    expect(JSON.stringify(await (await rest("/rest/v1/learner_documents?select=*", token)).text())).not.toContain("TOKEN-MARKER");
+  });
+});

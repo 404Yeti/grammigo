@@ -88,7 +88,7 @@ export function PrivacyAccounts() {
         <li><b>Look at and change</b> your profile any time: <Link href="/account/profile" className="font-bold underline underline-offset-4">Profile</Link>.</li>
         <li><b>Download your data</b> as a file: <Link href="/account/data" className="font-bold underline underline-offset-4">Your data</Link>. It contains only your own records.</li>
         <li><b>Turn saving off</b> on a device, or never turn it on.</li>
-        <li><b>Delete your account</b> and everything saved in it: <Link href="/account/delete" className="font-bold underline underline-offset-4">Delete my account</Link>. You are asked to confirm it’s you first. Deleting is permanent.</li>
+        <li><b>Delete your account</b> and everything saved in it: <Link href="/account/delete" className="font-bold underline underline-offset-4">Delete my account</Link>. You are asked to sign in with Google again first. Deleting is permanent.</li>
       </ul>
       <p>If a backup is ever restored, anyone who had asked to be deleted is deleted again before the service is used. [Rights and complaint routes, to be completed by legal review.]</p>
 
@@ -96,7 +96,7 @@ export function PrivacyAccounts() {
       <p>Connections are encrypted. Each account can only reach its own records, and the database enforces that itself. Invitation codes and sign-in steps are protected against guessing and replay, and requests are rate limited. No system is perfectly secure, and we will tell you if something affects you.</p>
 
       <h2 className={H2}>Changes</h2>
-      <p>If this notice changes in a way that matters, we will tell you and ask you to agree again before it applies to you.</p>
+      <p>We record which version of this notice you agreed to, and when. If it changes in a way that matters, we will tell you before the change applies to you. [How we tell you, and whether we ask you to agree again, to be decided with legal review.]</p>
     </section>
   );
 }

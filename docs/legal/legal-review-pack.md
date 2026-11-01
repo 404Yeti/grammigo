@@ -57,15 +57,16 @@ Not collected: advertising or analytics trackers, location, contacts, payment da
 4. Retention periods stated in the notice (especially audit ≥ 90 days, ledger 35 days, backups) and whether an audit log with a cleared actor link is acceptable.
 5. International transfers (Singapore project region; US processors) and required safeguards/notices.
 6. Whether the export must include the Google id / picture URL / earlier revisions, and the format.
-7. Suspended accounts cannot use self-service export/deletion (row-level security requires an active profile). What is the manual process and response time? (Owner-assisted today.)
+7. Suspended accounts cannot use self-service export/deletion (row-level security requires an active profile). The owner-assisted process is in `docs/dev/suspended-requests.md`: is its identity check (control of the registered email, a cooling-off wait before deletion) adequate, what is the response time, and how should an export file be delivered?
 8. Breach notification process and contact addresses; who is the named contact in the notice.
 9. Cookie/storage disclosure: are the three cookies "strictly necessary"? Is a banner needed?
 10. AI: wording about OpenAI processing and retention; whether learners should confirm before the first AI request.
+11. Re-consent: for which kinds of change must existing learners be asked to agree again, and how should they be told? (Not built; see the gate below.)
 
 ## 6. Gate before the first real student
 
 - [ ] Counsel has reviewed and approved the notice; bracketed items in the notice are completed; `PRIVACY_NOTICE_VERSION` is changed from `draft-…` to a final version.
 - [ ] Processor agreements in place; Supabase region and backup retention verified and stated.
 - [ ] Owner approves the notice text. Learners who agreed to a draft version are asked to agree again (the version is recorded per consent).
-- [ ] The notice promises to ask learners to agree again when it changes in a way that matters. **The app has no re-consent screen yet** (the version is recorded per consent, so it can be built): decide and build before the first change after launch.
-- [ ] Owner-assisted request process for suspended accounts written down.
+- [ ] **Re-consent is NOT implemented, and the notice no longer promises it.** What exists: every consent (privacy notice, adult confirmation, cloud saving) is stored with the notice version and time. What does not: any screen or gate that asks existing learners to agree again to a new version. Counsel decides whether and when re-consent is required (Q11); if so it is a separate piece of work (a version check on the learner pages and on saving, an agree-again screen, tests) to be built and approved before the first material change to the notice after launch. Until then a material change cannot be applied to existing learners without it.
+- [x] Owner-assisted request process for suspended accounts written down and tested (`docs/dev/suspended-requests.md`); counsel to approve its identity check and delivery method.

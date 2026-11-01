@@ -295,6 +295,31 @@ describe("Phase 6: the notice, the review pack and the acceptance checklist stay
     expect(doc("docs/dev/deletion-and-restore.md")).toMatch(/NOT rehearsed/);
   });
 
+  it("the sign-in-again wording never claims Google checked a password or freshly verified the person, and the guarantee is written down", () => {
+    const ui = ["app/account/delete/page.tsx", "features/accounts/DeleteAccountForm.tsx", "features/accounts/messages.ts", "features/accounts/PrivacyAccounts.tsx", "app/account/data/page.tsx"].map((f) => read(path.join(SRC, f))).join("\n");
+    expect(ui).not.toMatch(/verified (your|by Google)|Google (has )?(verified|confirmed) (you|your (identity|password))|password (was )?(checked|verified)|confirm(ed)? it.s (you|me)/i);
+    expect(ui).toMatch(/cannot tell whether Google asked for your password/);
+    expect(doc("docs/dev/security-review.md")).toMatch(/does NOT guarantee/);
+  });
+
+  it("the notice does not promise re-consent, because none is built (and says so in the review pack)", () => {
+    expect(notice()).not.toMatch(/ask you to agree again before/);
+    expect(doc("docs/legal/legal-review-pack.md")).toMatch(/Re-consent is NOT implemented/);
+  });
+
+  it("the suspended-learner process exists, is owner-only, and never restores access", () => {
+    const d = doc("docs/dev/suspended-requests.md");
+    expect(d).toMatch(/never restores access/);
+    expect(d).toMatch(/never proof/);
+    const tool = doc("scripts/suspended-requests.mjs");
+    expect(tool).not.toMatch(/status:\s*["']active|update\(\{\s*status|createSession|signInWith|generateLink/);
+    expect(tool).toMatch(/not currently a suspended|suspended, non-owner/);
+  });
+
+  it("the token-lifetime facts are documented", () => {
+    expect(doc("docs/dev/deletion-and-restore.md")).toMatch(/access token already issued/i);
+  });
+
   it("deletion and export are not offered while accounts are off (the page, both routes, and the screens all sit behind the gate)", () => {
     for (const f of ["app/account/data/page.tsx", "app/account/delete/page.tsx", "app/auth/deleted/page.tsx"]) expect(read(path.join(SRC, f)), f).toMatch(/accountsEnabled\(\)\) notFound\(\)/);
     for (const f of ["app/api/account/export/route.ts", "app/api/account/delete/route.ts", "app/api/auth/reauth/route.ts"]) expect(read(path.join(SRC, f)), f).toMatch(/lifecycleDeps\(req\)|authGate\(\)/);

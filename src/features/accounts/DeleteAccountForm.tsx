@@ -5,15 +5,14 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DELETE_CONFIRM_PHRASE } from "@/lib/auth/constants";
 import { removeAccountFromDevice } from "./local-cleanup";
-import { useStorageScope } from "./scope-client";
 
 /**
  * Permanently deleting the signed-in account. It asks for the confirmation words and an explicit acknowledgement, then sends ONE request;
  * the server decides everything that matters (that the person is signed in, signed in recently, and who they are). Nothing here names
  * which account to delete. The confirmation is never put in the address bar or in any storage, and never logged.
  */
-export function DeleteAccountForm() {
-  const accountId = useStorageScope();
+/** `accountId` comes from the verified session on the server (not from the browser's folder cookie), so the right folder is removed whatever the cookie says. */
+export function DeleteAccountForm({ accountId }: { accountId: string }) {
   const [phrase, setPhrase] = useState("");
   const [understood, setUnderstood] = useState(false);
   const [removeLocal, setRemoveLocal] = useState(true);
@@ -42,7 +41,7 @@ export function DeleteAccountForm() {
   }
 
   const messages = {
-    reauth: "For your safety your last sign-in is too old to delete an account. Confirm it’s you with Google, then try again.",
+    reauth: "Your last sign-in was more than 10 minutes ago. Please sign in with Google again, then try once more.",
     rate: "Too many tries. Please wait a few minutes.",
     confirmation: "The words didn’t match. Nothing was deleted.",
     owner: "This is the owner account, which can’t be deleted here. Nothing was deleted.",
@@ -85,7 +84,7 @@ export function DeleteAccountForm() {
           <p>{messages[problem]}</p>
           {problem === "reauth" && (
             <p className="mt-2">
-              <button type="submit" formAction="/api/auth/reauth" formNoValidate className="min-h-11 font-bold underline underline-offset-4" data-testid="delete-reauth">Confirm it’s me with Google</button>
+              <button type="submit" formAction="/api/auth/reauth" formNoValidate className="min-h-11 font-bold underline underline-offset-4" data-testid="delete-reauth">Sign in with Google again</button>
             </p>
           )}
         </div>

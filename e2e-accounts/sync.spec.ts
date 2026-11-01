@@ -407,7 +407,8 @@ test.describe("leaving a page while it is saving", () => {
     await laptop.goto(`${BASE}/account`);
     await expect(laptop.getByTestId("sync-label")).toBeVisible({ timeout: 20_000 });
     await finishLesson(laptop, OTHER_LESSON);
-    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
+    // wait for the FINISHED lesson to be in the account (an earlier save may hold the same lesson still in progress)
+    await expect.poll(async () => ((await lessonsDoc(ana.id))?.body.sessions as { status?: string }[] | undefined)?.map((s) => s.status), { timeout: 30_000 }).toEqual(["completed"]);
 
     // the phone starts to check the account, and its request is held back while the page is left
     await phone.goto(`${BASE}/account`);
