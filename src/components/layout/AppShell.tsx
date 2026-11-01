@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, BookOpen, Home } from "lucide-react";
 import type { ReactNode } from "react";
+import { AccountEntry } from "@/features/accounts/AccountEntry";
 import { cn } from "@/lib/utils/cn";
 import { Wordmark } from "./Wordmark";
 
@@ -69,7 +70,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
       </aside>
-      <div className="pb-24 lg:pb-12">{children}</div>
+      <div className="relative pb-24 lg:pb-12">
+        <AccountEntry />
+        {children}
+      </div>
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-canvas px-2 lg:hidden"

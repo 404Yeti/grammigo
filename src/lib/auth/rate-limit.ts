@@ -25,6 +25,7 @@ export const LIMITS = {
   signin: [{ name: "signin:ip:10m", limit: 20, windowSeconds: 600 }],
   callback: [{ name: "callback:ip:10m", limit: 30, windowSeconds: 600 }],
   admin: [{ name: "admin:user:min", limit: 30, windowSeconds: 60 }],
+  profile: [{ name: "profile:user:min", limit: 20, windowSeconds: 60 }],
 } satisfies Record<string, LimitRule[]>;
 
 /** Checks every rule (all are counted, so a refused request still uses budget) and reports the strictest refusal. */

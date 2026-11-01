@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { preload } from "react-dom";
 import "@fontsource-variable/manrope";
+import { ScopeInit } from "@/features/accounts/ScopeInit";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   MIGO_EXPRESSIONS.forEach((name) => preload(`/migo/${name}.svg`, { as: "image" }));
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-dvh font-sans text-ink">{children}</body>
+      <body className="min-h-dvh font-sans text-ink">
+        <ScopeInit />
+        {children}
+      </body>
     </html>
   );
 }

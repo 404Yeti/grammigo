@@ -80,6 +80,7 @@ export async function handleCallback(rt: AuthRuntime, input: CallbackInput): Pro
     }
     if (profile === "active") {
       if (flow.grant) await releaseQuietly(rt, flow.grant); // a returning learner used a join flow: give the seat back
+      rt.jar.setScope(user.id);
       rt.log("callback", { outcome: "signed_in" });
       return { redirect: "/account", outcome: "signed_in" };
     }
@@ -94,6 +95,7 @@ export async function handleCallback(rt: AuthRuntime, input: CallbackInput): Pro
         noticeVersion: PRIVACY_NOTICE_VERSION,
       });
       if (result === "ok" || result === "already_registered") {
+        rt.jar.setScope(user.id);
         rt.log("callback", { outcome: "joined" });
         return { redirect: "/account?welcome=1", outcome: "joined" };
       }

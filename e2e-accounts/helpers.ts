@@ -44,6 +44,22 @@ export async function createAccount(o: { name: string; learner?: boolean; admin?
   return { id, email, name: o.name, session: login.json };
 }
 
+/** Signs the same person in again (a new session, as after any sign-out). */
+export async function signInAgain(a: Account): Promise<Account> {
+  const login = await gotrue("/auth/v1/token?grant_type=password", { email: a.email, password: PASSWORD });
+  if (login.status !== 200) throw new Error("sign in again: " + JSON.stringify(login.json));
+  return { ...a, session: login.json };
+}
+
+/** Marks onboarding as skipped in THIS account's own saved-progress folder before the app loads (the guest's folder is never touched). */
+export async function seedAccountLearner(page: import("@playwright/test").Page, accountId: string) {
+  await page.addInitScript((id) => {
+    const key = `grammigo:v2:u:${id}`;
+    if (window.localStorage.getItem(key)) return;
+    window.localStorage.setItem(key, JSON.stringify({ version: 2, sessions: [], activeSessionId: null, onboarding: { status: "skipped", step: "welcome", draftText: "", draftSource: "typed", runId: null, startedAt: null, completedAt: null }, goals: null, diagnosticRuns: [], lastRecommendation: null, writingFeedback: {} }));
+  }, accountId);
+}
+
 const CHUNK = 3180; // @supabase/ssr's MAX_CHUNK_SIZE: a cookie value longer than this is split into name.0, name.1, ...
 
 /**

@@ -1,3 +1,4 @@
+import { onScopeChange, scopedKey } from "@/lib/scope/storage-scope";
 import type { GuidedState } from "@/types/guided";
 import { GUIDED_STORAGE_KEY, emptyGuidedState, parseGuidedState } from "./schema";
 
@@ -23,10 +24,10 @@ const get = (key: string): string | null => {
 };
 
 export const guidedLocalStorage: GuidedPersistence = {
-  read: () => get(GUIDED_STORAGE_KEY),
+  read: () => get(scopedKey(GUIDED_STORAGE_KEY)),
   write(serialized) {
     try {
-      window.localStorage.setItem(GUIDED_STORAGE_KEY, serialized);
+      window.localStorage.setItem(scopedKey(GUIDED_STORAGE_KEY), serialized);
       return true;
     } catch {
       return false;
@@ -34,14 +35,14 @@ export const guidedLocalStorage: GuidedPersistence = {
   },
   quarantine(raw) {
     try {
-      window.localStorage.setItem(`${GUIDED_STORAGE_KEY}:corrupt`, raw);
+      window.localStorage.setItem(`${scopedKey(GUIDED_STORAGE_KEY)}:corrupt`, raw);
     } catch {
       /* ignore */
     }
   },
   subscribe(onChange) {
     const handler = (event: StorageEvent) => {
-      if (event.key === GUIDED_STORAGE_KEY || event.key === null) onChange();
+      if (event.key === scopedKey(GUIDED_STORAGE_KEY) || event.key === null) onChange();
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
@@ -120,3 +121,9 @@ export function resetGuidedStoreCache(): void {
   memoryOnly = false;
   blocked = false;
 }
+
+// Same rule as the lesson store: a different learner's saved activity is a different document.
+onScopeChange(() => {
+  resetGuidedStoreCache();
+  listeners.forEach((l) => l());
+});

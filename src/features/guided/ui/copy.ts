@@ -80,3 +80,14 @@ export const CONTRAST = {
   sinceFor: { label: "For or since?", lines: ["for + how long: “for three years”", "since + when it started: “since 2021”"] },
   experience: { label: "Experience or a finished time?", lines: ["Experience, no time → present perfect: “I have tried sushi.”", "Finished time → past simple: “I tried sushi last year.”"] },
 } as const satisfies Record<string, Contrast>;
+
+/** The activity card on the learner's dashboard. Same rules as everything here: counts of what happened, never a score or a level. */
+export const DASHBOARD = {
+  title: "Fix it with Migo",
+  note: "Practice activity, kept separate from your lesson progress. Provisional while we check what it means.",
+  first_try: "first try",
+  self_corrected: "fixed it yourself",
+  also: "Also:",
+  hint_assisted: "fixed with a hint",
+  shown: "shown by Migo",
+} as const;

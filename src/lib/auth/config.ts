@@ -17,7 +17,7 @@ export type AuthConfig = {
   cronSecret: string | null;
   /** True when the site is served over https: cookies get Secure and the __Host- prefix. */
   secureCookies: boolean;
-  cookieNames: { auth: string; flow: string };
+  cookieNames: { auth: string; flow: string; scope: string };
 };
 
 export type AuthConfigState =
@@ -74,7 +74,7 @@ export function loadAuthConfig(env: Record<string, string | undefined> = process
       flowSecret: Buffer.from(flowRaw, "utf8"),
       cronSecret,
       secureCookies,
-      cookieNames: { auth: `${prefix}gm-auth`, flow: `${prefix}gm-flow` },
+      cookieNames: { auth: `${prefix}gm-auth`, flow: `${prefix}gm-flow`, scope: `${prefix}gm-scope` },
     },
   };
 }

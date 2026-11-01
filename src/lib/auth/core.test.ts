@@ -46,7 +46,7 @@ describe("configuration", () => {
     const dev = loadAuthConfig({ ...ENV });
     if (prod.state !== "ready" || dev.state !== "ready") throw new Error("not ready");
     expect(prod.config.secureCookies).toBe(true);
-    expect(prod.config.cookieNames).toEqual({ auth: "__Host-gm-auth", flow: "__Host-gm-flow" });
+    expect(prod.config.cookieNames).toEqual({ auth: "__Host-gm-auth", flow: "__Host-gm-flow", scope: "__Host-gm-scope" });
     expect(dev.config.secureCookies).toBe(false);
     expect(dev.config.cookieNames.auth).toBe("gm-auth");
   });

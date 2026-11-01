@@ -4,7 +4,7 @@ Status: implemented and tested locally and in CI. **Not provisioned and not depl
 production Google OAuth client, and no DNS change. With `NEXT_PUBLIC_ACCOUNTS` unset (the default) Grammigo is exactly the anonymous,
 on-device app and every account page and endpoint answers 404.
 
-Out of scope until separately approved: **account recovery** (needs its own identity-verification threat model), learner profile
+Phase 4 (profiles, dashboard, owner invitation management) is described in the last section. Out of scope until separately approved: **account recovery** (needs its own identity-verification threat model), learner profile
 editing and dashboard (Phase 4), cloud sync and progress import (Phase 5), export/delete UI and privacy notice sign-off (Phase 6).
 
 ## Architecture in one page
@@ -136,3 +136,57 @@ Server-only environment variables (see `.env.example`): `NEXT_PUBLIC_ACCOUNTS`, 
 * Rate limits key on the client address. On Vercel the platform header is trustworthy; elsewhere it is weaker.
 * Access tokens stay valid for up to their lifetime (1 hour) after sign-out for direct data-API calls, because a JWT is self-contained;
   row-level security still limits what they can reach, and the app's own pages verify sessions with the Auth server every time.
+
+## Phase 4: profiles, dashboard and owner invitation management
+
+Screens (Figma page 16): D1/D2 dashboard at `/account`, E1 profile at `/account/profile`, E2 edit at `/account/profile/edit`, F1–F4 owner
+invitations at `/account/invitations`. All are 404 while accounts are off, and all use existing components and design tokens (`AppShell`, `Card`,
+`GrammarTag`, `StatTile`, `ProfileSummary`, `TextField`, `Button`).
+
+### What each screen shows, and where the data comes from
+
+| Screen | Data | Source |
+|---|---|---|
+| Dashboard: next step, skills so far, strengths, weaknesses, caveat | the app's own `deriveLearning` (mastery, profile, recommendations are derived, never stored) | **this device's** saved history |
+| Dashboard: quick check | the real saved diagnostic runs (when, how many answers, how many skills it gave evidence on) | this device |
+| Dashboard: continue where you left off | the active lesson session | this device |
+| Dashboard: what you're practising | `profiles.preferences.practising` | the account (RLS, the learner's own session) |
+| Dashboard: Fix it with Migo | counts of how exercises ended | the guided store on this device; provisional |
+| Profile / edit | display name, first language, topics, daily time, email, member since | the account (RLS, the learner's own session) |
+| Invitations | label, last four characters of the code, seats used, expiry, status | the owner API |
+
+**Progress is on this device, and the dashboard says so** ("Progress on this device"; "Your lessons and progress are saved in this browser, not in your
+account yet"). Cloud sync and importing an anonymous device's progress are Phase 5, so the Figma chip "Saved to your account" is deliberately not used.
+
+### Deliberate deviations from the Figma designs
+
+1. **Dashboard chip** says "Progress on this device", not "Saved to your account" (sync is Phase 5; the original wording would be untrue).
+2. **Owner list shows `Code ending ABCD`, not `GRAM-7K2Q9-•••••`.** Five visible characters would cut a code's ~2^54 search space to ~2^29, and a "Copy link" on a
+   listed invitation is impossible because only a keyed hash is stored. Copying is offered once, right after creation (F3).
+3. **The shareable link is `/join#c=CODE` (a URL fragment), not `/join/CODE` (a path).** Fragments are never sent to a server, so the code stays out of access logs
+   and `Referer` headers; the page fills the box and removes the fragment from the address bar immediately.
+4. **No "AI helpers" preference row.** No such setting exists in the app, and a switch that changes nothing would be misleading.
+5. **Practising topics come from the real curriculum topics**, not the sample chips in the mock.
+6. **Owner "Expire now"** is added next to Revoke (the requirement lists both; the designs show only Revoke).
+7. **A sign-in entry point on the existing home screen / header avatar is not added in this phase.** It needs to know whether someone is signed in, and the learning code deliberately
+   does not know accounts exist (tested). It belongs with Phase 5/7 integration, when the anonymous and signed-in experiences are joined.
+
+### Security properties added, and their tests
+
+| Property | Enforced by | Tests |
+|---|---|---|
+| A learner reads and writes only their own profile; the id comes from the verified session, never the request | `profile-api.ts` + RLS + column grants (name, language, time zone, preferences only) | `profile-api.test.ts`; `profile-owner.test.ts` "unauthorized profile edits"; `phase4.spec.ts` |
+| No privileged credential on any learner read or write | the profile API takes only the learner's session client | `boundaries.test.ts` "learner data never goes through privileged credentials"; "forged viewer" integration test shows RLS refuses even then |
+| Privileged and identity fields cannot be sent at all | strict schema (`id`, `status`, `adult_confirmed_at`, `isAdmin`… are rejected) | `accounts.test.ts`; integration; browser |
+| Owner operations: create, list, revoke, expire | one gate: verified session + active learner + `app_admins` + same-origin + rate limit | `profile-owner.test.ts`; `boundaries.test.ts` |
+| Owner pages are invisible to everyone else | `requireLearner({ admin: true })` → plain 404 | `phase4.spec.ts` |
+| The full invitation secret is shown once; never stored, listed, logged or put in the URL | HMAC-only storage; explicit list columns; the screen touches no storage or console | `InvitationManager.test.tsx`; `boundaries.test.ts`; `phase4.spec.ts` (storage, cookies, responses, reload, audit log) |
+| Every owner action is audited with the owner as actor; no code in the audit log | `create_invitation`, `revoke_invitation`, `expire_invitation` (migration `20261102000100`) | `profile-owner.test.ts`; `phase4.spec.ts` |
+| Private pages and APIs are never cached or framed | `Cache-Control: private, no-store` + `X-Frame-Options` + `frame-ancestors 'none'` on `/account/**` and the account/admin APIs | `phase4.spec.ts` "private pages are never cached" |
+| Guided Correction is never mastery or proficiency | counts only, on the guided side, labelled Beta and provisional; mastery is byte-identical with and without guided activity | `Dashboard.test.tsx`; `claims.test.ts`; `separation.test.ts` |
+
+### Expire vs revoke
+
+* **Expire now**: the invitation stops accepting NEW sign-ins immediately. Someone who already holds a reservation (partway through Google sign-in) can finish. Nothing about
+  people who already joined changes.
+* **Revoke**: the hard stop. It also cancels pending reservations; people who already joined keep their accounts.
