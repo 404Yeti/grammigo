@@ -16,6 +16,7 @@ import pg from "pg";
 import { checkAuthSettings, checkDatabase, checkEnvironment, checkRestSurface, redactor, renderReport, summarize } from "./readiness/checks.mjs";
 
 export const EXPECTED_REF = "ugifdvaaaioiqmwfiksw";
+export const expectedMigrationNames = (dir = new URL("../supabase/migrations/", import.meta.url)) => readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().map((f) => f.replace(/^\d+_/, "").replace(/\.sql$/, ""));
 export const expectedMigrations = (dir = new URL("../supabase/migrations/", import.meta.url)) => readdirSync(dir).filter((f) => f.endsWith(".sql")).map((f) => f.split("_")[0]).sort();
 
 export function parseEnvFile(text) {
@@ -65,7 +66,7 @@ async function main() {
   if (wants("env")) await run("environment (names and shape only)", async () => checkEnvironment(shapeEnv, { expectedRef: arg("ref") ?? EXPECTED_REF }));
   if (wants("auth")) await run("authentication settings (public endpoint)", async () => { need("SUPABASE_URL", "SUPABASE_ANON_KEY"); return checkAuthSettings({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY, expectGoogle: (arg("expect-google") ?? "on") === "on" }); });
   if (wants("rest")) await run("Data API seen by an anonymous caller", async () => { need("SUPABASE_URL", "SUPABASE_ANON_KEY"); return checkRestSurface({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY }); });
-  if (wants("db")) await run("database (read-only)", async () => { need("SUPABASE_DB_URL"); return withReadOnlyDb(env.SUPABASE_DB_URL, (query) => checkDatabase(query, { expectedMigrations: expectedMigrations(), platformFunctionsAllowed: [] })); });
+  if (wants("db")) await run("database (read-only)", async () => { need("SUPABASE_DB_URL"); return withReadOnlyDb(env.SUPABASE_DB_URL, (query) => checkDatabase(query, { expectedMigrations: expectedMigrations(), expectedMigrationNames: expectedMigrationNames(), platformFunctionsAllowed: [] })); });
   console.log(renderReport(sections, redact));
   process.exit(summarize(sections).failed === 0 ? 0 : 1);
 }

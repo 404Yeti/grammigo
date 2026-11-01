@@ -116,7 +116,7 @@ export async function checkRestSurface({ fetchImpl = fetch, url, anonKey }) {
 // ---------------------------------------------------------------- database (SELECT only, read-only transaction)
 /** Every statement the database check runs. A test asserts each one is a plain SELECT. */
 export const DB_QUERIES = Object.freeze({
-  migrations: "select version::text as version from supabase_migrations.schema_migrations order by 1",
+  migrations: "select version::text as version, name from supabase_migrations.schema_migrations order by 1",
   tables: "select c.relname as name, c.relrowsecurity as rls from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r','p') order by 1",
   tablePrivileges: `select c.relname as name, r.role as role, p.priv as priv from pg_class c join pg_namespace n on n.oid = c.relnamespace cross join (values ('anon'),('authenticated')) r(role) cross join (values ${PRIVS.map((p) => `('${p}')`).join(",")}) p(priv) where n.nspname = 'public' and c.relkind in ('r','p') and has_table_privilege(r.role, c.oid, p.priv)`,
   profileColumns: "select a.attname as name, has_column_privilege('authenticated', 'public.profiles'::regclass, a.attname, 'update') as can_update from pg_attribute a where a.attrelid = to_regclass('public.profiles') and a.attnum > 0 and not a.attisdropped",
@@ -125,14 +125,18 @@ export const DB_QUERIES = Object.freeze({
   extensions: "select extname as name from pg_extension order by 1",
 });
 
-export async function checkDatabase(query, { expectedMigrations, platformFunctionsAllowed = /** @type {string[]} */ ([]) }) {
+export async function checkDatabase(query, { expectedMigrations, expectedMigrationNames, platformFunctionsAllowed = /** @type {string[]} */ ([]) }) {
   const r = [];
   const mig = (await query(DB_QUERIES.migrations).catch(() => ({ rows: null }))).rows;
   if (!mig) r.push(item("migration history readable", false, "supabase_migrations.schema_migrations not found"));
   else {
-    const have = mig.map((m) => String(m.version));
-    const missing = expectedMigrations.filter((v) => !have.includes(v));
-    const extra = have.filter((v) => !expectedMigrations.includes(v));
+    // Compared by NAME when names are given: a migration applied through the connector or the dashboard gets its own timestamp as its version, but keeps its name.
+    const byName = Array.isArray(expectedMigrationNames);
+    const have = mig.map((m) => String(byName ? m.name : m.version));
+    const want = byName ? expectedMigrationNames : expectedMigrations;
+    const missing = want.filter((v) => !have.includes(v));
+    const extra = have.filter((v) => !want.includes(v));
+    if (byName && have.length !== want.length) extra.push("(count differs)");
     r.push(item("applied migrations are exactly the repository's", missing.length === 0 && extra.length === 0, missing.length || extra.length ? `missing: ${missing.join(",") || "none"}; unexpected: ${extra.join(",") || "none"}` : `${have.length} of ${have.length}, in order`));
   }
   const tables = (await query(DB_QUERIES.tables)).rows;
