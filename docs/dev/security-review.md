@@ -78,7 +78,9 @@ Deleting an account requires that the session's **most recent authentication eve
 
 So the check defends against a **stolen or leaked session cookie used from elsewhere** and against **accidental or scripted deletion** (it needs a fresh, same-account sign-in, typed words, a same-origin request and is rate limited). It does not defend against a person with live access to the user's unlocked, signed-in device. The wording in the app says "Sign in with Google again" and states that it cannot tell whether Google asked for a password. Verifying how real Google behaves is a provisioning-phase task.
 
-## 8. Residual risks, not yet verified (all need the owner's approval to test for real)
+## 8. Residual risks
+
+0. **Suspended-learner requests** (`suspended-requests.md`): the identity-verification method, password-protected delivery and 72-hour deletion delay require legal/security review before production use., not yet verified (all need the owner's approval to test for real)
 
 1. **How strong Google's re-sign-in is** (see 7a): not guaranteed to re-check a password. Behaviour with real Google (and whether `prompt=login` is honoured) must be tested in the provisioning phase and the wording kept honest.
 2. **`amr` timestamps on refresh.** Locally verified with password sign-ins; Google OAuth sessions are expected to behave the same but unverified.

@@ -276,7 +276,8 @@ describe("a SUSPENDED learner's export and deletion (owner-assisted; access is n
     const viaApp = (await handleExport(await deps(a))).body as Record<string, unknown>; // while still active: what the app would give
     await suspend(a.id);
     const viaOwner = await tool.exportSuspended(service, a.id);
-    const strip = (o: Record<string, unknown>) => ({ ...o, generatedAt: "x", notIncluded: undefined });
+    // suspending the profile (done between the two exports) touches its updated_at, which is the only legitimate difference
+    const strip = (o: Record<string, unknown>) => ({ ...o, generatedAt: "x", notIncluded: undefined, profile: { ...(o.profile as object), updatedAt: "x" } });
     expect(strip(viaOwner)).toEqual(strip(viaApp));
     const text = JSON.stringify(viaOwner);
     expect(text).toContain("SUSPENDED-MARKER-31");

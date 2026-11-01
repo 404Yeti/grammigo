@@ -16,12 +16,19 @@ Failures before step 6 change nothing. A database error at step 6 changes nothin
 
 Verified in `supabase/tests/auth/lifecycle.test.ts` (real local stack): every table, `auth.sessions`, `auth.refresh_tokens` and `auth.identities` have zero rows for the person; the old cookies, a second device and the refresh token are all dead; a bystander is untouched.
 
-## What survives deletion for a while: sessions, refresh tokens and already-issued access tokens
+## Revoking sessions is not the same as preventing use of an already-issued token
 
-* **Refresh tokens and sessions** are rows owned by the Auth user; deleting the user removes them in the same transaction. A refresh token can never be used again (tested: the refresh attempt fails).
-* **The application** verifies every request with the Auth server (`getUser`), not by trusting the cookie's contents, so a deleted user's cookies are rejected on the very next request, on every device (tested through the real handlers and in a browser with a second device).
-* **An access token already issued** is a signed token that remains cryptographically valid until it expires: the Auth server's default is **one hour** (`jwt_expiry` 3600 s; the production project's value is to be confirmed in Phase 7 and kept at or below that). Nothing can recall it. What it can still do after deletion: nothing useful. The Auth server refuses it (the user no longer exists), and every table policy requires an active profile for that user id, which no longer exists, so database reads with it return no rows (tested directly against the REST API with the old token). It could in principle be presented to a service that trusts the signature alone without a lookup; Grammigo has none, and any future one must verify with the Auth server or `getUser`.
-* **Cookies in the browser** that deleted the account are cleared; the cookies in other browsers are dead for the reasons above even if they linger.
+These are two different guarantees. Do not read one as the other.
+
+**1. Revoked: sessions and refresh tokens (guaranteed, immediate).** Sessions and refresh tokens are rows owned by the Auth user; deleting the user removes them in the same transaction. A refresh token can never be used again, so no new access token can be obtained (tested: the refresh attempt fails). The application also verifies every request with the Auth server (`getUser`) rather than trusting the cookie's contents, so a deleted user's cookies are rejected on the very next request, on every device (tested through the real handlers, and in a browser with a second device).
+
+**2. Not revoked: an access token already issued (cannot be recalled; access is prevented by other means).** An access token is a signed JWT. Once issued, it stays cryptographically valid until it expires: the Auth server's default is **one hour** (`jwt_expiry` 3600 s; the production project's value is to be confirmed in Phase 7 and kept at or below that). Deleting the account does not and cannot invalidate the signature. What prevents use of it after deletion:
+* the Auth server rejects it (the user and session no longer exist), tested against `/auth/v1/user` with the old token;
+* every table policy requires an *active profile* for that user id, which no longer exists, so a direct REST call with the old token and the public key returns no rows from `profiles`, `consents` or `learner_documents` (tested directly against the REST API with the old token, and the learner's marker text is asserted absent);
+* the privileged functions are not executable by any client role, token or not (`isolation.test.ts`, `rest.test.ts`).
+Residual: anything that trusted the token's signature alone, without asking the Auth server or the database, would keep accepting it until expiry. Grammigo has no such component, and any future one must verify with the Auth server or `getUser`.
+
+**3. Cookies.** The browser that deleted the account has its cookies cleared. Cookies in other browsers are dead for the reasons in 1 and 2 even if they linger.
 
 ## The deletion ledger
 
