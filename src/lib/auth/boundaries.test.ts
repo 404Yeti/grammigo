@@ -64,9 +64,9 @@ describe("every account route is gated and answers per request", () => {
   it("finds the routes", () => expect(routes.length).toBeGreaterThanOrEqual(8));
   it.each(routes.map((f) => [rel(f), f]))("%s starts with the gate", (_name, f) => {
     const src = read(f);
-    expect(src).toContain("await authGate()");
+    expect(src).toMatch(/await authGate\(\)|await syncDeps\(req\)/); // syncDeps starts with the same gate
     // the gate is the first thing each handler does: nothing before it reads the request or touches a client
-    for (const h of src.matchAll(/export async function (GET|POST)\([^)]*\)\s*\{\s*([^\n]*)/g)) expect(h[2], `${h[1]} first statement`).toMatch(/authGate|deps\(|gate/);
+    for (const h of src.matchAll(/export async function (GET|POST)\([^)]*\)\s*\{\s*([^\n]*)/g)) expect(h[2], `${h[1]} first statement`).toMatch(/authGate|[dD]eps\(|gate/);
   });
   it("no route handler exports a runtime/dynamic setting that could make it static", () => {
     for (const f of routes) expect(read(f)).not.toMatch(/export const (dynamic|revalidate)\s*=\s*["']?force-static/);
@@ -150,5 +150,49 @@ describe("Phase 4: owner-only invitation management", () => {
   it("no server code in the account system writes to the console directly (only the content-free logger)", () => {
     const offenders = files.filter((f) => !isTest(f) && /^lib\/auth\//.test(rel(f)) && /console\./.test(read(f)) && rel(f) !== "lib/auth/runtime.ts").map(rel);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("Phase 5: saving progress", () => {
+  it("the sync handlers use the service role for exactly two things: the compare-and-swap write and recording consent", () => {
+    const src = read(path.join(SRC, "lib/auth/sync-api.ts"));
+    const uses = [...src.matchAll(/d\.service\.(\w+)\(\s*"([a-z_]+)"/g)].map((m) => `${m[1]}:${m[2]}`).sort();
+    expect(uses).toEqual(["rpc:put_document", "rpc:record_consent"]);
+    expect(src.match(/d\.service/g)?.length).toBe(2); // and nothing else touches it
+  });
+
+  it("every sync read and write names the learner from the verified viewer, never from the request", () => {
+    const src = read(path.join(SRC, "lib/auth/sync-api.ts"));
+    expect(src).not.toMatch(/searchParams|params\.(id|user)|raw\.(id|user)|\.userId|body\.user/);
+    expect(src).toMatch(/p_user: d\.viewer\.id/);
+  });
+
+  it("the browser-side sync code never sees server code, secrets or the service role", () => {
+    const syncFiles = files.filter((f) => /^features\/sync\//.test(rel(f)) && !isTest(f));
+    expect(syncFiles.length).toBeGreaterThan(8);
+    const offenders = syncFiles.filter((f) => imports(read(f)).some((i) => /^@\/lib\/auth\/|^@supabase\/|^server-only$/.test(i))).map(rel);
+    expect(offenders).toEqual([]);
+  });
+
+  it("nothing in the lesson, mastery or storage code starts a sync or imports the sync module (sync depends on them, never the reverse)", () => {
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (isTest(f) || !/^(features\/(learning|practice|diagnostic|mastery|lessons|onboarding|ai|guided)|lib\/storage|curriculum|data|components\/(exercises|feedback|lesson|mascot|progress|ui))\//.test(rel(f))) continue;
+      for (const i of imports(read(f))) if (/@\/features\/sync|@\/features\/accounts/.test(i)) offenders.push(`${rel(f)} -> ${i}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("mastery, the profile and recommendations are never saved: the saved documents hold sessions, runs and goals only", () => {
+    const merge = read(path.join(SRC, "features/sync/merge.ts"));
+    expect(merge).not.toMatch(/computeAllMastery|buildProfile|recommendLessons|deriveLearning/);
+    const adapters = read(path.join(SRC, "features/sync/doc-adapters.ts")) + read(path.join(SRC, "features/sync/guided-doc.ts"));
+    expect(adapters).not.toMatch(/computeAllMastery|buildProfile|recommendLessons|deriveLearning|countOutcomes/);
+  });
+
+  it("the Guided Correction sync code never touches the outcome weights or anything that scores them", () => {
+    for (const f of ["features/sync/guided-doc.ts", "features/sync/merge-guided.ts", "features/sync/guest-import.ts"]) {
+      expect(read(path.join(SRC, f)), f).not.toMatch(/GUIDED_OUTCOME_VALUES|outcomeValue|summarizeOutcomes|meanProvisionalValue/);
+    }
   });
 });

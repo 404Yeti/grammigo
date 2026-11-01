@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ClipboardCheck, Smartphone, Target } from "lucide-react";
+import { Check, ClipboardCheck, Smartphone, Target } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Migo } from "@/components/mascot/Migo";
 import { ProfileSummary } from "@/components/progress/ProfileSummary";
@@ -12,6 +12,10 @@ import { Card } from "@/components/ui/Card";
 import { GrammarTag } from "@/components/ui/GrammarTag";
 import { getLesson } from "@/data/lessons";
 import { GuidedActivityCard } from "@/features/guided/ui/GuidedActivityCard";
+import { useSyncStatus } from "@/features/sync/hooks";
+import { describeStatus } from "@/features/sync/status-text";
+import { ImportCard } from "@/features/sync/ui/ImportCard";
+import { SyncCard } from "@/features/sync/ui/SyncCard";
 import { explainNextStep } from "@/features/learning/derive";
 import { useDerivedLearning } from "@/features/learning/use-learning";
 import { restartOnboarding } from "@/features/onboarding/actions";
@@ -47,6 +51,9 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
   const state = ready ? saved : null;
   const learning = useDerivedLearning(state);
   const initial = (displayName.trim()[0] ?? "?").toUpperCase();
+  // What the chip says about saving comes from the sync engine, and it says "Saved to your account" only when the account really holds everything.
+  const sync = useSyncStatus();
+  const syncView = describeStatus(sync, (t) => timeAgo(t));
 
   const header = (
     <div className="flex items-center gap-3 pt-2">
@@ -55,7 +62,9 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
       </Link>
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-extrabold leading-8 tracking-[-0.3px]" data-testid="dashboard-greeting">Hi, {displayName}</h1>
-        <GrammarTag style="success" className="mt-1"><Smartphone size={13} aria-hidden /> Progress on this device</GrammarTag>
+        <GrammarTag style={syncView.tone} className="mt-1" data-testid="sync-chip">
+          {syncView.label === "Saved to your account" ? <Check size={13} aria-hidden /> : <Smartphone size={13} aria-hidden />} {syncView.label}
+        </GrammarTag>
       </div>
     </div>
   );
@@ -95,6 +104,10 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
         <div className="mx-auto w-full max-w-[640px] px-4 pt-3 lg:px-14 lg:pt-5">
           {header}
           {welcomeNote}
+          <div className="mt-4 flex flex-col gap-4">
+            <ImportCard userId={userId} />
+            <SyncCard />
+          </div>
           <section className="mt-8 flex flex-col items-center text-center" aria-labelledby="start-here" data-testid="dashboard-new">
             <Migo expression="encouraging" size={120} />
             <h2 id="start-here" className="mt-4 text-[32px] font-extrabold leading-10 tracking-[-0.5px]">Let’s find your starting point</h2>
@@ -153,6 +166,8 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
           </div>
 
           <div className="flex flex-col gap-4">
+            <ImportCard userId={userId} />
+            <SyncCard />
             <Card aria-labelledby="quick-check" data-testid="dashboard-diagnostic">
               <h2 id="quick-check" className="flex items-center gap-2 text-xl font-bold leading-7"><ClipboardCheck size={20} aria-hidden /> Quick check</h2>
               {lastRun ? (
@@ -192,7 +207,9 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
           </div>
         </div>
         <p className="mt-6 text-xs font-medium leading-4 text-muted" data-testid="dashboard-caveat">
-          Your lessons and progress are saved in this browser, not in your account yet. This is an early picture, not a level or a grade.
+          {sync && sync.phase !== "off" && sync.phase !== "needs_consent" && !sync.paused
+            ? "Your lessons and progress are saved on this device and, when you are online, in your account. This is an early picture, not a level or a grade."
+            : "Your lessons and progress are saved in this browser, not in your account. Turn on saving to keep them in your account. This is an early picture, not a level or a grade."}
         </p>
       </div>
     </AppShell>

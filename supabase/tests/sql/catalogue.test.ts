@@ -41,6 +41,7 @@ const FUNCTIONS: Record<string, Who> = {
   purge_orphan_identities: "server",
   create_invitation: "server",
   expire_invitation: "server",
+  record_consent: "server",
   touch_updated_at: "nobody",
   audit_events_guard: "nobody",
   deletion_ledger_guard: "nobody",

@@ -23,6 +23,8 @@ export async function requireLearner(opts: { admin?: boolean } = {}): Promise<{ 
   const jar = new CookieSession((await cookies()).getAll());
   const client = createSessionClient(state.config, jar);
   const viewer = await getViewer(client);
+  // An outage says nothing about the session, so it must not send someone to sign in again. The error page asks them to retry.
+  if (viewer.kind === "unavailable") throw new Error("Accounts are temporarily unavailable");
   if (viewer.kind === "anonymous") redirect("/signin?e=session");
   if (viewer.kind === "no_profile") redirect("/auth/no-account");
   if (opts.admin && !viewer.isAdmin) notFound();

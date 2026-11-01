@@ -32,6 +32,7 @@ const createSchema = z.strictObject({
 const deny = (status: 401 | 403 | 429): AdminResult => ({ status, body: { error: status === 401 ? "unauthenticated" : status === 429 ? "rate_limited" : "forbidden" } });
 
 async function gate(d: AdminDeps, mutating: boolean): Promise<AdminResult | null> {
+  if (d.viewer.kind === "unavailable") return { status: 503, body: { error: "unavailable" } };
   if (d.viewer.kind === "anonymous") return deny(401);
   if (d.viewer.kind !== "learner" || !d.viewer.isAdmin) return deny(403);
   if (mutating && !isTrustedOrigin(d.headers, d.config.siteUrl)) return deny(403);

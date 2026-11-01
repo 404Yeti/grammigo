@@ -27,7 +27,7 @@ test.describe("the learner dashboard and profile", () => {
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-next")).toContainText("YOUR NEXT STEP");
     await expect(page.getByTestId("dashboard-skills")).toBeVisible();
-    await expect(page.getByTestId("dashboard-caveat")).toContainText("not in your account yet");
+    await expect(page.getByTestId("dashboard-caveat")).toContainText("not in your account");
     await expect(page.getByTestId("guided-activity")).toHaveCount(0); // no activity, no card
   });
 

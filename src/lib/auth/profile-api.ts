@@ -29,6 +29,7 @@ export type ProfileResult = { status: number; body: unknown; retryAfter?: number
 const MAX_BODY_BYTES = 4096;
 
 function denied(viewer: Viewer): ProfileResult | null {
+  if (viewer.kind === "unavailable") return { status: 503, body: { error: "unavailable" } };
   if (viewer.kind === "anonymous") return { status: 401, body: { error: "unauthenticated" } };
   if (viewer.kind !== "learner") return { status: 403, body: { error: "forbidden" } };
   return null;

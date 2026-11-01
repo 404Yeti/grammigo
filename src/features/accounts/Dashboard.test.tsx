@@ -75,7 +75,7 @@ describe("dashboard: real progress on this device", () => {
     const skills = screen.getByTestId("dashboard-skills");
     expect(within(skills).getByTestId("profile")).toBeInTheDocument();
     expect(within(skills).getByTestId("profile-caveat")).toHaveTextContent(/not a CEFR level/);
-    expect(screen.getByTestId("dashboard-caveat")).toHaveTextContent(/not in your account yet/);
+    expect(screen.getByTestId("dashboard-caveat")).toHaveTextContent(/not in your account/);
     expect(document.body).not.toHaveTextContent(/saved to your account\. your lessons and progress/i);
   });
 
