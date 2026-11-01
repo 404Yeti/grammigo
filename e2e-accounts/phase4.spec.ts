@@ -226,7 +226,7 @@ test.describe("owner invitation management in the browser", () => {
     await expect(page.getByTestId("invitations-empty").or(page.getByTestId("invitation-row").first())).toBeVisible();
     await page.getByRole("button", { name: /Create an invitation/ }).click();
     await page.getByLabel("Who is this for?").fill("Autumn students");
-    await page.getByRole("radio", { name: "5 people" }).check();
+    await page.getByRole("radio", { name: "5 people", exact: true }).check();
     await page.getByRole("radio", { name: "7 days" }).check();
     await page.getByRole("button", { name: "Create invitation" }).click();
 
@@ -282,7 +282,7 @@ test.describe("owner invitation management in the browser", () => {
     // revoke a second one through the confirmation screen
     await page.getByRole("button", { name: /Create an invitation/ }).click();
     await page.getByLabel("Who is this for?").fill("Beta friends");
-    await page.getByRole("radio", { name: "1 person" }).check();
+    await page.getByRole("radio", { name: "1 person", exact: true }).check();
     await page.getByRole("button", { name: "Create invitation" }).click();
     const code2 = (await page.getByTestId("invitation-code").textContent())!.trim();
     await page.getByRole("button", { name: "Done" }).click();

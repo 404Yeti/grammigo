@@ -189,6 +189,8 @@ test.describe("signing out", () => {
     await page.goto("/account");
     await expect(page.getByRole("heading", { name: "Hi, Leaving Ana" })).toBeVisible();
 
+    await page.getByRole("link", { name: "Your profile" }).click(); // sign-out lives on the profile page
+    await expect(page).toHaveURL(/\/account\/profile$/);
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(`${BASE}/`);
     expect((await context.cookies()).some((c) => c.name.startsWith(COOKIE))).toBe(false);
