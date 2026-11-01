@@ -3,6 +3,7 @@ import { scopedKey } from "@/lib/scope/storage-scope";
 import { getGuidedSnapshot, subscribeGuided, updateGuided } from "@/features/guided/store/store";
 import type { GuidedState } from "@/types/guided";
 import type { DocAdapter } from "./engine";
+import { canonical } from "./canonical";
 import { adoptGuided } from "./merge-guided";
 
 /**
@@ -19,7 +20,11 @@ export function guidedAdapter(io: GuidedIO): DocAdapter {
       const r = parseGuidedState(JSON.stringify(body));
       return r.kind === "ok" ? r.state : null;
     },
-    adopt: (remote) => io.update((cur) => adoptGuided(cur, remote as GuidedState)),
+    adopt: (remote) => {
+      const cur = io.read();
+      if (canonical(adoptGuided(cur, remote as GuidedState)) === canonical(cur)) return; // adds nothing: change nothing
+      io.update((c) => adoptGuided(c, remote as GuidedState));
+    },
     hasProgress: (doc) => (doc as GuidedState).sessions.length > 0,
     checkpointMarker: (doc) => (doc as GuidedState).sessions.filter((s) => s.status === "completed").length,
     subscribe: (l) => io.subscribe(l),

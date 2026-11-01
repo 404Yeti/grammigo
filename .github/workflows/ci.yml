@@ -154,8 +154,8 @@ jobs:
         run: npm run test:e2e:accounts -- --workers=2 --retries=1
         env:
           CI: "true"
-      - name: Keep traces of failures
-        if: failure()
+      - name: Keep traces (always: a test that failed once and passed on retry leaves its trace here too)
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: accounts-playwright-failures

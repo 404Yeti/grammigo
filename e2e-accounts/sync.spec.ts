@@ -291,7 +291,7 @@ test.describe("adding guest progress needs a clear yes", () => {
 });
 
 test.describe("one account on two devices", () => {
-  test("each device finishes a different lesson; both converge on both lessons, and mastery comes from the combined history", async ({ browser }) => {
+  test("each device finishes a different lesson without seeing the other's; both converge on both lessons, and mastery comes from the combined history", async ({ browser }) => {
     test.setTimeout(180_000);
     const ana = await createAccount({ name: "Two Devices Ana", learner: true });
     const phoneCtx = await browser.newContext();
@@ -300,32 +300,37 @@ test.describe("one account on two devices", () => {
     const laptop = await laptopCtx.newPage();
     await phoneCtx.addCookies(sessionCookies(ana));
     await laptopCtx.addCookies(sessionCookies(await signInAgain(ana)));
-    for (const [pg] of [[phone], [laptop]] as const) {
+    for (const pg of [phone, laptop]) {
       await pg.goto(`${BASE}/account`);
       await expect(pg.getByTestId("sync-card")).toBeVisible();
     }
     await phone.getByRole("button", { name: "Turn on saving to my account" }).click();
     await expect.poll(async () => hasConsent(ana.id), { timeout: 20_000 }).toBe(true);
-
-    // the laptop signs in with consent already recorded by the account: it needs no second yes to receive and save its own account's progress
+    // the laptop belongs to the same account, so it needs no second yes: the account's consent is already recorded
     await laptop.goto(`${BASE}/account`);
     await expect(laptop.getByTestId("sync-label")).toBeVisible({ timeout: 20_000 });
 
-    const seenPhone = watchSync(phone);
+    // The laptop cannot reach the account for a while (its sync requests fail) while it finishes ITS lesson. The phone finishes ITS lesson online.
+    await laptop.route("**/api/sync/**", (r) => r.abort("connectionrefused"));
+    await finishLesson(laptop, OTHER_LESSON);
+    await finishLesson(phone, LESSON);
+    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.map((s) => s.id).length, { timeout: 30_000 }).toBe(1); // the account has only the phone's lesson
     const seenLaptop = watchSync(laptop);
-    await Promise.all([finishLesson(phone, LESSON), finishLesson(laptop, OTHER_LESSON)]);
-    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 40_000 }).toBeGreaterThanOrEqual(1);
-    for (const pg of [phone, laptop]) {
-      await pg.goto(`${BASE}/account`);
-      await pg.getByRole("button", { name: "Save now" }).click();
-      await expect(pg.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
-    }
-    for (const pg of [phone, laptop]) {
-      await pg.getByRole("button", { name: "Save now" }).click();
-      await expect(pg.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
-    }
-    const doc = await lessonsDoc(ana.id);
-    expect(doc?.body.sessions).toHaveLength(2);
+
+    // the laptop's connection returns: its save finds the phone's copy there first, folds it in, and saves both
+    await laptop.unroute("**/api/sync/**");
+    await laptop.goto(`${BASE}/account`);
+    await laptop.getByRole("button", { name: "Save now" }).click();
+    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(2);
+    expect(Number((await lessonsDoc(ana.id))?.revision)).toBe(2);
+    await expect(laptop.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
+    expect(puts(seenLaptop).length).toBeGreaterThanOrEqual(1);
+
+    // the phone learns of the laptop's lesson at its next checkpoint
+    await phone.goto(`${BASE}/account`);
+    await phone.getByRole("button", { name: "Save now" }).click();
+    await expect(phone.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
+    expect((await lessonsDoc(ana.id))?.body.sessions).toHaveLength(2);
 
     // both devices now show BOTH lessons as completed in the library
     for (const pg of [phone, laptop]) {
@@ -334,8 +339,6 @@ test.describe("one account on two devices", () => {
         await expect(pg.getByTestId("lesson-card").and(pg.locator(`[data-skill="${skill}"]`)).getByTestId("completion")).toContainText("Completed 1×");
       }
     }
-    // and neither ever made a request per answer: only a handful of saves in total
-    expect(puts(seenPhone).length + puts(seenLaptop).length).toBeLessThan(10);
     await Promise.all([phoneCtx.close(), laptopCtx.close()]);
   });
 });

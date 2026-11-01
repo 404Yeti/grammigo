@@ -117,20 +117,42 @@ describe("merging lesson progress (randomised, 400 seeded cases each)", () => {
     }
   });
 
-  it("adopting is stable and order-independent: syncing again, in either direction, changes nothing (so an interrupted or repeated sync converges)", () => {
+  it("adopting is stable, and syncing again changes nothing (so an interrupted or repeated sync converges)", () => {
     for (const seed of SEEDS) {
       const r = rng(seed);
       const a = randomState(r);
       const b = randomState(r);
       const adopted = adoptLessons(a, b);
-      expect(same(adoptLessons(b, a), adopted), `seed ${seed} commutes`).toBe(true);
       expect(same(adoptLessons(adopted, b), adopted), `seed ${seed} again with b`).toBe(true);
       expect(same(adoptLessons(adopted, a), adopted), `seed ${seed} again with a`).toBe(true);
       expect(same(adoptLessons(adopted, adopted), adopted), `seed ${seed} with itself`).toBe(true);
-      expect(same(normalizeLessons(adopted), adopted), `seed ${seed} normalising twice`).toBe(true);
-      // what the OTHER device would hold after merging in what this one saved is identical too
-      expect(same(adoptLessons(b, adopted), adopted), `seed ${seed} other device`).toBe(true);
+      expect(same(normalizeLessons(adopted, adopted.activeSessionId), adopted), `seed ${seed} normalising twice`).toBe(true);
     }
+  });
+
+  it("adopting never takes away the lesson this device is in the middle of, and every device ends with the SAME evidence whichever unfinished lesson it keeps open", () => {
+    let both = 0;
+    // everything mastery is derived from, and everything else that is saved, EXCEPT which unfinished lesson is currently open
+    const evidence = (s: StoredState) =>
+      canonical({ done: s.sessions.filter((x) => x.status === "completed"), answers: s.sessions.map((x) => [x.id, x.records]), runs: s.diagnosticRuns, onboarding: s.onboarding, goals: s.goals, rec: s.lastRecommendation, fb: s.writingFeedback });
+    for (const seed of SEEDS) {
+      const r = rng(seed);
+      const a = randomState(r);
+      const b = randomState(r);
+      const union = mergeLessons(a, b);
+      const adoptedByA = adoptLessons(a, b);
+      const adoptedByB = adoptLessons(b, a);
+      for (const [mine, adopted] of [[a, adoptedByA], [b, adoptedByB]] as const) {
+        const own = mine.sessions.find((s) => s.id === mine.activeSessionId && s.status === "in_progress");
+        // still in progress in the union? (the other device may hold a newer copy that finished or closed it)
+        if (own && union.sessions.find((s) => s.id === own.id)?.status === "in_progress") expect(adopted.activeSessionId, `seed ${seed}`).toBe(own.id);
+        expect(adopted.sessions.filter((s) => s.status === "in_progress").length).toBeLessThanOrEqual(1);
+      }
+      if (adoptedByA.activeSessionId !== adoptedByB.activeSessionId) both++;
+      expect(evidence(adoptedByA), `seed ${seed}: same evidence on both devices`).toBe(evidence(adoptedByB));
+      expect(adoptedByA.sessions.map((s) => s.id)).toEqual(adoptedByB.sessions.map((s) => s.id)); // and the very same set of sessions
+    }
+    expect(both).toBeGreaterThan(5); // the case where the two devices keep different lessons open really was exercised
   });
 
   it("a quick-check run that finished on one device is not replaced by an unfinished copy of it", () => {

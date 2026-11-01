@@ -21,7 +21,8 @@ function better(x: GuidedSession, y: GuidedSession): GuidedSession {
 }
 
 const byStart = (p: GuidedSession, q: GuidedSession) => p.startedAt - q.startedAt || (p.id < q.id ? -1 : p.id > q.id ? 1 : 0);
-const chooseActive = (sessions: readonly GuidedSession[]): string | null =>
+const chooseActive = (sessions: readonly GuidedSession[], preferred: string | null = null): string | null =>
+  (preferred && sessions.some((s) => s.id === preferred && s.status === "in_progress") ? preferred : null) ??
   [...sessions].filter((s) => s.status === "in_progress").sort((p, q) => q.updatedAt - p.updatedAt || (p.id < q.id ? -1 : 1))[0]?.id ?? null;
 
 /** The UNION of two copies (associative, commutative, idempotent). Nothing is closed here; see `normalizeGuided`. */
@@ -39,13 +40,15 @@ export function mergeGuided(a: GuidedState, b: GuidedState): GuidedState {
 }
 
 /** Tidies the way the app does on load: one session in progress at most (the latest), the rest closed, and the history capped. Idempotent. */
-export function normalizeGuided(state: GuidedState): GuidedState {
-  const checked = parseGuidedState(JSON.stringify(state));
+export function normalizeGuided(state: GuidedState, preferredActive: string | null = null): GuidedState {
+  const active = chooseActive(state.sessions, preferredActive);
+  const sessions = state.sessions.map((s) => (s.status === "in_progress" && s.id !== active ? { ...s, status: "abandoned" as const, stage: "done" as const } : s));
+  const checked = parseGuidedState(JSON.stringify({ ...state, sessions, activeSessionId: active }));
   if (checked.kind !== "ok") throw new MergeError("normalised Guided Correction activity is not a valid saved state");
   return checked.state;
 }
 
-export const adoptGuided = (local: GuidedState, remote: GuidedState): GuidedState => normalizeGuided(mergeGuided(local, remote));
+export const adoptGuided = (local: GuidedState, remote: GuidedState): GuidedState => normalizeGuided(mergeGuided(local, remote), local.activeSessionId);
 
 export function guidedContainsAll(bigger: GuidedState, smaller: GuidedState): boolean {
   const ids = new Set(bigger.sessions.map((s) => s.id));

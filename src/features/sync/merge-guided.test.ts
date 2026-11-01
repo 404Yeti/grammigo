@@ -68,15 +68,16 @@ describe("merging Guided Correction activity (randomised, seeded)", () => {
     }
   });
 
-  it("adopting is stable and order-independent, with at most one session in progress", () => {
+  it("adopting is stable, keeps the device's own session in progress, and leaves at most one in progress", () => {
     for (const seed of SEEDS) {
       const a = randomGuided(seed);
       const b = randomGuided(seed + 1000);
       const adopted = adoptGuided(a, b);
-      expect(same(adoptGuided(b, a), adopted), `seed ${seed} commutes`).toBe(true);
       expect(same(adoptGuided(adopted, a), adopted) && same(adoptGuided(adopted, b), adopted), `seed ${seed} stable`).toBe(true);
-      expect(same(normalizeGuided(adopted), adopted), `seed ${seed} normalise twice`).toBe(true);
+      expect(same(normalizeGuided(adopted, adopted.activeSessionId), adopted), `seed ${seed} normalise twice`).toBe(true);
       expect(adopted.sessions.filter((s) => s.status === "in_progress").length).toBeLessThanOrEqual(1);
+      const own = a.sessions.find((s) => s.id === a.activeSessionId && s.status === "in_progress");
+      if (own && mergeGuided(a, b).sessions.find((s) => s.id === own.id)?.status === "in_progress") expect(adopted.activeSessionId, `seed ${seed}`).toBe(own.id);
     }
   });
 

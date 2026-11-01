@@ -26,8 +26,13 @@ function betterSession(x: Session, y: Session): Session {
 
 const byStart = (p: Session, q: Session) => p.startedAt - q.startedAt || (p.id < q.id ? -1 : p.id > q.id ? 1 : 0);
 
-/** The session that should be "the active one" among those in progress: the most recently touched, ties by id. A pure function of the set. */
-function chooseActive(sessions: readonly Session[]): string | null {
+/**
+ * The session that should be "the active one" among those in progress: the most recently touched, ties by id (a pure function of the set).
+ * `preferred` is the learner's OWN current lesson on this device: while it is still in progress it stays active, so folding in another device's
+ * copy never takes away a lesson someone is in the middle of.
+ */
+function chooseActive(sessions: readonly Session[], preferred: string | null = null): string | null {
+  if (preferred && sessions.some((s) => s.id === preferred && s.status === "in_progress")) return preferred;
   const open = sessions.filter((s) => s.status === "in_progress").sort((p, q) => q.updatedAt - p.updatedAt || (p.id < q.id ? -1 : 1));
   return open[0]?.id ?? null;
 }
@@ -113,16 +118,20 @@ export function mergeLessons(a: StoredState, b: StoredState): StoredState {
  * Tidies a merged document the way the app tidies on load: only one lesson can be in progress, so any other in-progress session is closed
  * (its answers still count towards mastery, exactly as when a learner starts a different lesson). Deterministic and idempotent.
  */
-export function normalizeLessons(state: StoredState): StoredState {
-  const active = chooseActive(state.sessions);
+export function normalizeLessons(state: StoredState, preferredActive: string | null = null): StoredState {
+  const active = chooseActive(state.sessions, preferredActive);
   const sessions = state.sessions.map((s) => (s.status === "in_progress" && s.id !== active ? { ...s, status: "abandoned" as const } : s));
   const checked = parseStoredState(JSON.stringify({ ...state, sessions, activeSessionId: active }));
   if (!checked) throw new MergeError("normalised progress is not a valid saved state");
   return checked;
 }
 
-/** What a device saves after combining its own copy with the account's: the union, tidied. */
-export const adoptLessons = (local: StoredState, remote: StoredState): StoredState => normalizeLessons(mergeLessons(local, remote));
+/**
+ * What a device saves after combining its own copy with the account's: the union, tidied. This device's own lesson in progress stays the
+ * active one. (So the result can differ between two devices that are BOTH mid-lesson, each keeping its own: that is deliberate, and stable,
+ * because adopting again changes nothing.)
+ */
+export const adoptLessons = (local: StoredState, remote: StoredState): StoredState => normalizeLessons(mergeLessons(local, remote), local.activeSessionId);
 
 /** True when `bigger` contains every session and quick-check run of `smaller` (used to prove a merge lost nothing). */
 export function containsAll(bigger: StoredState, smaller: StoredState): boolean {
