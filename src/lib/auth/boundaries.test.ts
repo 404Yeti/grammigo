@@ -206,7 +206,7 @@ describe("Phase 6: export, deletion and sign-in confirmation", () => {
   });
   it("the only other privileged calls are the three restore-replay functions, and they are not reachable from any route", () => {
     const src = lifecycle();
-    const replay = [...src.matchAll(/service\.rpc\(\s*"([a-z_]+)"/g)].map((m) => m[1]).sort();
+    const replay = [...src.matchAll(/(?<![.\w])service\.rpc\(\s*"([a-z_]+)"/g)].map((m) => m[1]).sort();
     expect(replay).toEqual(["all_user_ids", "ledger_hashes", "redelete_learner"]);
     const routes = files.filter((f) => /^app\//.test(rel(f)) && !isTest(f)).filter((f) => /replayDeletionLedger|serviceReplayDb/.test(read(f)));
     expect(routes.map(rel)).toEqual([]);
@@ -249,5 +249,54 @@ describe("Phase 6: export, deletion and sign-in confirmation", () => {
       for (const i of imports(read(f))) if (/lifecycle|DeleteAccountForm|ExportButton/.test(i)) offenders.push(`${rel(f)} -> ${i}`);
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("Phase 6: the notice, the review pack and the acceptance checklist stay honest", () => {
+  const ROOT = path.resolve(SRC, "..");
+  const doc = (f: string) => readFileSync(path.join(ROOT, f), "utf8");
+  const notice = () => read(path.join(SRC, "features/accounts/PrivacyAccounts.tsx"));
+
+  it("the plain-text copy for counsel names the same version as the code, and the notice is still marked as a draft", () => {
+    const version = /PRIVACY_NOTICE_VERSION\s*=\s*"([^"]+)"/.exec(read(path.join(SRC, "lib/auth/constants.ts")))?.[1] ?? "";
+    expect(version).toMatch(/^draft-/);
+    expect(doc("docs/legal/privacy-notice-draft.md")).toContain(version);
+    expect(notice()).toContain("PRIVACY_NOTICE_VERSION");
+    expect(notice()).toMatch(/not yet been reviewed by a lawyer/);
+  });
+
+  it("the retention periods in the notice match what the database actually does", () => {
+    const sql = readdirSync(path.join(ROOT, "supabase/migrations")).map((f) => readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8")).join("\n");
+    expect(sql).toMatch(/deletion_ledger rows are kept for 35 days/);
+    expect(sql).toMatch(/audit_events are kept for 90 days/);
+    expect(sql).toMatch(/window_start < now\(\) - interval '2 days'/);
+    for (const text of [notice(), doc("docs/legal/privacy-notice-draft.md")]) {
+      expect(text).toMatch(/35 days/);
+      expect(text).toMatch(/90 days/);
+      expect(text).toMatch(/two days/);
+    }
+  });
+
+  it("every cookie the account system sets is disclosed in the notice", () => {
+    const cfg = read(path.join(SRC, "lib/auth/config.ts"));
+    for (const name of [...cfg.matchAll(/`\$\{prefix\}(gm-[a-z]+)`/g)].map((m) => m[1])) expect(notice(), name).toContain(name);
+  });
+
+  it("the notice does not claim AI receives the account's identity, and the AI routes do not know accounts exist", () => {
+    expect(notice()).toMatch(/does <b>not<\/b> send your name, email or account to OpenAI/);
+    const offenders = files.filter((f) => /^app\/api\/ai\//.test(rel(f)) && !isTest(f) && /lib\/auth|features\/accounts|supabase/i.test(stripComments(read(f)))).map(rel);
+    expect(offenders).toEqual([]);
+  });
+
+  it("the checklist does not claim physical-device acceptance, and the review pack and security review state their limits", () => {
+    expect(doc("docs/dev/real-device-acceptance.md")).toMatch(/Physical-device acceptance has NOT been done/);
+    expect(doc("docs/legal/legal-review-pack.md")).toMatch(/Not legal advice\. Not reviewed by a lawyer/);
+    expect(doc("docs/dev/security-review.md")).toMatch(/not an independent audit/);
+    expect(doc("docs/dev/deletion-and-restore.md")).toMatch(/NOT rehearsed/);
+  });
+
+  it("deletion and export are not offered while accounts are off (the page, both routes, and the screens all sit behind the gate)", () => {
+    for (const f of ["app/account/data/page.tsx", "app/account/delete/page.tsx", "app/auth/deleted/page.tsx"]) expect(read(path.join(SRC, f)), f).toMatch(/accountsEnabled\(\)\) notFound\(\)/);
+    for (const f of ["app/api/account/export/route.ts", "app/api/account/delete/route.ts", "app/api/auth/reauth/route.ts"]) expect(read(path.join(SRC, f)), f).toMatch(/lifecycleDeps\(req\)|authGate\(\)/);
   });
 });

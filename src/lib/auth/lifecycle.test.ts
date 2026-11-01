@@ -232,6 +232,32 @@ describe("the deletion ledger's key", () => {
   });
 });
 
+describe("the operator script", () => {
+  it("hashes exactly as the application does (a mismatch would silently delete nobody after a restore)", async () => {
+    const { ledgerHash: script } = (await import("../../../scripts/replay-deletions.mjs")) as { ledgerHash: (id: string, pepper: string) => Buffer };
+    const pepper = "x".repeat(40);
+    for (const id of [USER_ID, OTHER, USER_ID.toUpperCase()]) expect(script(id, pepper).equals(ledgerHash(id, Buffer.from(pepper)))).toBe(true);
+  });
+  it("dry run changes nothing; apply deletes the matches and reports owners it could not delete", async () => {
+    const { replay } = (await import("../../../scripts/replay-deletions.mjs")) as { replay: (c: { query: (sql: string, p?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> }, pepper: string, apply: boolean) => Promise<{ checked: number; ledger: number; matches: number; deleted: number }> };
+    const pepper = "p".repeat(40);
+    const present = new Set([USER_ID, OTHER]);
+    const hashes = [ledgerHash(USER_ID, Buffer.from(pepper))];
+    const client = {
+      query: async (sql: string, p: unknown[] = []) => {
+        if (sql.includes("all_user_ids")) return { rows: [...present].map((id) => ({ id })) };
+        if (sql.includes("ledger_hashes")) return { rows: hashes.map((h) => ({ h })) };
+        present.delete(String(p[0]));
+        return { rows: [{ r: true }] };
+      },
+    };
+    expect(await replay(client, pepper, false)).toEqual({ checked: 2, ledger: 1, matches: 1, deleted: 0 });
+    expect(present.size).toBe(2);
+    expect(await replay(client, pepper, true)).toEqual({ checked: 2, ledger: 1, matches: 1, deleted: 1 });
+    expect([...present]).toEqual([OTHER]);
+  });
+});
+
 describe("replaying the ledger after a restore", () => {
   function fakeDb(users: string[], ledger: Buffer[], owners: string[] = []) {
     const present = new Set(users);

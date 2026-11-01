@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { accountsEnabled } from "@/features/accounts/enabled";
 import { DeleteAccountForm } from "@/features/accounts/DeleteAccountForm";
 import { PageFrame } from "@/features/accounts/PageFrame";
-import { isRecentSignIn, readSignedInAt } from "@/lib/auth/lifecycle";
+import { hasRecentSignIn } from "@/lib/auth/lifecycle";
 import { requireLearner } from "@/lib/auth/page";
 
 export const metadata: Metadata = { title: "Delete account — Grammigo", robots: { index: false, follow: false } };
@@ -31,7 +31,7 @@ async function Body({ searchParams }: { searchParams: PageProps<"/account/delete
   const { viewer, client, config } = await requireLearner();
   const e = (await searchParams).e;
   const note = typeof e === "string" && Object.hasOwn(NOTES, e) ? NOTES[e] : null;
-  const recent = isRecentSignIn(await readSignedInAt(client), Date.now(), config.reauthWindowSeconds);
+  const recent = await hasRecentSignIn(client, config.reauthWindowSeconds);
   return (
     <PageFrame title="Delete my account" back={{ href: "/account/data", label: "Your data" }}>
       {note && <p role="alert" className="rounded-2xl bg-error-soft p-3 text-sm font-semibold text-error">{note}</p>}

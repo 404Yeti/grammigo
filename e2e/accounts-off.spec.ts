@@ -6,14 +6,14 @@ import { expect, test } from "@playwright/test";
  * deliberately enabled.
  */
 test.describe("accounts are off by default", () => {
-  for (const path of ["/join", "/signin", "/account", "/account/profile", "/auth/no-account", "/auth/error", "/api/account/me", "/api/admin/invitations", "/api/auth/callback", "/api/auth/cleanup", "/api/sync/state", "/api/sync/documents/lessons_v2"]) {
+  for (const path of ["/join", "/signin", "/account", "/account/profile", "/auth/no-account", "/auth/error", "/api/account/me", "/api/admin/invitations", "/api/auth/callback", "/api/auth/cleanup", "/api/sync/state", "/api/sync/documents/lessons_v2", "/account/data", "/account/delete", "/auth/deleted", "/api/account/export", "/api/account/delete", "/api/auth/reauth"]) {
     test(`GET ${path} is 404`, async ({ request }) => {
       const res = await request.get(path, { maxRedirects: 0 });
       expect(res.status()).toBe(404);
     });
   }
 
-  for (const path of ["/api/auth/join", "/api/auth/signin", "/api/auth/signout", "/api/admin/invitations", "/api/sync/consent"]) {
+  for (const path of ["/api/auth/join", "/api/auth/signin", "/api/auth/signout", "/api/auth/reauth", "/api/admin/invitations", "/api/sync/consent", "/api/account/export", "/api/account/delete"]) {
     test(`POST ${path} is 404`, async ({ request }) => {
       const res = await request.post(path, { form: { code: "ABCDEFGHJKM", adult: "on" }, headers: { origin: "http://localhost:3100" }, maxRedirects: 0 });
       expect(res.status()).toBe(404);
@@ -25,7 +25,7 @@ test.describe("accounts are off by default", () => {
     expect(res.status()).toBe(404);
   });
 
-  test("a lesson makes no request to any account or sync endpoint", async ({ page }) => {
+  test("@cross a lesson makes no request to any account or sync endpoint", async ({ page }) => {
     const hits: string[] = [];
     page.on("request", (r) => {
       const p = new URL(r.url()).pathname;
@@ -44,11 +44,17 @@ test.describe("accounts are off by default", () => {
     await expect(page.getByRole("link", { name: /sign in|account/i })).toHaveCount(0);
   });
 
-  test("the learning app is unaffected and sets no cookies", async ({ request }) => {
+  test("@cross the learning app is unaffected and sets no cookies", async ({ request }) => {
     for (const path of ["/", "/library", "/onboarding", "/privacy"]) {
       const res = await request.get(path);
       expect(res.status(), path).toBe(200);
       expect(res.headers()["set-cookie"], path).toBeUndefined();
     }
+  });
+
+  test("@cross the public privacy notice describes only what is running: no accounts, and no draft account notice", async ({ page }) => {
+    await page.goto("/privacy");
+    await expect(page.getByText("Grammigo has no accounts.")).toBeVisible();
+    await expect(page.getByTestId("privacy-accounts")).toHaveCount(0);
   });
 });

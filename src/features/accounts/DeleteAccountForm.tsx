@@ -10,7 +10,7 @@ import { useStorageScope } from "./scope-client";
 /**
  * Permanently deleting the signed-in account. It asks for the confirmation words and an explicit acknowledgement, then sends ONE request;
  * the server decides everything that matters (that the person is signed in, signed in recently, and who they are). Nothing here names
- * which account to delete. The confirmation is never put in the address bar, storage or the console.
+ * which account to delete. The confirmation is never put in the address bar or in any storage, and never logged.
  */
 export function DeleteAccountForm() {
   const accountId = useStorageScope();
@@ -29,7 +29,7 @@ export function DeleteAccountForm() {
       const res = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: phrase }) });
       if (res.ok) {
         if (removeLocal) removeAccountFromDevice(accountId);
-        window.location.assign("/auth/deleted");
+        window.location.replace("/auth/deleted"); // a full load: nothing of the account stays in the page or the router cache, and Back does not return here
         return;
       }
       const body = (await res.json().catch(() => ({}))) as { error?: string };

@@ -44,7 +44,7 @@ async function noHorizontalScroll(page: Page) {
 }
 
 test.describe("typed journey", () => {
-  test("first try → new situation → summary, and the lesson's own progress is untouched", async ({ page }) => {
+  test("@cross first try → new situation → summary, and the lesson's own progress is untouched", async ({ page }) => {
     await ai(page);
     await open(page);
     await page.evaluate(() => window.localStorage.setItem("probe", JSON.stringify(window.localStorage.getItem("grammigo:v2"))));
@@ -131,7 +131,7 @@ test.describe("answers that cannot be judged", () => {
     await expect(page.getByTestId("not-counted-note")).toContainText("Nothing was held against you");
   });
 
-  test("offline: on-device check still works, voice steps aside, second opinions are paused", async ({ page, context }) => {
+  test("@cross offline: on-device check still works, voice steps aside, second opinions are paused", async ({ page, context }) => {
     await ai(page);
     await open(page);
     await context.setOffline(true);

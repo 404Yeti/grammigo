@@ -89,6 +89,11 @@ export async function readSignedInAt(client: SupabaseClient): Promise<number | n
   }
 }
 
+/** Whether this session signed in recently enough to delete the account, asked now. (Kept here so pages do not read the clock themselves.) */
+export async function hasRecentSignIn(client: SupabaseClient, windowSeconds: number): Promise<boolean> {
+  return isRecentSignIn(await readSignedInAt(client), Date.now(), windowSeconds);
+}
+
 // ---------------------------------------------------------------- the deletion ledger's key
 
 /**

@@ -190,3 +190,12 @@ account yet"). Cloud sync and importing an anonymous device's progress are Phase
 * **Expire now**: the invitation stops accepting NEW sign-ins immediately. Someone who already holds a reservation (partway through Google sign-in) can finish. Nothing about
   people who already joined changes.
 * **Revoke**: the hard stop. It also cancels pending reservations; people who already joined keep their accounts.
+
+
+## Phase 6: export, deletion and confirming it is you
+
+* `POST /api/account/export`: the learner's own records as a JSON download (their session, row-level security; audited as a fact).
+* `POST /api/auth/reauth`: a signed-in learner signs in with Google again. The flow cookie has `intent: "reauth"` and the learner's id; the callback accepts only that account and returns to `/account/delete`. It can never create an account.
+* `POST /api/account/delete`: typed words + sign-in no older than `reauthWindowSeconds` (default and maximum 600; `AUTH_REAUTH_WINDOW_SECONDS` can only shorten it) + same origin + rate limit, then one database function. See `deletion-and-restore.md`.
+* Pages: `/account/data`, `/account/delete`, `/auth/deleted`. Account recovery is still out of scope.
+* Review notes: `security-review.md`. Legal: `docs/legal/`. Real iPhone checklist: `real-device-acceptance.md`.

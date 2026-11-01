@@ -58,9 +58,9 @@ jobs:
         env:
           NEXT_PUBLIC_GUIDED_PREVIEW: "true"
           NEXT_PUBLIC_GUIDED_VOICE: "true"
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Playwright (mobile and desktop)
+      - name: Install Chromium, Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Playwright (mobile and desktop, plus Firefox, WebKit and emulated Mobile Safari for the @cross tests)
         run: npx playwright test --workers=2 --retries=1
         env:
           CI: "true"
@@ -148,8 +148,8 @@ jobs:
       - run: npm ci
       - name: Start the local Supabase stack
         run: npx --yes supabase@2.122.0 start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium, Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Build with accounts ON and run the browser tests
         run: npm run test:e2e:accounts -- --workers=2 --retries=1
         env:

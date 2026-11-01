@@ -16,5 +16,10 @@ export default defineConfig({
   projects: [
     { name: "mobile", use: { ...devices["Pixel 7"], browserName: "chromium" } },
     { name: "desktop", use: { viewport: { width: 1440, height: 900 }, browserName: "chromium" } },
+    // The anonymous learning paths tagged @cross also run in Firefox and WebKit. Mobile Safari is WebKit with an iPhone's viewport, touch
+    // and user agent: an EMULATION, not a real iPhone (see docs/dev/real-device-acceptance.md).
+    { name: "firefox", use: { ...devices["Desktop Firefox"] }, grep: /@cross/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, grep: /@cross/ },
+    { name: "mobile-safari", use: { ...devices["iPhone 14"] }, grep: /@cross/ },
   ],
 });

@@ -44,7 +44,7 @@ function watchSync(page: Page) {
 const puts = (seen: ReturnType<typeof watchSync>) => seen.filter((s) => s.method === "PUT");
 
 test.describe("saving progress needs consent", () => {
-  test("a learner who has not agreed: lessons work, NOTHING is uploaded, and they are asked plainly", async ({ context, page }) => {
+  test("@cross a learner who has not agreed: lessons work, NOTHING is uploaded, and they are asked plainly", async ({ context, page }) => {
     test.setTimeout(90_000);
     const ana = await createAccount({ name: "No Consent Ana", learner: true });
     await signIn(context, page, ana);
@@ -61,7 +61,7 @@ test.describe("saving progress needs consent", () => {
     expect(await hasConsent(ana.id)).toBe(false);
   });
 
-  test("turning saving on records consent FIRST, then saves what was already there, and the chip says so only when it is true", async ({ context, page }) => {
+  test("@cross turning saving on records consent FIRST, then saves what was already there, and the chip says so only when it is true", async ({ context, page }) => {
     test.setTimeout(90_000);
     const ana = await createAccount({ name: "Agrees Ana", learner: true });
     await signIn(context, page, ana);
@@ -174,7 +174,7 @@ test.describe("a failing or missing network never blocks a lesson", () => {
 test.describe("a real database outage on the server", () => {
   test.use({ baseURL: OUTAGE_BASE });
 
-  test("the account routes answer 'unavailable' (503, retry later), never 'sign in again'; lessons are completely unaffected", async ({ context, page, request }) => {
+  test("@cross the account routes answer 'unavailable' (503, retry later), never 'sign in again'; lessons are completely unaffected", async ({ context, page, request }) => {
     test.setTimeout(120_000);
     const ana = await createAccount({ name: "Outage Server Ana", learner: true });
     const cookies = sessionCookies(ana).map((c) => ({ ...c, url: OUTAGE_BASE }));
@@ -187,6 +187,9 @@ test.describe("a real database outage on the server", () => {
     expect(Number(st.headers()["retry-after"])).toBeGreaterThan(0);
     expect(st.headers()["cache-control"]).toContain("no-store");
     expect((await request.put("/api/sync/documents/lessons_v2", { data: { expectedRevision: 0, body: {} }, headers: { origin: OUTAGE_BASE, "content-type": "application/json" } })).status()).toBe(503);
+    // downloading and deleting say "try later" too (never "sign in again", and nothing is half-done)
+    expect((await request.post("/api/account/export", { headers: { origin: OUTAGE_BASE } })).status()).toBe(503);
+    expect((await request.post("/api/account/delete", { data: JSON.stringify({ confirm: "delete my account" }), headers: { origin: OUTAGE_BASE, "content-type": "application/json" } })).status()).toBe(503);
 
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
@@ -207,7 +210,7 @@ test.describe("a real database outage on the server", () => {
 });
 
 test.describe("progress too large to save online", () => {
-  test("a clear warning, nothing sent, never 'saved to your account', progress intact, and a way to keep a copy", async ({ context, page }) => {
+  test("@cross a clear warning, nothing sent, never 'saved to your account', progress intact, and a way to keep a copy", async ({ context, page }) => {
     test.setTimeout(150_000);
     const ana = await createAccount({ name: "Large Progress Ana", learner: true });
     await signIn(context, page, ana);
@@ -251,7 +254,7 @@ test.describe("adding guest progress needs a clear yes", () => {
   const GUEST = "grammigo:v2";
   const read = (page: Page, key: string) => page.evaluate((k) => window.localStorage.getItem(k), key);
 
-  test("offered, declined without cost, then added on request: the guest copy is never touched, and it is not offered twice", async ({ context, page }) => {
+  test("@cross offered, declined without cost, then added on request: the guest copy is never touched, and it is not offered twice", async ({ context, page }) => {
     test.setTimeout(120_000);
     // a guest starts a lesson (no account)
     await startFromHome(page);
