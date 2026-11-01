@@ -19,6 +19,12 @@ export interface FlowJar {
   readFlow(): string | undefined;
   setFlow(token: string): void;
   clearFlow(): void;
+  /**
+   * Tells the browser WHICH learner's saved progress to use on this device (see lib/scope/storage-scope). The value is the account id: not a
+   * secret, not a credential, and unreadable-as-authority (it grants nothing; the session cookie is what proves who someone is). It is
+   * deliberately readable by page script, because the lesson store needs it synchronously, before any network call.
+   */
+  setScope(userId: string): void;
   /** Removes the session cookie, its chunks and the PKCE verifier. Used on every refused sign-in, whatever else fails. */
   clearAuthCookies(): void;
 }
@@ -41,9 +47,11 @@ export function flowJar(config: AuthConfig, cookies: CookieSession): FlowJar {
     readFlow: () => cookies.get(config.cookieNames.flow),
     setFlow: (token) => cookies.set(config.cookieNames.flow, token, { ...base, maxAge: FLOW_TTL_SECONDS }),
     clearFlow: () => cookies.delete(config.cookieNames.flow, base),
+    setScope: (userId) => cookies.set(config.cookieNames.scope, userId, { ...base, httpOnly: false }),
     clearAuthCookies: () => {
       cookies.deleteWithPrefix(config.cookieNames.auth, base);
       cookies.delete(config.cookieNames.flow, base);
+      cookies.delete(config.cookieNames.scope, { ...base, httpOnly: false });
     },
   };
 }

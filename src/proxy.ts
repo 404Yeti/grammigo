@@ -21,7 +21,10 @@ export async function proxy(request: NextRequest) {
   const hasSession = request.cookies.getAll().some((c) => c.name.startsWith(config.cookieNames.auth));
   if (!hasSession) {
     if (request.nextUrl.pathname === "/account" || request.nextUrl.pathname.startsWith("/account/")) {
-      return NextResponse.redirect(new URL("/signin?e=session", config.siteUrl), { status: 307, headers: { "Cache-Control": "private, no-store" } });
+      const redirect = NextResponse.redirect(new URL("/signin?e=session", config.siteUrl), { status: 307, headers: { "Cache-Control": "private, no-store" } });
+      // No session: this browser is no longer signed in, so it goes back to the guest's saved progress.
+      redirect.cookies.set({ name: config.cookieNames.scope, value: "", path: "/", maxAge: 0, secure: config.secureCookies, sameSite: "lax" });
+      return redirect;
     }
     return NextResponse.next();
   }

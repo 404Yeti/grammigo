@@ -20,6 +20,13 @@ test.describe("accounts are off by default", () => {
     });
   }
 
+  test("the shared page shell shows no sign-in link at all", async ({ page }) => {
+    await page.goto("/library");
+    await expect(page.getByRole("heading", { name: "Grammar library" })).toBeVisible();
+    await expect(page.getByTestId("account-entry")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /sign in|account/i })).toHaveCount(0);
+  });
+
   test("the learning app is unaffected and sets no cookies", async ({ request }) => {
     for (const path of ["/", "/library", "/onboarding", "/privacy"]) {
       const res = await request.get(path);

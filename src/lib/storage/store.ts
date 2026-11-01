@@ -1,4 +1,5 @@
 import type { StoredState } from "@/types/session";
+import { onScopeChange } from "@/lib/scope/storage-scope";
 import type { PersistenceAdapter } from "./adapter";
 import { localStorageAdapter } from "./local-storage-adapter";
 import { emptyState, parseStoredState } from "./schema";
@@ -68,3 +69,9 @@ export function resetStoreCache(): void {
   cachedState = emptyState();
   memoryOnly = false;
 }
+
+// Another learner's (or the guest's) saved progress is a different document: forget what was cached and tell every subscriber to re-read.
+onScopeChange(() => {
+  resetStoreCache();
+  listeners.forEach((listener) => listener());
+});

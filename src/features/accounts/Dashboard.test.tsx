@@ -7,11 +7,13 @@ import { buildItemPool, createRun, recordResponse, selectNextItem } from "@/feat
 import { startSession } from "@/features/practice/actions";
 import { dispatchGuided, startGuidedSession } from "@/features/guided/store/actions";
 import { guidedLocalStorage, resetGuidedStoreCache, setGuidedPersistence } from "@/features/guided/store/store";
+import { setStorageScope } from "@/lib/scope/storage-scope";
 import { updateState } from "@/lib/storage/store";
 import { lesson, playQuestions, resetApp, router } from "@/tests/helpers";
 import { Dashboard } from "./Dashboard";
 
-const show = (over: Partial<Parameters<typeof Dashboard>[0]> = {}) => render(<Dashboard displayName="Ana" practising={[]} welcome={false} {...over} />);
+const ANA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const show = (over: Partial<Parameters<typeof Dashboard>[0]> = {}) => render(<Dashboard userId={ANA} displayName="Ana" practising={[]} welcome={false} {...over} />);
 const skipOnboarding = () => updateState((s) => ({ ...s, onboarding: { ...s.onboarding, status: "skipped" } }));
 
 /** Guided Correction activity of every kind, through the real store (so these are the real saved shapes). */
@@ -29,6 +31,7 @@ function seedGuided() {
 }
 
 beforeEach(() => {
+  setStorageScope(ANA); // Ana is signed in on this browser: her progress lives in her own folder
   resetApp();
   setGuidedPersistence(guidedLocalStorage);
   resetGuidedStoreCache();

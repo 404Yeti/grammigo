@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ClipboardCheck, Smartphone, Target } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Migo } from "@/components/mascot/Migo";
@@ -16,7 +17,9 @@ import { useDerivedLearning } from "@/features/learning/use-learning";
 import { restartOnboarding } from "@/features/onboarding/actions";
 import { getActiveSession } from "@/features/practice/selectors";
 import { usePracticeState } from "@/features/practice/use-practice-state";
+import { setStorageScope } from "@/lib/scope/storage-scope";
 import { timeAgo } from "@/lib/utils/time";
+import { useStorageScope, writeScopeCookie } from "./scope-client";
 
 function Skeleton({ className }: { className: string }) {
   return <div aria-hidden className={`rounded-[20px] border border-line bg-subtle ${className}`} />;
@@ -27,9 +30,21 @@ function Skeleton({ className }: { className: string }) {
  * (mastery, profile and recommendations are never stored). Cloud sync is not part of this release, so it never says "saved to your account"
  * about progress. Guided Correction appears only as its own labelled, provisional activity card, never as mastery.
  */
-export function Dashboard({ displayName, practising, welcome }: { displayName: string; practising: string[]; welcome: boolean }) {
+export function Dashboard({ userId, displayName, practising, welcome }: { userId: string; displayName: string; practising: string[]; welcome: boolean }) {
   const router = useRouter();
-  const state = usePracticeState();
+  // SHARED DEVICES. Saved progress lives in this browser, one folder per learner (see lib/scope/storage-scope). This dashboard may only ever read
+  // the folder of the learner the SERVER says is signed in. If the browser is pointed anywhere else (the guest's folder, or a previous learner's
+  // after they signed out), it is re-pointed here, and until that has happened nothing from the wrong folder is shown, not even for one frame.
+  const scope = useStorageScope();
+  const ready = scope === userId;
+  useEffect(() => {
+    if (!ready) {
+      setStorageScope(userId);
+      writeScopeCookie(userId);
+    }
+  }, [ready, userId]);
+  const saved = usePracticeState();
+  const state = ready ? saved : null;
   const learning = useDerivedLearning(state);
   const initial = (displayName.trim()[0] ?? "?").toUpperCase();
 

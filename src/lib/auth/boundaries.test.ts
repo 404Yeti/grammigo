@@ -17,6 +17,8 @@ const files = walk(SRC);
 const rel = (f: string) => path.relative(SRC, f).replaceAll("\\", "/");
 const read = (f: string) => readFileSync(f, "utf8");
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || rel(f).endsWith("auth/testkit.ts");
+/** Code only: a comment may mention a word the code must not use. */
+const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 const imports = (src: string) => [...src.matchAll(/(?:import|export)[^'"]*?from\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)|import\s*["']([^"']+)["']/g)].map((m) => m[1] ?? m[2] ?? m[3]);
 
 describe("the service role and secrets stay on the server", () => {
@@ -73,12 +75,26 @@ describe("every account route is gated and answers per request", () => {
 
 describe("the learning code does not know accounts exist", () => {
   const LEARNING = /^(features\/(learning|practice|guided|diagnostic|mastery|onboarding|lessons|ai)|lib\/storage|curriculum|data|types|components)\//;
-  it("none of it imports the account modules", () => {
+  // The ONE exception: the shared page shell shows a plain "Sign in" / "Account" link. That link makes no network call and touches no
+  // lesson, mastery or storage code; it only reads which learner's folder the browser points at.
+  const ALLOWED: Record<string, string[]> = { "components/layout/AppShell.tsx": ["@/features/accounts/AccountEntry"] };
+  it("none of it imports the account modules, except the one header link", () => {
     const offenders: string[] = [];
     for (const f of files) {
       if (!LEARNING.test(rel(f)) || isTest(f)) continue;
-      for (const i of imports(read(f))) if (/@\/lib\/auth|@\/features\/accounts|@supabase\//.test(i)) offenders.push(`${rel(f)} -> ${i}`);
+      for (const i of imports(read(f))) if (/@\/lib\/auth|@\/features\/accounts|@supabase\//.test(i) && !(ALLOWED[rel(f)] ?? []).includes(i)) offenders.push(`${rel(f)} -> ${i}`);
     }
+    expect(offenders).toEqual([]);
+  });
+  it("the header link itself is plain: no server code, no network, no storage writes", () => {
+    const src = read(path.join(SRC, "features/accounts/AccountEntry.tsx"));
+    expect(src).not.toMatch(/fetch\(|XMLHttpRequest|@\/lib\/auth|@supabase|localStorage|sessionStorage|document\.cookie/);
+  });
+  it("the storage-scope module is a pure key switch: it imports nothing", () => {
+    expect(imports(read(path.join(SRC, "lib/scope/storage-scope.ts")))).toEqual([]);
+  });
+  it("lesson, mastery and storage code never make a network call or know about Supabase", () => {
+    const offenders = files.filter((f) => !isTest(f) && /^(features\/(learning|practice|diagnostic|mastery|lessons|guided\/(cycle|store|evaluator))|lib\/storage|curriculum|data)\//.test(rel(f)) && /\bfetch\(|supabase|XMLHttpRequest|sendBeacon/i.test(stripComments(read(f)))).map(rel);
     expect(offenders).toEqual([]);
   });
   it("the proxy matches only account paths, never lessons, practice, library or onboarding", () => {

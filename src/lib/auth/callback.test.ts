@@ -242,3 +242,41 @@ describe("callback: security holds when cleanup or the Auth server fail", () => 
     for (const s of ["learner@example.test", "Ana", "secret-oauth-code", nonce, USER_ID]) expect(text).not.toContain(s);
   });
 });
+
+describe("callback: which learner's saved progress this browser uses", () => {
+  const scopeCookie = (m: ReturnType<typeof makeRuntime>) => m.cookies.outgoing.get(cfg.cookieNames.scope);
+
+  it("a returning learner's sign-in points the browser at THEIR progress: a readable, non-secret cookie holding only the account id", async () => {
+    const { token, nonce } = flowToken(cfg, { intent: "signin" });
+    const m = makeRuntime({ profile: "active" }, [{ name: cfg.cookieNames.flow, value: token }]);
+    await handleCallback(m.rt, { code: "abc", providerError: null, flowParam: nonce });
+    expect(scopeCookie(m)?.value).toBe(USER_ID);
+    expect(scopeCookie(m)?.options).toMatchObject({ httpOnly: false, sameSite: "lax", path: "/" }); // script must read it; the session cookie stays httpOnly
+    expect(scopeCookie(m)?.options.maxAge).toBeGreaterThan(0);
+  });
+
+  it("a new learner who joins is pointed at their own, empty progress", async () => {
+    const { cookies, nonce } = jarWith();
+    const m = makeRuntime({}, cookies);
+    expect((await handleCallback(m.rt, { code: "abc", providerError: null, flowParam: nonce })).outcome).toBe("joined");
+    expect(scopeCookie(m)?.value).toBe(USER_ID);
+  });
+
+  it("every refusal leaves the browser on whatever it had, and clears the hint when it ends the session", async () => {
+    for (const over of [{ profile: "suspended" as const }, { redeem: "invalid" as const }, { exchangeOk: false }]) {
+      const { cookies, nonce } = jarWith();
+      const m = makeRuntime(over, [...cookies, { name: cfg.cookieNames.scope, value: USER_ID }]);
+      await handleCallback(m.rt, { code: "abc", providerError: null, flowParam: nonce });
+      const c = scopeCookie(m);
+      expect(c === undefined || c.options.maxAge === 0, JSON.stringify(over)).toBe(true); // never SET for a refused sign-in
+    }
+  });
+
+  it("signing out clears it", async () => {
+    const { handleSignOut } = await import("./handlers");
+    const m = makeRuntime({}, [{ name: cfg.cookieNames.auth, value: "s" }, { name: cfg.cookieNames.scope, value: USER_ID }]);
+    await handleSignOut(m.rt, { headers: new Headers({ origin: cfg.siteUrl.origin }) });
+    expect(scopeCookie(m)?.options.maxAge).toBe(0);
+    expect(m.cookies.get(cfg.cookieNames.scope)).toBeUndefined();
+  });
+});

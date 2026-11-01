@@ -23,5 +23,5 @@ async function DashboardPage({ searchParams }: { searchParams: PageProps<"/accou
   const { viewer, client } = await requireLearner();
   const profile = await readProfile(client, viewer.id);
   const welcome = (await searchParams).welcome === "1";
-  return <Dashboard displayName={viewer.displayName} practising={profile?.preferences.practising ?? []} welcome={welcome} />;
+  return <Dashboard userId={viewer.id} displayName={viewer.displayName} practising={profile?.preferences.practising ?? []} welcome={welcome} />;
 }
