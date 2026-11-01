@@ -1,12 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { readGuest, summarizeGuest, type GuestSummary } from "@/features/sync/guest-import";
 import { downloadLocalCopy } from "@/features/sync/local-export";
 import { transferOrigins } from "./config";
 import { isAck, transferMessageFor } from "./protocol";
+
+const noSubscription = () => () => undefined;
+const subscribeStorage = (l: () => void) => {
+  window.addEventListener("storage", l);
+  return () => window.removeEventListener("storage", l);
+};
+/** The guest progress, summarised. Memoised on the raw saved text, so React's re-reads cost nothing and the value only changes when the data does. */
+let memo: { raw: string; out: string } = { raw: "\u0000", out: "" };
+function guestSummaryJson(): string {
+  try {
+    const raw = `${window.localStorage.getItem("grammigo:v2") ?? ""}\u0000${window.localStorage.getItem("grammigo:guided:v1") ?? ""}`;
+    if (raw !== memo.raw) memo = { raw, out: JSON.stringify(summarizeGuest(readGuest())) };
+    return memo.out;
+  } catch {
+    return JSON.stringify(summarizeGuest(null));
+  }
+}
 
 /**
  * The OLD address's side, opened by the new address in a window of its own. It READS the guest progress (never writes or deletes it) and, only
@@ -15,15 +32,11 @@ import { isAck, transferMessageFor } from "./protocol";
  */
 export function SendPanel() {
   const { source, target } = transferOrigins();
-  const [here, setHere] = useState<string | null>(null);
-  const [summary, setSummary] = useState<GuestSummary | null>(null);
+  const here = useSyncExternalStore(noSubscription, () => window.location.origin, () => null);
+  const summaryJson = useSyncExternalStore(subscribeStorage, guestSummaryJson, () => null);
+  const summary = summaryJson === null ? null : (JSON.parse(summaryJson) as GuestSummary);
   const [sent, setSent] = useState<"no" | "sent" | "arrived">("no");
   const [downloaded, setDownloaded] = useState(false);
-
-  useEffect(() => {
-    setHere(window.location.origin);
-    setSummary(summarizeGuest(readGuest()));
-  }, []);
 
   useEffect(() => {
     if (sent !== "sent") return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { useStorageScope } from "@/features/accounts/scope-client";
 import { applyTransfer, describePreview, previewTransfer, type TransferPreview } from "./apply";
@@ -8,6 +8,7 @@ import { transferOrigins } from "./config";
 import { ackMessage_, parseDeviceCopyText, parseIncoming, REJECTION_TEXT, type Incoming, type Rejected } from "./protocol";
 
 type Phase = "idle" | "waiting" | "preview" | "done";
+const noSubscription = () => () => undefined;
 
 /**
  * The NEW address's side. Nothing happens until the learner presses "Bring my progress": that opens the old address in a window of its own, and
@@ -22,8 +23,7 @@ export function ReceivePanel() {
   const [preview, setPreview] = useState<TransferPreview | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const popup = useRef<Window | null>(null);
-  const [here, setHere] = useState<string | null>(null);
-  useEffect(() => setHere(window.location.origin), []);
+  const here = useSyncExternalStore(noSubscription, () => window.location.origin, () => null); // null while rendering on the server
 
   // While waiting for the other window, listen. The listener exists only in that state and is removed as soon as one acceptable answer arrives.
   useEffect(() => {
