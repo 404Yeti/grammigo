@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import * as lib from "../../../scripts/backup/lib.mjs";
-import { insideGitTree } from "../../../scripts/backup/backup.mjs";
+import { insideGitTree, onWindowsDrive } from "../../../scripts/backup/backup.mjs";
 
 const PASS = "correct horse battery staple 42";
 const sample = () => {
@@ -62,6 +62,11 @@ describe("where a backup may be written", () => {
     expect(insideGitTree(path.resolve(__dirname))).toBe(true);
     const outside = mkdtempSync(path.join(tmpdir(), "gm-backup-"));
     try { expect(insideGitTree(outside)).toBe(false); } finally { rmSync(outside, { recursive: true }); }
+  });
+  it("not on a Windows drive, where file permissions are not enforced", () => {
+    expect(onWindowsDrive("/mnt/c/Users/me/backups/x.gmbackup")).toBe(true);
+    expect(onWindowsDrive("/mnt/d")).toBe(true);
+    for (const ok of ["/home/me/grammigo-backups/x.gmbackup", "/tmp/x", "/mnt", "/mnt/wsl/x", "/mount/c/x"]) expect(onWindowsDrive(ok), ok).toBe(false);
   });
   it("*.gmbackup files are ignored by git, so an accidental `git add .` cannot pick one up", () => {
     expect(readFileSync(path.resolve(__dirname, "../../../.gitignore"), "utf8")).toMatch(/^\*\.gmbackup$/m);

@@ -30,6 +30,7 @@ describe("environment check", () => {
     expect(bad({ INVITE_CODE_PEPPER: "short" })).toContain("INVITE_CODE_PEPPER strength");
     expect(bad({ AUTH_FLOW_SECRET: goodEnv.INVITE_CODE_PEPPER })).toContain("pepper differs from flow secret");
     expect(bad({ AUTH_SITE_URL: "http://grammigo.si" })).toContain("AUTH_SITE_URL is https on the canonical domain");
+    expect(bad({ AUTH_SITE_URL: "https://www.grammigo.si" })).toEqual([]); // the configured canonical address passes
     expect(bad({ AUTH_SITE_URL: "https://grammigo.vercel.app" })).toContain("AUTH_SITE_URL is https on the canonical domain");
     expect(bad({ SUPABASE_URL: "https://zzzzzzzzzzzzzzzzzzzz.supabase.co" })).toContain("SUPABASE_URL is the expected project");
     expect(bad({ SUPABASE_URL: "http://localhost:54321" })).toContain("SUPABASE_URL is an https supabase.co project");

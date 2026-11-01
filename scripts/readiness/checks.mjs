@@ -7,7 +7,7 @@ const LEARNER_SELECT = ["consents", "learner_documents", "profiles"];
 const PROFILE_UPDATABLE = ["display_name", "first_language", "time_zone", "preferences"];
 const LEARNER_FUNCTIONS = ["is_active_learner", "is_admin"];
 const PRIVS = ["select", "insert", "update", "delete", "truncate", "references", "trigger"];
-const CANONICAL_HOSTS = ["grammigo.si"];
+const CANONICAL_HOSTS = ["www.grammigo.si", "grammigo.si"]; // www is the configured Site URL; the apex redirects to it
 
 const item = (id, ok, detail, level = ok ? "pass" : "fail") => ({ id, ok, level, detail });
 /** An informational line that is neither a pass nor a failure (something the check cannot see read-only). */
