@@ -67,12 +67,10 @@ describe("registering with email + password", () => {
       expect(m.calls).not.toContain("signUp");
     }
   });
-  it("a profile-less leftover for the address (a squatter or an unfinished registration) is cleared first, then the real registration proceeds", async () => {
-    const m = makeRuntime({ emailState: { userId: "squatter", providers: ["email"], confirmed: false, hasProfile: false } });
-    expect((await reg(m)).status).toBe(303);
-    expect(m.calls.indexOf("purge")).toBeGreaterThan(-1);
-    expect(m.calls.indexOf("purge")).toBeLessThan(m.calls.indexOf("reserveForEmail"));
-    expect(m.calls.indexOf("reserveForEmail")).toBeLessThan(m.calls.indexOf("signUp"));
+  it("an Auth user that is waiting for its confirmation (profile-less, email-only) is NEVER deleted or touched by another registration: refused, no seat, no mail", async () => {
+    const m = makeRuntime({ emailState: { userId: "pending", providers: ["email"], confirmed: false, hasProfile: false } });
+    expect(loc(await reg(m))).toBe("/join/email?e=taken");
+    for (const call of ["purge", "reserveForEmail", "signUp", "release"]) expect(m.calls).not.toContain(call);
   });
   it("if the Auth server signs the person in at once (email confirmation is OFF), that is a failure: session ended, seat given back, no access", async () => {
     const m = makeRuntime({ signUp: { ok: true, sessionCreated: true } });

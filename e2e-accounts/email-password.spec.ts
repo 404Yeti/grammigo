@@ -47,7 +47,7 @@ test.describe("joining with email and a password", () => {
     await page.getByTestId("password-signin").getByLabel("Email address").fill(address);
     await page.getByTestId("password-signin").getByLabel("Password").fill(GOOD);
     await page.getByRole("button", { name: "Sign in with email" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "confirm your email address" })).toBeVisible();
+    await expect(page.locator('p[role="alert"]').filter({ hasText: "confirm your email address" })).toBeVisible();
 
     // the link in the email confirms the address and signs nobody in
     const mail = await waitForMail(address, { contains: /auth\/v1\/verify/, after: t });
@@ -122,16 +122,16 @@ test.describe("joining with email and a password", () => {
       await page.getByRole("button", { name: "Create my account" }).click();
     };
     await fill("ABCD-EFGH-JKMN", bad, GOOD);
-    await expect(page.getByRole("alert").filter({ hasText: "invitation code" })).toBeVisible();
+    await expect(page.locator('p[role="alert"]').filter({ hasText: "invitation code" })).toBeVisible();
     const req = page.request;
     await page.context().addCookies(sessionCookies(owner));
     const made = await req.post(`${BASE}/api/admin/invitations`, { data: { label: "refusals", maxUses: 3, expiresInDays: 1 }, headers: jsonHeaders() });
     const { code } = (await made.json()) as { code: string };
     await page.context().clearCookies();
     await fill(code, bad, "Password1234");
-    await expect(page.getByRole("alert")).toContainText("most common passwords");
+    await expect(page.locator('p[role="alert"]')).toContainText("most common passwords");
     await fill(code, google.email, GOOD);
-    await expect(page.getByRole("alert")).toContainText("can’t be used to join");
+    await expect(page.locator('p[role="alert"]')).toContainText("can’t be used to join");
     expect((await q("select count(*)::int n from auth.users where email = any($1)", [[bad]])).rows[0].n).toBe(0);
     expect((await q("select count(*)::int n from auth.identities where user_id = $1 and provider = 'email'", [google.id])).rows[0].n).toBe(0); // no email identity was attached to the Google person
     await expect(waitForMail(bad, { timeoutMs: 1_500 })).rejects.toThrow(/no email/);
@@ -144,7 +144,7 @@ test.describe("joining with email and a password", () => {
       await page.getByTestId("password-signin").getByLabel("Password").fill(pw);
       await page.getByTestId("password-signin").getByLabel("Email address").evaluate((el: HTMLInputElement) => el.form?.setAttribute("novalidate", ""));
       await page.getByRole("button", { name: "Sign in with email" }).click();
-      await expect(page.getByRole("alert").filter({ hasText: "don’t match" })).toBeVisible();
+      await expect(page.locator('p[role="alert"]').filter({ hasText: "don’t match" })).toBeVisible();
     }
   });
 });
@@ -193,19 +193,19 @@ test.describe("forgot password", () => {
     await page.getByLabel(/New password/).fill(NEW);
     await page.getByLabel("Type it again").fill("something else entirely 1");
     await page.getByRole("button", { name: "Save new password" }).click();
-    await expect(page.getByRole("alert")).toContainText("don’t match");
+    await expect(page.locator('p[role="alert"]')).toContainText("don’t match");
     await page.getByLabel(/New password/).fill(NEW);
     await page.getByLabel("Type it again").fill(NEW);
     await page.getByRole("button", { name: "Save new password" }).click();
     await expect(page).toHaveURL(/\/signin\?e=pwchanged/);
-    await expect(page.getByRole("alert")).toContainText("signed out everywhere");
+    await expect(page.locator('p[role="alert"]')).toContainText("signed out everywhere");
 
     // the other device is signed out; the old password is refused; the new one works
     expect((await other.request.get(`${BASE}/api/account/me`)).status()).toBe(401);
     await page.getByTestId("password-signin").getByLabel("Email address").fill(address);
     await page.getByTestId("password-signin").getByLabel("Password").fill(GOOD);
     await page.getByRole("button", { name: "Sign in with email" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "don’t match" })).toBeVisible();
+    await expect(page.locator('p[role="alert"]').filter({ hasText: "don’t match" })).toBeVisible();
     await page.getByTestId("password-signin").getByLabel("Email address").fill(address);
     await page.getByTestId("password-signin").getByLabel("Password").fill(NEW);
     await page.getByRole("button", { name: "Sign in with email" }).click();
@@ -256,6 +256,6 @@ test.describe("forgot password", () => {
     const elsewhere = await (await browser.newContext()).newPage();
     await elsewhere.goto(link);
     await expect(elsewhere).toHaveURL(/\/auth\/error\?r=recover/);
-    await expect(elsewhere.getByRole("alert")).toContainText("same browser");
+    await expect(elsewhere.locator('p[role="alert"]')).toContainText("same browser");
   });
 });

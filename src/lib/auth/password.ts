@@ -90,11 +90,14 @@ export async function handleRegister(rt: AuthRuntime, input: RegisterInput): Pro
   // 3. the address
   try {
     const state = await rt.db.emailState(email);
-    if (state && (state.hasProfile || state.providers.some((p) => p !== "email"))) {
+    // An Auth user already holds this address. Whatever it is (a finished account, a Google identity, or a registration still waiting for its
+    // confirmation), registering NEVER deletes or touches it, reserves no seat and sends no mail: another person presenting the same address must not
+    // be able to destroy someone's pending registration. A profile-less leftover is removed only by the scheduled sweep, once it is older than the
+    // seat's hold (see `runCleanup`), and it has no access in the meantime.
+    if (state) {
       rt.log("register", { outcome: "taken" });
       return registerError("taken");
     }
-    if (state) await rt.db.purgeOrphan(state.userId); // a profile-less leftover for this address
   } catch {
     return registerError("server");
   }
@@ -144,8 +147,8 @@ export async function handlePasswordSignIn(rt: AuthRuntime, input: PasswordSignI
   const email = normaliseEmail(input.email);
   if (!email || typeof input.password !== "string" || input.password.length === 0 || input.password.length > FIELD) return fail("credentials");
   try {
-    const ip = await limited(rt, LIMITS.passwordSignin, clientAddress(input.headers));
-    const mailbox = await limited(rt, LIMITS.passwordSigninEmail, emailHash(email, rt.config.flowSecret).toString("hex"));
+    const ip = await limited(rt, LIMITS.loginByEmail, clientAddress(input.headers));
+    const mailbox = await limited(rt, LIMITS.loginByEmailMailbox, emailHash(email, rt.config.flowSecret).toString("hex"));
     if (!ip.allowed || !mailbox.allowed) {
       rt.log("password_signin", { outcome: "rate_limited" });
       return fail("rate", Math.max(ip.allowed ? 0 : ip.retryAfter, mailbox.allowed ? 0 : mailbox.retryAfter));
@@ -247,7 +250,7 @@ export async function handleNewPassword(rt: AuthRuntime, input: { headers: Heade
   if (!isTrustedOrigin(input.headers, rt.config.siteUrl)) return { status: 403 };
   if (Number(input.headers.get("content-length") ?? 0) > MAX_FORM_BYTES) return { status: 413 };
   try {
-    const d = await limited(rt, LIMITS.newPassword, clientAddress(input.headers));
+    const d = await limited(rt, LIMITS.resetChoose, clientAddress(input.headers));
     if (!d.allowed) return fail("rate", d.retryAfter);
   } catch {
     return fail("server");

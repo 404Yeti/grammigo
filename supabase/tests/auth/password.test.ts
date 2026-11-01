@@ -184,16 +184,27 @@ describe("registering with email + password (real Auth server and mailbox)", () 
     expect(loc((await signInWith(email, "attacker chosen long password")).result)).toBe("/signin?e=credentials");
   });
 
-  it("a squatter who pre-registered the address through the public Auth API is cleared, and only the invited person's password works", async () => {
+  it("a squatter who pre-registered the address through the public Auth API gets nothing, and the invited person's pending registration is never deleted by another registration; only the age-based sweep clears a stale leftover", async () => {
     const inv = await makeInvitation(await owner());
     const email = address("pw-squat");
     const anon = createClient(API, ANON, { auth: { persistSession: false } });
     await anon.auth.signUp({ email, password: "squatters password is long" }); // unconfirmed, profile-less, someone else's choice of password
     const squatterId = (await userRow(email))!.id;
+    // a registration presenting the same address does not delete that user, reserves no seat and signs nobody up
+    expect(loc(await register(email, inv.code))).toBe("/join/email?e=taken");
+    expect((await userRow(email))!.id).toBe(squatterId);
+    expect(await seat(inv.id)).toEqual([]);
+    // the squatter's password gives no access (unconfirmed, and no profile either way)
+    expect(loc((await signInWith(email, "squatters password is long")).result)).toBe("/signin?e=unconfirmed");
+    expect(await profileOf(email)).toBeUndefined();
+    // a young leftover survives the sweep; once it is older than the hold, the sweep removes it and the invited person can register
+    await service.rpc("purge_orphan_identities", { p_older: "25 hours" });
+    expect((await userRow(email))?.id).toBe(squatterId);
+    await q("update auth.users set created_at = now() - interval '26 hours' where id = $1", [squatterId]);
+    await service.rpc("purge_orphan_identities", { p_older: "25 hours" });
+    expect(await userRow(email)).toBeUndefined();
     const since = t0();
     expect(loc(await register(email, inv.code))).toBe("/auth/check-email?k=confirm");
-    const now = (await userRow(email))!;
-    expect(now.id).not.toBe(squatterId); // the squatter's account is gone; a fresh one holds the address
     await confirmByEmail(email, since);
     expect(loc((await signInWith(email, "squatters password is long")).result)).toBe("/signin?e=credentials");
     expect(loc((await signInWith(email, GOOD)).result)).toBe("/account?welcome=1");
@@ -266,11 +277,11 @@ describe("forgot password and choosing a new one", () => {
     expect(code).toBeTruthy();
     // an old session on another device, and the recovery session in the asking browser
     const device2 = await signInWith(a.email, GOOD);
-    const { rt: rt1, jar: jar1 } = runtimeFor(jar.getAll());
+    const { rt: rt1, jar: jar1 } = runtimeFor(jar.getAll(), { exchange: "real" });
     const { handleRecover } = await import("@/lib/auth/password");
     expect(await handleRecover(rt1, { code })).toMatchObject({ location: "/auth/new-password" });
     // a link opened in a DIFFERENT browser (no verifier) does nothing useful
-    const { rt: rtOther } = runtimeFor([]);
+    const { rt: rtOther } = runtimeFor([], { exchange: "real" });
     expect(await handleRecover(rtOther, { code })).toMatchObject({ location: "/auth/error?r=recover" });
     const { rt: rt2, jar: jar2 } = runtimeFor(jar1.getAll());
     expect(await handleNewPassword(rt2, { headers: freshHeaders(), password: NEWPW, confirm: NEWPW })).toMatchObject({ location: "/signin?e=pwchanged" });
