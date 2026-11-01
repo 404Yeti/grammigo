@@ -22,7 +22,7 @@ export function describeStatus(s: SyncStatus | null, ago: (t: number) => string)
     case "needs_signin":
       return { label: "Saved on this device", tone: "warning", detail: "Your sign-in has ended, so saving to your account is paused. Sign in again to continue." };
     case "too_large":
-      return { label: "Saved on this device", tone: "warning", detail: "Your progress has grown too large to save online. It is safe on this device." };
+      return { label: "Saved on this device", tone: "warning", detail: "Your progress is NOT being saved to your account: it has grown too large. Nothing is lost; it is all safe on this device, and you can download a copy." };
     case "blocked":
       return { label: "Saved on this device", tone: "warning", detail: "Your account has progress from a newer version of Grammigo, so saving is paused. Nothing was changed." };
     case "idle":

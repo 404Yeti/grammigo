@@ -1,10 +1,12 @@
 "use client";
 
-import { Cloud } from "lucide-react";
+import { useState } from "react";
+import { Cloud, Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { timeAgo } from "@/lib/utils/time";
 import { useSyncEngine, useSyncStatus } from "../hooks";
+import { downloadLocalCopy } from "../local-export";
 import { describeStatus } from "../status-text";
 
 /**
@@ -14,6 +16,7 @@ import { describeStatus } from "../status-text";
 export function SyncCard() {
   const engine = useSyncEngine();
   const status = useSyncStatus();
+  const [downloaded, setDownloaded] = useState<"idle" | "done" | "failed">("idle");
   if (!engine || !status) return null;
   const view = describeStatus(status, (t) => timeAgo(t));
   const needsConsent = status.phase === "needs_consent" || status.phase === "off" || status.paused;
@@ -38,6 +41,17 @@ export function SyncCard() {
       <h2 id="sync-title" className="flex items-center gap-2 text-xl font-bold leading-7"><Cloud size={20} aria-hidden /> Saving to my account</h2>
       <p className="mt-2 text-sm font-semibold" data-testid="sync-label">{view.label}</p>
       <p className="mt-1 text-sm font-medium leading-5 text-ink-2" data-testid="sync-detail" role="status">{view.detail}</p>
+      {status.phase === "too_large" && (
+        <div role="alert" className="mt-3 rounded-xl bg-warning-soft p-3" data-testid="too-large-warning">
+          <p className="text-sm font-semibold">Your progress is not being saved to your account.</p>
+          <p className="mt-1 text-sm font-medium leading-5">It has grown too large for your account to hold. Nothing has been deleted or changed: it is all safe on this device. Download a copy to keep it, and keep using this device.</p>
+          <Button className="mt-2" variant="secondary" fullWidth={false} onClick={() => setDownloaded(downloadLocalCopy() ? "done" : "failed")} data-testid="download-copy">
+            <Download size={16} aria-hidden /> Download a copy of my progress
+          </Button>
+          {downloaded === "done" && <p className="mt-2 text-sm font-medium" role="status">A copy was downloaded to this device.</p>}
+          {downloaded === "failed" && <p className="mt-2 text-sm font-semibold text-error" role="alert">Your browser would not save the file. Your progress is still on this device.</p>}
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-3">
         <Button variant="secondary" fullWidth={false} onClick={() => engine.syncNow()} disabled={status.phase === "syncing"}>Save now</Button>
         <Button variant="ghost" fullWidth={false} onClick={() => engine.pause()}>Turn off on this device</Button>

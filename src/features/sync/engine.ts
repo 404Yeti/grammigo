@@ -1,5 +1,5 @@
 import { hashDocument } from "./canonical";
-import { DOC_KEYS, type DocKey, type RemoteDoc, type SyncState } from "./documents";
+import { DOC_KEYS, MAX_DOC_BYTES, type DocKey, type RemoteDoc, type SyncState } from "./documents";
 import { emptyMeta, type MetaStore, type SyncMeta } from "./meta";
 
 /**
@@ -81,6 +81,7 @@ export type EngineOptions = {
   maxConflictRetries?: number;
 };
 
+const byteSize = (doc: unknown): number => new TextEncoder().encode(JSON.stringify(doc)).length;
 const DEFAULTS = { checkpointDelayMs: 3_000, idleFlushMs: 120_000, startDelayMs: 1_500, backoffMs: [15_000, 30_000, 60_000, 120_000, 300_000, 900_000], maxConflictRetries: 3 };
 
 export class SyncEngine {
@@ -381,6 +382,8 @@ export class SyncEngine {
         const doc = a.read();
         const hash = hashDocument(doc);
         if (!a.hasProgress(doc) || hash === this.metaCache.docs[key].savedHash) break;
+        // Too big for the account to take: say so now. Nothing is sent, nothing is trimmed, and the progress stays whole on this device.
+        if (byteSize(doc) > MAX_DOC_BYTES) return this.fail({ reason: "too_large" });
         const sent = await api.putDoc(key, this.metaCache.docs[key].baseRevision, doc, opts);
         this.record("put", sent.ms, sent.kind === "ok");
         if (sent.kind === "ok") {

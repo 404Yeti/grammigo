@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { onScopeChange } from "@/lib/scope/storage-scope";
 import { useStorageScope } from "@/features/accounts/scope-client";
 import { useSyncEngine } from "../hooks";
-import { addedToAnotherAccount, alreadyAddedTo, getLastAdded, importGuest, readGuest, snapshotAdded, subscribeLastAdded, summarizeGuest, type GuestSummary } from "../guest-import";
+import { addedToAnotherAccount, alreadyAddedTo, getLastAdded, importGuest, previewImport, readGuest, snapshotAdded, subscribeLastAdded, summarizeGuest, type GuestSummary } from "../guest-import";
 
 const EMPTY = JSON.stringify(summarizeGuest(null));
 let memo: { raw: string; out: string } = { raw: "\u0000", out: EMPTY };
@@ -58,12 +58,16 @@ export function ImportCard({ userId }: { userId: string }) {
   if (!summary.hasProgress || dismissed || alreadyAddedTo(userId, summary.fingerprint)) return null;
 
   const elsewhere = addedToAnotherAccount(userId, summary.fingerprint);
-  const parts = [
-    summary.lessonsCompleted ? `${summary.lessonsCompleted} ${summary.lessonsCompleted === 1 ? "lesson" : "lessons"} finished` : null,
-    summary.lessonsInProgress ? `${summary.lessonsInProgress} in progress` : null,
-    summary.quickChecks ? `${summary.quickChecks} quick ${summary.quickChecks === 1 ? "check" : "checks"}` : null,
-    summary.guidedSessions ? `${summary.guidedSessions} Guided Correction ${summary.guidedSessions === 1 ? "session" : "sessions"}` : null,
-  ].filter(Boolean);
+  const preview = previewImport(userId); // read-only; recomputed from what is saved right now
+  const list = (a: number, b: number, c: number, d: number) =>
+    [
+      a ? `${a} ${a === 1 ? "lesson" : "lessons"} finished` : null,
+      b ? `${b} in progress` : null,
+      c ? `${c} quick ${c === 1 ? "check" : "checks"}` : null,
+      d ? `${d} Guided Correction ${d === 1 ? "session" : "sessions"}` : null,
+    ].filter(Boolean);
+  const parts = list(summary.lessonsCompleted, summary.lessonsInProgress, summary.quickChecks, summary.guidedSessions);
+  const newParts = list(preview.newLessonsCompleted, preview.newLessonsInProgress, preview.newQuickChecks, preview.newGuidedSessions);
 
   return (
     <Card tone="brand" aria-labelledby="import-title" data-testid="import-card">
@@ -72,6 +76,13 @@ export function ImportCard({ userId }: { userId: string }) {
         This device has progress from before you signed in, as a guest{parts.length ? `: ${parts.join(", ")}` : ""}. Only add it if it’s yours.
       </p>
       {elsewhere && <p role="alert" className="mt-2 rounded-xl bg-warning-soft p-2 text-sm font-semibold">This same progress was already added to an account on this device. Only add it here if it is yours too.</p>}
+      <div className="mt-2 rounded-xl bg-surface p-3" data-testid="import-preview">
+        <p className="text-sm font-semibold">What adding it would do</p>
+        <p className="mt-1 text-sm font-medium leading-5" data-testid="import-new">
+          {preview.nothingNew ? "Nothing new: your account on this device already has all of it." : `New to your account: ${newParts.join(", ")}.`}
+        </p>
+        {preview.alreadyThere > 0 && !preview.nothingNew && <p className="mt-1 text-sm font-medium leading-5 text-ink-2" data-testid="import-already">{preview.alreadyThere} already in your account, kept as they are.</p>}
+      </div>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-medium leading-5 text-ink-2">
         <li>It is copied into your account. The guest progress stays on this device, unchanged.</li>
         <li>What your account already has is kept; nothing is replaced.</li>

@@ -170,6 +170,36 @@ describe("consent", () => {
     expect(api.count("put")).toBe(0);
   });
 
+  it("NO trigger uploads learning data before consent: start-up, page-hide, reconnect, tab-visible, Save now, and the retries after a failed check", async () => {
+    const acct = new Account(); // no consent recorded anywhere
+    const { dev, api, clock } = setup(acct); // and none remembered on the device
+    dev.finish("a");
+    dev.boot(); // start-up
+    await clock.advance(5_000);
+    dev.answer("b", 2);
+    dev.engine.flush(); // page-hide / close
+    clock.isOnline = false;
+    dev.engine.onOnline();
+    clock.isOnline = true;
+    dev.engine.onOnline(); // reconnect
+    dev.engine.onVisible(); // tab visible again
+    dev.engine.syncNow(); // "Save now"
+    await clock.advance(60_000);
+    api.faults = [{ reason: "unavailable" }, { reason: "unavailable" }, { reason: "offline" }]; // the status check itself fails, and is retried with back-off
+    dev.engine.syncNow();
+    await clock.advance(3_600_000);
+    expect(api.count("put")).toBe(0);
+    expect(api.calls.every((c) => c.op === "state")).toBe(true); // only read-only status checks: no document read or written, no consent written for them
+    expect(acct.docs).toEqual({});
+    expect(acct.consent).toBe(false);
+    expect(dev.engine.getStatus().phase).toBe("needs_consent");
+    // and a refused/aborted agreement (the consent call fails) uploads nothing either
+    api.faults = [{ reason: "unavailable" }];
+    dev.engine.enable();
+    await clock.advance(5_000);
+    expect(api.count("put")).toBe(0);
+  });
+
   it("when the learner agrees, consent is recorded FIRST, then the progress is saved", async () => {
     const acct = new Account();
     const { dev, api, clock } = setup(acct);
@@ -327,6 +357,29 @@ describe("offline, outages and retries: learning never waits", () => {
     await clock.advance(3_600_000);
     expect(api.calls).toEqual([]);
     expect(dev.lessons.sessions).toHaveLength(1);
+  });
+
+  it("a document over the size limit is NOT sent at all, says so, deletes nothing, and never reports 'saved'", async () => {
+    const acct = new Account();
+    acct.consent = true;
+    const { dev, api, clock } = setup(acct, consented());
+    dev.boot();
+    await clock.advance(2_000);
+    api.clear();
+    const lastBefore = dev.engine.getStatus().lastSyncedAt;
+    dev.finish("a");
+    dev.setLessons({ ...dev.lessons, writingFeedback: { big: { text: "x".repeat(950_000) } } as never });
+    await clock.advance(10_000);
+    expect(api.count("put")).toBe(0); // the check is local: nothing was uploaded to find out
+    const st = dev.engine.getStatus();
+    expect(st.phase).toBe("too_large");
+    expect(st.lastSyncedAt).toBe(lastBefore); // the 'last saved' time did not move: this progress was not saved
+    expect(st.unsaved).toBe(true);
+    expect(dev.lessons.sessions).toHaveLength(1); // nothing trimmed
+    expect(JSON.stringify(dev.lessons).length).toBeGreaterThan(950_000);
+    api.clear();
+    await clock.advance(3_600_000);
+    expect(api.calls).toEqual([]);
   });
 
   it("an unexpected error inside the engine is a failed attempt, never an exception in the app", async () => {

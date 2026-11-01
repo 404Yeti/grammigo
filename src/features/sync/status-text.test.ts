@@ -33,6 +33,10 @@ describe("what the learner is told about saving", () => {
     expect(describeStatus(st("needs_signin"), ago).detail).toMatch(/Sign in again/);
     expect(describeStatus(st("blocked"), ago).detail).toMatch(/Nothing was changed/);
     expect(describeStatus(st("syncing"), ago).detail).toMatch(/keep learning/);
+    const big = describeStatus(st("too_large"), ago);
+    expect(big.detail).toMatch(/NOT being saved to your account/);
+    expect(big.detail).toMatch(/safe on this device/);
+    expect(big.detail).toMatch(/download a copy/);
   });
 
   it("never uses level, score or mastery wording", () => {

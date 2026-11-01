@@ -8,7 +8,7 @@ import { playQuestions, resetApp } from "@/tests/helpers";
 import type { StoredState } from "@/types/session";
 import { canonical } from "./canonical";
 import { adoptGuided } from "./merge-guided";
-import { adoptLessons } from "./merge";
+import { adoptLessons, mergeLessons } from "./merge";
 
 /**
  * Mastery, the learning profile and recommendations are never saved or merged. They are derived, by the same deterministic code as always,
@@ -30,6 +30,39 @@ beforeEach(() => {
   resetApp();
   setGuidedPersistence(guidedLocalStorage);
   resetGuidedStoreCache();
+});
+
+describe("two devices that are BOTH in the middle of a (different) lesson", () => {
+  it("keep their own open lesson; the other's unfinished lesson is closed (not resumable) but every answer in it, and every finished lesson, is kept and counts the same on both", () => {
+    const doneOnPhone = device(() => playQuestions(8));
+    const openOnPhone = device(() => playQuestions(3));
+    const doneOnLaptop = device(() => playQuestions(8, { stumbleOnQ2: true }));
+    const openOnLaptop = device(() => playQuestions(3, { stumbleOnQ2: true }));
+    const phone = mergeLessons(doneOnPhone, openOnPhone); // a finished lesson, and one open
+    const laptop = mergeLessons(doneOnLaptop, openOnLaptop);
+    const phoneOpen = openOnPhone.sessions[0];
+    const laptopOpen = openOnLaptop.sessions[0];
+    expect(new Set([phoneOpen.id, laptopOpen.id]).size).toBe(2);
+    const onPhone = adoptLessons({ ...phone, activeSessionId: phoneOpen.id }, laptop);
+    const onLaptop = adoptLessons({ ...laptop, activeSessionId: laptopOpen.id }, phone);
+
+    // each device carries on with ITS OWN open lesson
+    expect(onPhone.activeSessionId).toBe(phoneOpen.id);
+    expect(onLaptop.activeSessionId).toBe(laptopOpen.id);
+    expect(onPhone.sessions.find((x) => x.id === laptopOpen.id)?.status).toBe("abandoned");
+    expect(onLaptop.sessions.find((x) => x.id === phoneOpen.id)?.status).toBe("abandoned");
+
+    // nothing is lost on either: all four lessons are there, finished ones still finished, and the answers in the closed lesson are intact
+    for (const merged of [onPhone, onLaptop]) {
+      expect(merged.sessions).toHaveLength(4);
+      for (const d of [doneOnPhone.sessions[0], doneOnLaptop.sessions[0]]) expect(merged.sessions.find((x) => x.id === d.id)).toMatchObject({ status: "completed", records: d.records });
+      for (const o of [phoneOpen, laptopOpen]) expect(merged.sessions.find((x) => x.id === o.id)?.records).toEqual(o.records);
+    }
+    // and what is derived from the answers is the same on both devices, so recommendations do not depend on which device you use
+    expect(snapshotOf(onPhone)).toBe(snapshotOf(onLaptop));
+    // syncing again changes nothing
+    expect(canonical(adoptLessons(onPhone, onLaptop))).toBe(canonical(onPhone));
+  });
 });
 
 describe("mastery after syncing", () => {

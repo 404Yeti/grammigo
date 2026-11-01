@@ -70,6 +70,37 @@ export function summarizeGuest(g: { lessons: StoredState; guided: GuidedState } 
 }
 
 /**
+ * A PREVIEW of what adding the guest's progress would do to THIS account's progress on this device: how much of it is new, and how much the
+ * account already has. Read-only (it parses copies; nothing is written). It compares with what this device holds for the account; progress that
+ * only exists on the account's other devices is merged in at the next save, and the same union keeps all of it.
+ */
+export type ImportPreview = { guest: GuestSummary; newLessonsCompleted: number; newLessonsInProgress: number; newQuickChecks: number; newGuidedSessions: number; alreadyThere: number; nothingNew: boolean };
+
+export function previewImport(accountId: string): ImportPreview {
+  const g = readGuest();
+  const guest = summarizeGuest(g);
+  const mineL = peekStoredState(accountId);
+  const mineG = peekGuidedState(accountId);
+  const lessonIds = new Set((mineL?.sessions ?? []).map((s) => s.id));
+  const runIds = new Set((mineL?.diagnosticRuns ?? []).map((r) => r.id));
+  const guidedIds = new Set((mineG?.sessions ?? []).map((s) => s.id));
+  const newSessions = (g?.lessons.sessions ?? []).filter((s) => !lessonIds.has(s.id));
+  const newRuns = (g?.lessons.diagnosticRuns ?? []).filter((r) => r.finishedAt !== null && !runIds.has(r.id));
+  const newGuided = (g?.guided.sessions ?? []).filter((s) => !guidedIds.has(s.id));
+  const total = (g?.lessons.sessions.length ?? 0) + (g?.lessons.diagnosticRuns.filter((r) => r.finishedAt !== null).length ?? 0) + (g?.guided.sessions.length ?? 0);
+  const fresh = newSessions.length + newRuns.length + newGuided.length;
+  return {
+    guest,
+    newLessonsCompleted: newSessions.filter((s) => s.status === "completed").length,
+    newLessonsInProgress: newSessions.filter((s) => s.status === "in_progress").length,
+    newQuickChecks: newRuns.length,
+    newGuidedSessions: newGuided.length,
+    alreadyThere: Math.max(0, total - fresh),
+    nothingNew: fresh === 0,
+  };
+}
+
+/**
  * What was just added, kept for the rest of this page's life so the confirmation survives the dashboard re-laying itself out (it switches from
  * its "new account" layout to its normal one the moment the account has progress, which re-creates the card that showed the confirmation).
  */

@@ -206,6 +206,47 @@ test.describe("a real database outage on the server", () => {
   });
 });
 
+test.describe("progress too large to save online", () => {
+  test("a clear warning, nothing sent, never 'saved to your account', progress intact, and a way to keep a copy", async ({ context, page }) => {
+    test.setTimeout(150_000);
+    const ana = await createAccount({ name: "Large Progress Ana", learner: true });
+    await signIn(context, page, ana);
+    await page.getByRole("button", { name: "Turn on saving to my account" }).click();
+    await finishLesson(page);
+    await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
+    const revisionBefore = (await lessonsDoc(ana.id))!.revision;
+
+    // the saved progress on this device grows past what the account can hold
+    const key = `grammigo:v2:u:${ana.id}`;
+    await page.evaluate((k) => {
+      const d = JSON.parse(window.localStorage.getItem(k)!);
+      d.writingFeedback = { bulk: { text: "x".repeat(950_000) } };
+      window.localStorage.setItem(k, JSON.stringify(d));
+    }, key);
+    const seen = watchSync(page);
+    await page.goto("/account");
+    const warn = page.getByTestId("too-large-warning");
+    await expect(warn).toBeVisible({ timeout: 30_000 });
+    await expect(warn).toHaveAttribute("role", "alert");
+    await expect(warn).toContainText("not being saved to your account");
+    await expect(page.getByTestId("sync-chip")).not.toContainText("Saved to your account");
+    await page.waitForTimeout(5_000);
+    expect(puts(seen)).toEqual([]); // nothing over the limit was sent
+    expect((await lessonsDoc(ana.id))!.revision).toBe(revisionBefore); // the account's copy is as it was
+    expect(await page.evaluate((k) => JSON.parse(window.localStorage.getItem(k)!).sessions.length, key)).toBe(1); // and nothing was trimmed here
+
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-copy").click()]);
+    expect(download.suggestedFilename()).toMatch(/^grammigo-progress-on-this-device-\d{4}-\d{2}-\d{2}\.json$/);
+    const { createReadStream } = await import("node:fs");
+    const chunks: Buffer[] = [];
+    for await (const c of createReadStream((await download.path())!)) chunks.push(c as Buffer);
+    const copy = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    expect(copy).toMatchObject({ format: "grammigo-device-copy", scope: "account" });
+    expect(copy.lessons.sessions).toHaveLength(1);
+    await expect(page.getByText("A copy was downloaded to this device.")).toBeVisible();
+  });
+});
+
 test.describe("adding guest progress needs a clear yes", () => {
   const GUEST = "grammigo:v2";
   const read = (page: Page, key: string) => page.evaluate((k) => window.localStorage.getItem(k), key);
@@ -229,6 +270,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     await expect(card.getByTestId("import-summary")).toContainText("1 in progress");
     await expect(card).toContainText("Only add it if it’s yours");
     await expect(card).toContainText("stays on this device, unchanged");
+    await expect(card.getByTestId("import-new")).toContainText("New to your account: 1 in progress."); // the preview, before anything is added
     // looking at the offer changed nothing, anywhere
     expect(await read(page, GUEST)).toBe(guestRaw);
     expect(await read(page, `${GUEST}:u:${ana.id}`)).toBeNull();

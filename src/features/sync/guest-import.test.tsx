@@ -8,7 +8,7 @@ import { setStorageScope } from "@/lib/scope/storage-scope";
 import { STORAGE_KEY } from "@/lib/storage/schema";
 import { getSnapshot } from "@/lib/storage/store";
 import { playQuestions, resetApp } from "@/tests/helpers";
-import { addedToAnotherAccount, alreadyAddedTo, importGuest, readGuest, summarizeGuest } from "./guest-import";
+import { addedToAnotherAccount, alreadyAddedTo, importGuest, previewImport, readGuest, summarizeGuest } from "./guest-import";
 
 const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -60,6 +60,40 @@ describe("looking at the guest's progress is read-only", () => {
     expect(summarizeGuest(readGuest()).hasProgress).toBe(false); // B is offered nothing: there is no guest progress, and A's is not a candidate
     setStorageScope("");
     expect(summarizeGuest(readGuest()).hasProgress).toBe(false);
+  });
+});
+
+describe("the preview before adding", () => {
+  it("says what is new to the account and what it already has, writes nothing, and matches what adding then does", () => {
+    playQuestions(8); // guest: one finished lesson
+    guestActivity(); //  and one Guided Correction session
+    setStorageScope(A);
+    playQuestions(3); // the account's own lesson in progress
+    const before = JSON.stringify({ ...window.localStorage });
+    const p = previewImport(A);
+    expect(JSON.stringify({ ...window.localStorage })).toBe(before);
+    expect(p).toMatchObject({ newLessonsCompleted: 1, newLessonsInProgress: 0, newQuickChecks: 0, newGuidedSessions: 1, alreadyThere: 0, nothingNew: false });
+    importGuest(A, 1);
+    expect(getSnapshot().sessions).toHaveLength(1 + p.newLessonsCompleted);
+    expect(getGuidedSnapshot().sessions).toHaveLength(p.newGuidedSessions);
+    const again = previewImport(A);
+    expect(again).toMatchObject({ nothingNew: true, alreadyThere: 2 });
+  });
+
+  it("is shown on the card BEFORE anything is added, and 'Not now' changes nothing", async () => {
+    playQuestions(8);
+    setStorageScope(A);
+    const guestRaw = raw(STORAGE_KEY);
+    const { ImportCard } = await import("./ui/ImportCard");
+    const user = userEvent.setup();
+    render(<ImportCard userId={A} />);
+    expect(screen.getByTestId("import-new")).toHaveTextContent("New to your account: 1 lesson finished.");
+    expect(getSnapshot().sessions).toEqual([]);
+    expect(enable).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByTestId("import-card")).toBeNull();
+    expect(getSnapshot().sessions).toEqual([]);
+    expect(raw(STORAGE_KEY)).toBe(guestRaw);
   });
 });
 

@@ -40,12 +40,42 @@ Two documents per account, the same versioned JSON the app already keeps on the 
 * **Failures back off** 15 s, 30 s, 1 min, 2 min, 5 min, then every 15 min (with jitter; `Retry-After` honoured). A 401 stops and asks to sign in; a document that is too large
   or from a newer app stops with a plain message instead of retrying forever.
 
+### Two devices that are both in the middle of a lesson
+
+Only one lesson can be open at a time (the same rule the app applies when you start a different lesson). If a phone and a laptop are each part-way through a
+*different* lesson when they next sync:
+
+* **Each device keeps its own open lesson.** Folding in the other device's copy never takes away the lesson you are in the middle of.
+* **The other device's unfinished lesson is closed, not deleted.** On this device it shows as not resumable (status `abandoned`), exactly as if you had started a
+  different lesson. **Every answer already given in it is kept** and counts towards what the app learns about you, the same as any other closed lesson.
+* **Finished lessons and every finished answer are preserved on both devices**, unchanged. Nothing is dropped from either copy (the merge refuses to run if it would).
+* What the app derives (mastery, profile, recommendations) comes out **identical on both devices**, and syncing again changes nothing.
+
+Tested in `src/features/sync/derive.test.ts` ("two devices that are BOTH in the middle of a lesson"), the 400-case property tests in `merge.test.ts`, and, in a real browser
+against the real database, the two-device scenario in `e2e-accounts/sync.spec.ts`. That browser scenario once passed only on retry, with no cause proven; it is now
+deterministic (the test controls exactly when each device's sync is blocked or released) and CI uploads Playwright traces from **every** accounts run, so any
+repeat leaves evidence.
+
 ## Consent
 
 * **Nothing is uploaded without the learner's explicit consent**, recorded server-side (`consents`, kind `cloud_storage`, with the privacy-notice version).
 * It is enforced **by the database**: `put_document` returns `consent_required` for anyone without the record, whoever calls it.
+* **No trigger bypasses it.** Start-up, page hide/close, reconnect, tab-visible, "Save now" and every retry check consent first; without it they make at most a
+  read-only status check (no document is read or written, nothing is uploaded). Tested for each trigger in `engine.test.ts`, in a real browser in `e2e-accounts/sync.spec.ts`
+  (no `PUT`, no document row, no consent row), and by the database itself refusing the write.
+* One honest limit: the device remembers that consent was given, so a save at a checkpoint goes straight to the save call. If consent had been withdrawn on the server meanwhile,
+  that request would be refused by the database before anything is stored (the learner is then told to agree again). There is no way to withdraw consent today other than
+  deleting the account (Phase 6), so this cannot happen in practice.
 * Turning saving on lists exactly what is saved, in plain words, before asking. The learner can turn it off on a device at any time. (Deleting what is already in the
   account is Phase 6.)
+
+## Progress too large to save online
+
+The account holds one document per kind, each up to about 900 KB (the database enforces 1,000,000 bytes). The device checks the size **before** sending: a document over the
+limit is not sent at all, nothing is trimmed or deleted, and the learner sees an alert ("Your progress is not being saved to your account… it is all safe on this device")
+with a button to **download a copy** of their progress as a JSON file (`local-export.ts`; read-only, nothing is sent anywhere). The status never says "Saved to your account"
+in this state, and the "last saved" time does not move. Everything keeps working locally. (Raising the limit, or storing history in rows rather than one document, is a later
+design change; the account export in Phase 6 is separate and covers what the account holds.)
 
 ## Guest progress and shared devices
 
@@ -55,6 +85,11 @@ Two documents per account, the same versioned JSON the app already keeps on the 
 * **Only the guest's folder can be offered.** Another account's folder on a shared device is never read for this, never offered, never merged. If the same guest progress already went to
   an account on this device, the next learner is told so ("only add it if it is yours").
 * Merging is the same lossless union: what the account already had is kept.
+* **The offer includes a preview** computed from what is saved right now, read-only: what is *new to the account* (lessons finished, in progress, quick checks, Guided Correction
+  sessions) and how many items the account already has. It compares with the account's progress on this device; anything held only on the account's other devices is folded in at
+  the next save by the same union, so nothing is lost either way.
+* **Recovery is unchanged**: the account keeps its newest 10 revisions of each document (`learner_document_versions`), and restoring one writes it as a *new* revision
+  (`restore_document_revision`, audited). The guest copy is never touched.
 
 ## Honest status wording
 
