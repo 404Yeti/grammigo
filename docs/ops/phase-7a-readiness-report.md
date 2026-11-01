@@ -2,6 +2,8 @@
 
 Date: 2026-11-01. Scope: **planning only.** Nothing was applied, configured, enabled, redirected or invited. Production Supabase `ugifdvaaaioiqmwfiksw` was not modified, and no credential was used or seen. Only public, unauthenticated reads were made (a request to its public endpoint, DNS lookups of the domains).
 
+> **Update 2026-11-01:** the previously blocked read-only inspection has since been done through the Supabase connector. Region (Singapore), organisation, plan (**Free**), Postgres (17.11, release channel `withdrawn`), empty schema and no users are now verified; see `production-inspection-2026-11-01.md` for the results and the resulting changes to the plan (**upgrade to Pro is a hard gate**; a platform helper function needs a revoke migration). The table below is kept as written at the time.
+
 ## 1. What was inspected, and what could not be
 | Item | Result |
 |---|---|
