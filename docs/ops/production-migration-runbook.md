@@ -13,51 +13,18 @@ Target: Supabase project **`ugifdvaaaioiqmwfiksw`** (region ap-southeast-1, orga
 
 **Nothing may be written to production until you confirm this state.** The procedure below is for you to run in a terminal. It never uses `supabase migration repair` and never `db push`, because the CLI would see the two remote version numbers as unknown and the repository's first two files as unapplied, and offer to re-apply migrations 1 and 2.
 
-### Applying ONLY migrations 3 to 9 from a terminal (`psql`, one file at a time)
-Needs: `psql` (PostgreSQL client 15 or newer; no Docker), the database password (Dashboard → Project Settings → Database; type it only at the hidden prompt), and the **Session pooler** connection details from Dashboard → **Connect** (it works over IPv4; copy the host from there, do not guess it).
+### Applying ONLY migrations 3 to 9 from a terminal (WSL, `psql`)
+Use the script `scripts/ops/apply-production-migrations.sh`, run from a **separate checkout of `main` at `025173d`** in your Linux home (`~/grammigo-prod-migrate`; it does not disturb your working branch), so the folder holds exactly the nine approved files and not the tenth.
 
-**Working directory and code:** the repository root, on `main` at `025173d` or later **and before the Email + Password pull request**, so the folder holds exactly nine migration files and not the tenth.
-```
-cd /mnt/c/Users/Lenovo/projects/grammigo
-git fetch origin && git switch main && git pull --ff-only
-git status --short                          # must print nothing
-ls supabase/migrations | wc -l              # must print 9   (10 means the unapproved migration is present: stop)
-```
-**Connection (this shell only; nothing is saved to a file or to history):**
-```
-export PGHOST='<host from the Connect panel, e.g. aws-…-ap-southeast-1.pooler.supabase.com>'
-export PGPORT=5432                           # session mode
-export PGDATABASE=postgres
-export PGUSER='postgres.ugifdvaaaioiqmwfiksw'   # the project ref is part of the user name: a different project cannot answer to this name
-export PGSSLMODE=require
-read -rs -p 'Database password: ' PGPASSWORD; export PGPASSWORD; echo
-```
-**Guard 1: are we on the right project, in the expected state? (read-only; run before every migration)**
-```
-psql -X -v ON_ERROR_STOP=1 -At -c "select current_user, current_database()" \
-     -c "select version||' '||name from supabase_migrations.schema_migrations order by version" \
-     -c "select count(*) from auth.users" \
-     -c "select string_agg(tablename, ',' order by tablename) from pg_tables where schemaname='public'"
-```
-It must print: user `postgres`, database `postgres`; the history rows `20261101102513 core_schema` and `20261101102527 invitations` (plus, after each step below, the rows you have added); `0` users; and, before migration 3, exactly `app_admins,audit_events,consents,deletion_ledger,invitation_reservations,invitations,profiles`. **Anything else (another name, more users, other tables): stop and report; run nothing.**
+For each of migrations 3 to 9 it runs ONE transaction (`psql --single-transaction`) containing, in order: **(1) the state guard, (2) the migration file, (3) its history row.** If the guard or the file fails, the transaction is rolled back and nothing, including the history row, is kept; the script stops. It never uses the Supabase CLI, `db push` or `migration repair`, and never touches migrations 1 and 2.
 
-**Apply one migration (repeat for each of the seven files, in this order, re-running Guard 1 before each):**
-```
-# 3  learner_documents          20261101000300
-# 4  deletion_and_cleanup       20261101000400
-# 5  auth_support               20261101000500
-# 6  owner_tools                20261102000100
-# 7  sync_consent               20261103000100
-# 8  lifecycle                  20261104000100
-# 9  revoke_platform_helper     20261105000100
-V=20261101000300; N=learner_documents        # set both for the migration you are applying
-psql -X -v ON_ERROR_STOP=1 --single-transaction \
-     -f "supabase/migrations/${V}_${N}.sql" \
-     -c "insert into supabase_migrations.schema_migrations (version, name) values ('${V}', '${N}')"
-```
-`--single-transaction` wraps the file and the history row in **one** transaction: on any error nothing at all is kept, `ON_ERROR_STOP` stops at the first error, and the history row exists only if the file succeeded. After each, run Guard 1 again and check that exactly that row appeared. **Stop at the first error and send me the message (it contains no secrets).**
+The guard (inside that transaction) refuses unless: the database is `postgres`; the migration history is **exactly** the expected rows (the two connector rows plus those this script has already added); `auth.users` has 0 rows; and (for migration 3) `public` holds exactly the seven base tables. Before anything is written the script also checks: HEAD is exactly `025173d`, tracked files unmodified, exactly nine migration files, none with its own `begin`/`commit`; `PGUSER` is exactly `postgres.ugifdvaaaioiqmwfiksw` (the project reference is part of the pooler user name, so another project cannot answer to it), the host is a Supabase pooler host, the port is 5432 (session mode). In `apply` mode you must also **type the project reference**. The password is read at a hidden prompt, exported only inside the script process, unset on exit, and never written to a file, shell history or log.
 
-**What this does not do, on purpose:** it does not change the two existing history rows. They keep the connector's version numbers; the history therefore reads `20261101102513`, `20261101102527`, then `20261101000300` …, and a later CLI `db push` would not know the first two. That is harmless for production (nothing in the app reads the history) and is **your decision, not an automatic step**: if you ever want the Supabase CLI to manage this project, the bookkeeping fix is `migration repair` (or the equivalent `update supabase_migrations.schema_migrations set version = …`), to be run only after you have looked at `migration list` and agreed what to change. I will not run it, and the CI/readiness checks compare by **name**, so nothing depends on it.
+Rehearsed against a throwaway local PostgreSQL 17 with stand-in tables: the guard passes on the right state, refuses a wrong history, refuses when a user exists; a migration that fails halfway leaves no table and no history row; a re-run is refused. It could not be run against a real Supabase instance, so `check` mode is your first, read-only, exercise of it.
+
+Commands: `./apply-production-migrations.sh check` (read-only), then `./apply-production-migrations.sh apply`.
+
+**What this does not do, on purpose:** it does not change the two existing history rows. They keep the connector's version numbers, so a later CLI `db push` would not recognise them; that is **your decision, not an automatic step** (the fix would be `migration repair`, after looking at `migration list`). The readiness checks compare by **name**, so nothing depends on it.
 
 When migration 9 is in, tell me, or run `node scripts/check-production-readiness.mjs db` yourself; I run the checks A to H below (read-only) and **accounts stay disabled throughout**.
 
