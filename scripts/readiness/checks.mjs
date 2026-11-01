@@ -78,8 +78,12 @@ export async function checkAuthSettings({ fetchImpl = fetch, url, anonKey, expec
   const ext = s.external ?? {};
   const r = [item("auth settings readable", true, "HTTP 200")];
   r.push(item(`Google provider is ${expectGoogle ? "enabled" : "not enabled yet"}`, ext.google === expectGoogle, ext.google === expectGoogle ? "as expected" : `is ${ext.google}`));
-  const others = Object.entries(ext).filter(([k, v]) => k !== "google" && v === true).map(([k]) => k);
-  r.push(item("no other sign-in provider is enabled (including email and phone)", others.length === 0, others.length === 0 ? "none" : `ENABLED: ${others.join(", ")}`));
+  // Exactly two sign-in methods are intended: Google and email + password. Anything else (phone, GitHub, …) must be off.
+  r.push(item("the email provider is enabled (email + password sign-in is one of the two intended methods)", ext.email === true, ext.email === true ? "enabled" : "OFF: email + password sign-in would not work"));
+  const others = Object.entries(ext).filter(([k, v]) => !["google", "email", "anonymous_users"].includes(k) && v === true).map(([k]) => k);
+  r.push(item("no other sign-in provider is enabled (phone, GitHub, …)", others.length === 0, others.length === 0 ? "none" : `ENABLED: ${others.join(", ")}`));
+  // Email confirmation must be required: with auto-confirm on, anyone could register an address they do not own.
+  r.push(item("email confirmation is required before sign-in (auto-confirm is off)", s.mailer_autoconfirm === false, s.mailer_autoconfirm === false ? "required" : `auto-confirm is ${s.mailer_autoconfirm}: an address would not have to be proven`));
   r.push(item("sign-ups are allowed (OAuth needs them; the app refuses uninvited people itself)", s.disable_signup !== true, s.disable_signup === true ? "sign-ups are disabled: Google sign-in would fail" : "allowed"));
   if ("anonymous_users" in ext) r.push(item("anonymous sign-ins are off", ext.anonymous_users === false, String(ext.anonymous_users)));
   else r.push(note("anonymous sign-ins", "not reported by the public settings endpoint: check in the dashboard"));

@@ -437,6 +437,14 @@ test.describe("account-scoped progress is isolated", () => {
     await finishLesson(page, LESSON);
     await expect.poll(async () => (await lessonsDoc(a.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
     const aSession = (await lessonsDoc(a.id))!.body.sessions[0].id;
+    // Let A's own saving settle (a lesson can legitimately save more than once); what matters is that B's session never changes it afterwards.
+    let aRevision = Number((await lessonsDoc(a.id))?.revision);
+    for (let i = 0; i < 8; i++) {
+      await page.waitForTimeout(1_500);
+      const now = Number((await lessonsDoc(a.id))?.revision);
+      if (now === aRevision) break;
+      aRevision = now;
+    }
 
     await page.goto("/account/profile");
     await page.getByRole("button", { name: "Sign out" }).click();
@@ -448,7 +456,7 @@ test.describe("account-scoped progress is isolated", () => {
     await expect.poll(async () => (await lessonsDoc(b.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
     const bDoc = await lessonsDoc(b.id);
     expect(bDoc?.body.sessions.map((s) => s.id)).not.toContain(aSession);
-    expect(Number((await lessonsDoc(a.id))?.revision)).toBe(1); // A's document was never touched by B's session
+    expect(Number((await lessonsDoc(a.id))?.revision)).toBe(aRevision); // A's document was never touched by B's session
     expect((await lessonsDoc(a.id))?.body.sessions.map((s) => s.id)).toEqual([aSession]);
   });
 });

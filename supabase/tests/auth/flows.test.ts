@@ -251,11 +251,11 @@ describe("unknown Google accounts", () => {
     expect((await viewerOf(stranger)).kind).not.toBe("learner");
     expect((await sessionFor(stranger.cookies).client.from("profiles").select("*")).data ?? []).toEqual([]);
 
-    // The sweep leaves a fresh identity alone (they may be mid sign-in) and removes one older than an hour.
+    // The sweep leaves a fresh identity alone (they may be mid sign-in) and removes one older than 25 hours (longer than a seat's hold).
     const before = await runCleanup(service);
     expect(before.failed).toEqual([]);
     expect(await authUserExists(stranger.id)).toBe(true);
-    await q("update auth.users set created_at = now() - interval '2 hours' where id = $1", [stranger.id]);
+    await q("update auth.users set created_at = now() - interval '26 hours' where id = $1", [stranger.id]);
     const after = await runCleanup(service);
     expect(after.failed).toEqual([]);
     expect(await authUserExists(stranger.id)).toBe(false);

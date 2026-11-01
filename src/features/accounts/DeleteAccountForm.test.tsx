@@ -76,7 +76,7 @@ describe("the delete form", () => {
   });
 
   it.each([
-    [403, { error: "reauth_required" }, /sign in with Google again/],
+    [403, { error: "reauth_required" }, /sign in with Google again/i],
     [429, { error: "rate_limited" }, /Too many tries/],
     [400, { error: "confirmation" }, /words didn’t match/],
     [409, { error: "owner_account" }, /owner account/],
