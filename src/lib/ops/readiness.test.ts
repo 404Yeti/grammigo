@@ -46,7 +46,9 @@ describe("environment check", () => {
       expect(r.stderr).toMatch(/only used by the `env` check/);
     }
     const src = readFileSync(path.join(ROOT, "scripts/check-production-readiness.mjs"), "utf8");
-    expect(src).toMatch(/const env = cmd === "env" \? \{ \.\.\.process\.env, \.\.\.fileEnv \} : process\.env;/);
+    expect(src).toMatch(/const env = process\.env; \/\/ every request-making check/);
+    expect(src).toMatch(/checkEnvironment\(shapeEnv,/);
+    expect(src.match(/shapeEnv/g)?.length).toBe(3); // declared, passed to the redactor, used by the shape check: never by a request
   });
   it("parses an env file (comments, export, quotes) without keeping anything else", () => {
     expect(cli.parseEnvFile('# c\nexport A="1"\nB=\'2\'\nC=3\n\nnot a line\n')).toEqual({ A: "1", B: "2", C: "3" });

@@ -52,8 +52,9 @@ async function main() {
   // environment and never anything loaded from a file, so a changed file cannot redirect a key to another host.
   if (arg("vars-file") && cmd !== "env") { console.error("--vars-file is only used by the `env` check. Put values for the other checks in your terminal's environment."); process.exit(2); }
   const fileEnv = arg("vars-file") ? parseEnvFile(readFileSync(arg("vars-file"), "utf8")) : {};
-  const env = cmd === "env" ? { ...process.env, ...fileEnv } : process.env;
-  const redact = redactor({ ...process.env, ...fileEnv });
+  const shapeEnv = { ...process.env, ...fileEnv }; // used ONLY by the shape check below (it sends nothing) and the redactor
+  const env = process.env; // every request-making check reads this and nothing from a file
+  const redact = redactor(shapeEnv);
   const sections = [];
   const run = async (name, f) => {
     try { sections.push({ name, items: await f() }); }
@@ -61,7 +62,7 @@ async function main() {
   };
   const need = (...names) => { const m = names.filter((n) => !env[n]); if (m.length) throw new Error(`needs ${m.join(", ")} in the environment (names only; nothing was printed)`); };
   const wants = (n) => cmd === "all" || cmd === n;
-  if (wants("env")) await run("environment (names and shape only)", async () => checkEnvironment(env, { expectedRef: arg("ref") ?? EXPECTED_REF }));
+  if (wants("env")) await run("environment (names and shape only)", async () => checkEnvironment(shapeEnv, { expectedRef: arg("ref") ?? EXPECTED_REF }));
   if (wants("auth")) await run("authentication settings (public endpoint)", async () => { need("SUPABASE_URL", "SUPABASE_ANON_KEY"); return checkAuthSettings({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY, expectGoogle: (arg("expect-google") ?? "on") === "on" }); });
   if (wants("rest")) await run("Data API seen by an anonymous caller", async () => { need("SUPABASE_URL", "SUPABASE_ANON_KEY"); return checkRestSurface({ url: env.SUPABASE_URL, anonKey: env.SUPABASE_ANON_KEY }); });
   if (wants("db")) await run("database (read-only)", async () => { need("SUPABASE_DB_URL"); return withReadOnlyDb(env.SUPABASE_DB_URL, (query) => checkDatabase(query, { expectedMigrations: expectedMigrations(), platformFunctionsAllowed: [] })); });

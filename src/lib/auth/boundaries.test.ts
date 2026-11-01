@@ -395,7 +395,7 @@ describe("Phase 7B preparation: timeouts, guest transfer, readiness checks", () 
     const logs = [...cli.matchAll(/console\.(log|error)\(([^;]*)\);/g)].map((m) => m[2]);
     for (const l of logs.filter((x) => !x.startsWith('"Usage:') && !x.startsWith('"--vars-file'))) expect(l, l).not.toMatch(/\benv\b(?!-file)|process\.env|SERVICE|ANON|PEPPER|SECRET|PASSWORD|DB_URL/i);
     expect(cli).toMatch(/renderReport\(sections, redact\)/);
-    expect(cli).toMatch(/redactor\(\{ \.\.\.process\.env, \.\.\.fileEnv \}\)/);
+    expect(cli).toMatch(/redactor\(shapeEnv\)/);
     const checks = stripComments(read(path.join(ROOT, "scripts/readiness/checks.mjs")));
     expect(checks).not.toMatch(/console\./);
   });
