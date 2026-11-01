@@ -14,7 +14,7 @@ const subscribeStorage = (l: () => void) => {
   return () => window.removeEventListener("storage", l);
 };
 /** The guest progress, summarised. Memoised on the raw saved text, so React's re-reads cost nothing and the value only changes when the data does. */
-let memo: { raw: string; out: string } = { raw: "\u0000", out: "" };
+let memo: { raw: string | null; out: string } = { raw: null, out: "" }; // null: nothing computed yet (an empty store is a real, different state)
 function guestSummaryJson(): string {
   try {
     const raw = `${window.localStorage.getItem("grammigo:v2") ?? ""}\u0000${window.localStorage.getItem("grammigo:guided:v1") ?? ""}`;

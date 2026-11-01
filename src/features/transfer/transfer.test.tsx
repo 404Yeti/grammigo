@@ -297,6 +297,15 @@ describe("the sending page (old address)", () => {
     expect(screen.getByTestId("transfer-no-opener")).toBeInTheDocument();
   });
 
+  it("a device that has NEVER had any progress (fresh module, empty storage) shows the page instead of crashing", async () => {
+    vi.resetModules();
+    window.localStorage.clear();
+    Object.defineProperty(window, "opener", { configurable: true, value: { postMessage: vi.fn() } });
+    const { SendPanel: Fresh } = await import("./SendPanel");
+    render(<Fresh />);
+    expect(await screen.findByTestId("transfer-send-summary")).toHaveTextContent("no guest progress");
+  });
+
   it("with no guest progress there is nothing to send", async () => {
     resetApp();
     Object.defineProperty(window, "opener", { configurable: true, value: { postMessage: vi.fn() } });
