@@ -26,6 +26,10 @@ begin
     return query select false, 0::bigint, 'consent_required'::text; return;
   end if;
   if not public.valid_document(p_key, p_schema, p_body) then return query select false, 0::bigint, 'invalid'::text; return; end if;
+  -- Writers of ONE document are taken one at a time. Locking the row (below) is not enough on its own when the row does not exist yet:
+  -- two devices saving a brand-new document at the same instant would both see "no row" and both try to insert, and the loser would get a
+  -- database error instead of a clean conflict. (Found by the concurrency test on the real database.)
+  perform pg_advisory_xact_lock(hashtextextended('doc:' || p_user::text || ':' || p_key, 0));
   select d.revision into cur from public.learner_documents d where d.user_id = p_user and d.doc_key = p_key for update;
   if cur is null then
     if p_expected <> 0 then return query select false, 0::bigint, 'conflict'::text; return; end if;
