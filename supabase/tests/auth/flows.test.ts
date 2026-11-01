@@ -113,7 +113,8 @@ describe("invalid, expired and revoked invitations", () => {
     const s = await startJoin(inv.code);
     await revokeInvitation(await adminDeps(admin), inv.id);
     const p = await createPerson({ label: "revoked-mid" });
-    expect(await callback(p, s)).toMatchObject({ outcome: "invite_unusable", redirect: "/join?e=revoked" });
+    // Revoking cancels the pending reservation itself, so the redemption sees a grant that is no longer valid (not a "revoked" code).
+    expect(await callback(p, s)).toMatchObject({ outcome: "invite_unusable", redirect: "/join?e=invite" });
     expect(await profileOf(p.id)).toBeUndefined();
     expect(await authUserExists(p.id)).toBe(false);
   });

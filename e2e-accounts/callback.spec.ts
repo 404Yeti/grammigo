@@ -14,16 +14,16 @@ test.describe("the sign-in callback refuses anything that is not our own flow", 
 
   test("the error page uses fixed wording and echoes nothing from the URL", async ({ page }) => {
     await page.goto("/auth/error?r=<script>alert(1)</script>");
-    await expect(page.getByRole("alert")).toContainText("Something went wrong on our side");
+    await expect(page.locator("main p[role=alert]")).toContainText("Something went wrong on our side");
     await expect(page.locator("body")).not.toContainText("<script>");
     await page.goto("/auth/error?r=state");
-    await expect(page.getByRole("alert")).toContainText("expired or was opened somewhere else");
+    await expect(page.locator("main p[role=alert]")).toContainText("expired or was opened somewhere else");
   });
 
   test("pressing Cancel at Google is a calm cancel", async ({ page }) => {
     await page.goto("/api/auth/callback?error=access_denied&error_description=anything");
     await expect(page).toHaveURL(/\/auth\/error\?r=cancelled$/);
-    await expect(page.getByRole("alert")).toContainText("cancelled");
+    await expect(page.locator("main p[role=alert]")).toContainText("cancelled");
   });
 
   test("a FORGED flow cookie is refused", async ({ request, context }) => {
@@ -74,7 +74,7 @@ test.describe("the sign-in callback refuses anything that is not our own flow", 
 test.describe("the sign-in page", () => {
   test("starts a Google sign-in with no invitation, and points newcomers to the invitation page", async ({ page, context }) => {
     let authorize: URL | null = null;
-    await page.route(`${process.env.SUPABASE_API_URL}/auth/v1/authorize**`, (route) => {
+    await page.route(/\/auth\/v1\/authorize/, (route) => {
       authorize = new URL(route.request().url());
       return route.fulfill({ status: 200, contentType: "text/html", body: "<h1>Google</h1>" });
     });

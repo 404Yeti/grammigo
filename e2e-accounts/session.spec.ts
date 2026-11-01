@@ -11,7 +11,7 @@ test.describe("a visitor with no session", () => {
     expect(res.headers()["cache-control"]).toContain("no-store");
     await page.goto("/account");
     await expect(page).toHaveURL(/\/signin\?e=session$/);
-    await expect(page.getByRole("alert")).toContainText("Your session ended");
+    await expect(page.locator("main p[role=alert]")).toContainText("Your session ended");
   });
 
   test("gets 401 from the account API and 401 from the owner API", async ({ request }) => {

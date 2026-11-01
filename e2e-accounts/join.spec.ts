@@ -1,7 +1,7 @@
 import { BASE, browserHeaders, FLOW_COOKIE, invitation, q, uniqueIp } from "./helpers";
 import { expect, test } from "./fixtures";
 
-const AUTHORIZE = `${process.env.SUPABASE_API_URL}/auth/v1/authorize**`;
+const AUTHORIZE = /\/auth\/v1\/authorize/;
 
 async function submitCode(page: import("@playwright/test").Page, code: string) {
   await page.goto("/join");
@@ -27,7 +27,7 @@ test.describe("the join page", () => {
   test("an unknown code shows a plain message and starts no sign-in", async ({ page }) => {
     await submitCode(page, "ABCDEFGHJKM");
     await expect(page).toHaveURL(/\/join\?e=invite$/);
-    await expect(page.getByRole("alert")).toContainText("isn’t valid");
+    await expect(page.locator("main p[role=alert]")).toContainText("isn’t valid");
     expect((await page.context().cookies()).some((c) => c.name === FLOW_COOKIE)).toBe(false);
   });
 
@@ -40,14 +40,14 @@ test.describe("the join page", () => {
     const inv = await invitation({ expiresInSeconds: -60 });
     await submitCode(page, inv.code);
     await expect(page).toHaveURL(/\/join\?e=expired$/);
-    await expect(page.getByRole("alert")).toContainText("expired");
+    await expect(page.locator("main p[role=alert]")).toContainText("expired");
   });
 
   test("a revoked invitation says so", async ({ page }) => {
     const inv = await invitation({ revoked: true });
     await submitCode(page, inv.code);
     await expect(page).toHaveURL(/\/join\?e=revoked$/);
-    await expect(page.getByRole("alert")).toContainText("withdrawn");
+    await expect(page.locator("main p[role=alert]")).toContainText("withdrawn");
   });
 
   test("a used-up invitation says so, and the seat counts are exact", async ({ page, browser }) => {

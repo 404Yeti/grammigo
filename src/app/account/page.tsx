@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { AuthShell, secondaryLinkClass } from "@/features/accounts/AuthShell";
 import { accountsEnabled } from "@/features/accounts/enabled";
@@ -22,6 +23,9 @@ export default function AccountPage({ searchParams }: PageProps<"/account">) {
 }
 
 async function AccountBody({ searchParams }: { searchParams: PageProps<"/account">["searchParams"] }) {
+  // Everything below depends on who is asking and on the current time (the session library reads the clock). Declaring that first keeps
+  // it out of any prerender, including the runtime prerender used for prefetching.
+  await connection();
   const state = loadAuthConfig();
   if (state.state !== "ready") notFound();
   const jar = new CookieSession((await cookies()).getAll());
