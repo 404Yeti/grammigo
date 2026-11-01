@@ -302,6 +302,16 @@ describe("Phase 6: the notice, the review pack and the acceptance checklist stay
     expect(doc("docs/dev/security-review.md")).toMatch(/does NOT guarantee/);
   });
 
+  it("the notice states the operator is an individual and invents no company, address or legal identity", () => {
+    expect(notice()).toMatch(/run by an individual person, not by a company/);
+    expect(notice()).toMatch(/to be confirmed by the operator/);
+    for (const text of [notice(), doc("docs/legal/privacy-notice-draft.md")]) {
+      expect(text).not.toMatch(/\b(Ltd|Limited|LLC|Inc\.?|GmbH|d\.o\.o\.|s\.p\.|Corp|Co\.|S\.A\.|B\.V\.|AB|Oy|OÜ)\b/);
+      expect(text).not.toMatch(/\b\d{4,5}\s+[A-Z][a-z]+|\bStreet\b|\bAvenue\b|\bcesta\b/i);
+    }
+    expect(doc("docs/legal/legal-review-pack.md")).toMatch(/operated by one individual/);
+  });
+
   it("the notice does not promise re-consent, because none is built (and says so in the review pack)", () => {
     expect(notice()).not.toMatch(/ask you to agree again before/);
     expect(doc("docs/legal/legal-review-pack.md")).toMatch(/Re-consent is NOT implemented/);

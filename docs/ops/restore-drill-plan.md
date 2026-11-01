@@ -3,7 +3,7 @@
 ## What the plan supports (provider documentation, checked 2026-11-01)
 * **Free:** no automatic daily backups; the docs tell free projects to export with `supabase db dump`. 2 active projects per organisation. Paused after a week idle.
 * **Pro ($25/month):** daily backups kept **7 days**; **PITR** is an add-on (about $100/month for 7 days, needs at least a Small compute) and **replaces** daily backups while enabled. Projects on Postgres 15.8.1.079 and later use *physical* backups, which cannot be downloaded; to get a downloadable logical backup you use `supabase db dump` / `pg_dump`.
-* The production project's actual plan **could not be inspected** (no credentials). Everything below says what is possible *if it is Pro*; the owner confirms the plan in the dashboard.
+* The production project's plan was read on 2026-11-01: **Free**, which has **no automatic backups** (and pauses after a week idle). It must be upgraded to Pro before real data exists (`production-inspection-2026-11-01.md`). Everything below that needs backups assumes Pro.
 * Daily backups do **not** include custom role passwords. Grammigo creates none, but the drill confirms nothing depends on them.
 
 ## Is a meaningful drill possible? Yes, on scratch projects. No, on production.

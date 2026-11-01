@@ -17,7 +17,7 @@ export function PrivacyAccounts() {
       </p>
 
       <h2 className={H2}>Who runs Grammigo</h2>
-      <p>Grammigo is run by [name and address of the operator]. Questions, requests and complaints: [privacy contact email].</p>
+      <p>Grammigo is run by an individual person, not by a company. [Legal name, postal or contact address, privacy email address and jurisdiction-specific disclosures: to be confirmed by the operator.] Questions, requests and complaints: [privacy contact email].</p>
 
       <h2 className={H2}>Without an account</h2>
       <p>You can use Grammigo with no account. Your lessons, answers and progress are saved only in this browser, on your device. Nothing about you is sent to us.</p>
