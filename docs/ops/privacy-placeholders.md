@@ -4,10 +4,10 @@ The notice stays a **DRAFT** (`draft-2026-11`) in the app. Nothing below is publ
 
 | Placeholder in the notice | Candidate text | Status | Who completes it |
 |---|---|---|---|
-| Operator name and address | — | Not derivable from the repository or any system I can reach. Do not guess. | Owner |
+| Operator legal name, contact address, jurisdiction | — | **The operator is an individual, not a registered company** (owner statement, 2026-11-01). No company name or address may be invented. The notice says so and leaves the legal name, address and jurisdiction-specific disclosures bracketed | Owner confirms; counsel advises what must be published |
 | Privacy contact email | e.g. `privacy@grammigo.si` | Needs a mailbox that exists on the new domain (MX records are not set up) | Owner |
-| Supabase region | "in Singapore (ap-southeast-1)" | **Unverified.** Design assumption only; the real region cannot be read without dashboard/CLI access. The region is fixed when a project is created and cannot be changed later | Owner confirms; then fill |
-| Backup period | "up to 7 days" (Pro daily backups) | **Claimed** by vendor docs; true only if the project is on Pro. Plan unverified | Owner confirms plan |
+| Supabase region | "in Singapore (ap-southeast-1)" | **Verified 2026-11-01** through the Supabase connector (read-only). Fixed at project creation | Ready to fill once counsel has chosen the transfer wording |
+| Backup period | "up to 7 days" (Pro daily backups) | The project is on the **Free** plan today (no backups). The wording is true only after the upgrade to Pro; do not publish it before | Owner upgrades; then verify in the dashboard |
 | Vercel hosting region | "functions run in [region]" | Unverified (Vercel project not reachable from this session) | Owner / `vercel.json` decision (readiness report §6) |
 | Vercel request-log retention | per plan | Unverified | Owner |
 | Lawful bases | — | Legal judgement | Counsel |
