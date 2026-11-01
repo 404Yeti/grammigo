@@ -29,6 +29,19 @@ export const LIMITS = {
   /** Progress saves happen at checkpoints (a finished lesson, leaving the page), so this is generous for real use and tight for abuse. */
   sync: [{ name: "sync:user:min", limit: 60, windowSeconds: 60 }],
   consent: [{ name: "consent:user:min", limit: 10, windowSeconds: 60 }],
+  /** Email + password registration: it sends an email and reserves a seat, so it is tight. */
+  register: [
+    { name: "register:ip:10m", limit: 6, windowSeconds: 600 },
+    { name: "register:ip:day", limit: 30, windowSeconds: 86_400 },
+  ],
+  /** Per ADDRESS, so one mailbox cannot be mail-bombed from many places. */
+  registerEmail: [{ name: "register:email:hour", limit: 3, windowSeconds: 3_600 }],
+  /** Password guesses: per network address and per address being guessed at. Supabase applies its own limits as well. */
+  passwordSignin: [{ name: "pwsignin:ip:10m", limit: 20, windowSeconds: 600 }],
+  passwordSigninEmail: [{ name: "pwsignin:email:10m", limit: 8, windowSeconds: 600 }],
+  forgot: [{ name: "forgot:ip:10m", limit: 6, windowSeconds: 600 }],
+  forgotEmail: [{ name: "forgot:email:hour", limit: 3, windowSeconds: 3_600 }],
+  newPassword: [{ name: "newpw:ip:10m", limit: 10, windowSeconds: 600 }],
   /** Confirming it is you starts a Google sign-in, so it is throttled like one. */
   reauth: [{ name: "reauth:ip:10m", limit: 10, windowSeconds: 600 }],
   /** Downloading everything the account holds is a heavy read of private data: a few times an hour is plenty for a person. */

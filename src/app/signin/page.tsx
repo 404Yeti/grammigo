@@ -18,8 +18,21 @@ export default function SignInPage({ searchParams }: PageProps<"/signin">) {
       <form action="/api/auth/signin" method="post" className="flex flex-col gap-4">
         <button type="submit" className={primaryButtonClass}>Continue with Google</button>
       </form>
+      <p className="text-center text-sm font-bold text-ink-2" aria-hidden>or</p>
+      <form action="/api/auth/password/signin" method="post" className="flex flex-col gap-3" data-testid="password-signin">
+        <label className="flex flex-col gap-1.5 text-sm font-bold">
+          Email address
+          <input name="email" type="email" required autoComplete="username" maxLength={254} className="min-h-[52px] rounded-[14px] border-[1.5px] border-line-strong bg-surface px-4 text-base font-semibold" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-bold">
+          Password
+          <input name="password" type="password" required autoComplete="current-password" maxLength={200} className="min-h-[52px] rounded-[14px] border-[1.5px] border-line-strong bg-surface px-4 text-base font-semibold" />
+        </label>
+        <button type="submit" className={primaryButtonClass}>Sign in with email</button>
+        <Link href="/auth/forgot" className="text-sm font-bold underline">Forgot your password?</Link>
+      </form>
       <p className="text-sm font-medium leading-6 text-ink-2">
-        New here? Accounts are by invitation. <Link href="/join" className="font-bold underline">Join with an invitation code</Link>, or{" "}
+        New here? Accounts are by invitation. <Link href="/join" className="font-bold underline">Join with an invitation code</Link> (Google) or{" "}<Link href="/join/email" className="font-bold underline">with email and a password</Link>, or{" "}
         <Link href="/" className="font-bold underline">keep practising without an account</Link>.
       </p>
     </AuthShell>

@@ -2,6 +2,24 @@
 
 Target: Supabase project **`ugifdvaaaioiqmwfiksw`** (region ap-southeast-1, organisation `grammigo`, Free plan). Facts checked read-only on 2026-11-02: project ACTIVE_HEALTHY; `public` schema empty (0 tables); 0 applied migrations; `auth.users` 0 rows; 5 extensions (`plpgsql`, `pg_stat_statements`, `pgcrypto`, `uuid-ossp`, `supabase_vault`); no branches; the only security findings are the two warnings on `public.rls_auto_enable()`.
 
+## STATE AS OF 2026-11-02 (read this first)
+The sequence was started through the connector and **stopped by the connector's own confirmation step**: migrations **1 `core_schema` and 2 `invitations` are applied** (registered by the connector under its own version numbers `20261101102513` and `20261101102527`); the connector then **auto-cancelled** the call for migration 3 twice (0.8 s after sending, with no SQL error), apparently because a call that contains `delete from` needs a human to confirm it and a headless session cannot. Production therefore holds only: the core tables with row-level security, the learner gate, and the three invitation functions. **No data, no users, no profiles.** Migrations **3 to 9 are not applied.** Nothing was worked around.
+
+**To finish, one of these (yours to choose; both need you at a terminal once):**
+1. *Interactive connector session:* run `claude` in your own terminal in the repository and ask it to "resume the production migrations 3 to 9 from docs/ops/production-migration-runbook.md"; you will see each confirmation and press yes.
+2. *Supabase CLI (no Docker), from the merged commit `025173d` or later on `main`* (so that the not-yet-approved tenth migration is not in the folder):
+   ```
+   npx supabase@2.122.0 login
+   npx supabase@2.122.0 link --project-ref ugifdvaaaioiqmwfiksw        # asks for the database password: type it at the hidden prompt
+   npx supabase@2.122.0 migration list                                  # remote shows 20261101102513 and 20261101102527
+   npx supabase@2.122.0 migration repair --status reverted 20261101102513 20261101102527
+   npx supabase@2.122.0 migration repair --status applied  20261101000100 20261101000200
+   npx supabase@2.122.0 db push --dry-run                                # MUST list exactly 20261101000300 … 20261105000100 (seven files)
+   npx supabase@2.122.0 db push                                          # type Y only after reading that list
+   ```
+   (The two `repair` lines only fix the bookkeeping so that migrations 1 and 2 are recorded under the repository's names; they change no schema.)
+Then tell me, and I run the post-migration checks below (read-only).
+
 ## Preconditions (all must hold; I re-check them read-only immediately before writing)
 1. The project ref in every command is exactly `ugifdvaaaioiqmwfiksw`, and `list_projects` shows it as the only project with that ref.
 2. `public` still has 0 tables and 0 migrations; `auth.users` still has 0 rows. (If anyone has signed up, **stop**: this runbook is for an empty project.)

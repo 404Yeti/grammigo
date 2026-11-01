@@ -29,6 +29,21 @@ export function checkGoogleIdentity(user: AuthUser): IdentityVerdict {
   return { ok: true };
 }
 
+/**
+ * An email + password account must also stand ALONE: exactly one identity, provider `email`, address confirmed by the person (they clicked the link
+ * in the confirmation email). A user that also has a Google identity (Supabase can attach one when the verified addresses match) is refused, so
+ * two sign-in methods are never silently joined into one account.
+ */
+export function checkEmailIdentity(user: AuthUser): IdentityVerdict {
+  const providers = user.app_metadata?.providers ?? [];
+  if (user.app_metadata?.provider !== "email") return { ok: false, reason: "provider" };
+  if (providers.length !== 1 || providers[0] !== "email") return { ok: false, reason: "linked" };
+  const identities = user.identities ?? [];
+  if (identities.length !== 1 || identities[0].provider !== "email") return { ok: false, reason: "linked" };
+  if (!user.email || !user.email_confirmed_at) return { ok: false, reason: "unverified" };
+  return { ok: true };
+}
+
 /** A display name from what Google provides, bounded and stripped of control characters. The learner can change it later. */
 export function displayNameFrom(user: AuthUser): string {
   const meta = user.user_metadata ?? {};

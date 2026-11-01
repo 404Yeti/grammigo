@@ -1,4 +1,5 @@
 import type { JoinError } from "@/lib/auth/constants";
+import { PASSWORD_MESSAGES } from "@/lib/auth/password-policy";
 
 /** Fixed copy for each code. Nothing from the URL is ever echoed back, so a crafted link cannot put words in our mouth. */
 export const JOIN_MESSAGES: Record<JoinError, string> = {
@@ -16,6 +17,36 @@ export const SIGNIN_MESSAGES: Record<string, string> = {
   session: "Your session ended. Please sign in again.",
   rate: "Too many tries. Please wait a few minutes and try again.",
   server: "Something went wrong on our side. Please try again in a moment.",
+  credentials: "That email address and password don’t match. Check them and try again.",
+  unconfirmed: "Please confirm your email address first: open the link in the email we sent you, then sign in.",
+  noaccount: "There is no account for that address yet. Accounts are by invitation, and nothing was created.",
+  linked: "This address is connected to more than one way of signing in, so we can’t sign you in. Use the method you joined with.",
+  suspended: "This account can’t sign in right now.",
+  pwchanged: "Your password was changed and you were signed out everywhere. Sign in with the new one.",
+};
+
+/** The email + password registration form. Fixed wording per code; nothing from the URL is echoed. */
+export const REGISTER_MESSAGES: Record<string, string> = {
+  ...JOIN_MESSAGES,
+  email: "That doesn’t look like an email address. Check it and try again.",
+  taken: "That email address can’t be used to join here. If you already have an account, sign in instead.",
+  pw_short: PASSWORD_MESSAGES.short,
+  pw_long: PASSWORD_MESSAGES.long,
+  pw_repeated: PASSWORD_MESSAGES.repeated,
+  pw_common: PASSWORD_MESSAGES.common,
+  pw_email: PASSWORD_MESSAGES.email,
+};
+
+export const NEW_PASSWORD_MESSAGES: Record<string, string> = {
+  rate: "Too many tries. Please wait a few minutes and try again.",
+  server: "Something went wrong on our side. Your password was not changed. Please try again.",
+  mismatch: "The two passwords don’t match.",
+  same: "That is your current password. Choose a new one.",
+  pw_short: PASSWORD_MESSAGES.short,
+  pw_long: PASSWORD_MESSAGES.long,
+  pw_repeated: PASSWORD_MESSAGES.repeated,
+  pw_common: PASSWORD_MESSAGES.common,
+  pw_email: PASSWORD_MESSAGES.email,
 };
 
 export const ERROR_MESSAGES: Record<string, string> = {
@@ -26,5 +57,6 @@ export const ERROR_MESSAGES: Record<string, string> = {
   unverified: "Google hasn’t verified the email address on that account, so we can’t use it.",
   suspended: "This account can’t sign in right now.",
   server: "Something went wrong on our side. Nothing was saved. Please try again in a moment.",
+  recover: "That reset link didn’t work. Open it in the same browser where you asked for it, and use it within the hour; or ask for a new one.",
   reauth: "That isn’t the Google account you were signed in with, so we did not continue. Nothing was changed. Please sign in again.",
 };

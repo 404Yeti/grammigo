@@ -61,12 +61,21 @@ export type Fakes = {
   startUrl: string | null | "throw";
   limiter: { allowed: boolean; retryAfter: number } | "throw";
   exchangeThrows: boolean;
+  /** Email + password */
+  emailState: import("./db").EmailState | null | "throw";
+  reserveEmail: ReserveResult | "throw";
+  redeemEmail: RedeemResult | "throw";
+  signUp: { ok: boolean; sessionCreated: boolean } | "throw";
+  passwordSignIn: Awaited<ReturnType<SessionAuth["signInWithPassword"]>> | "throw";
+  resetSent: boolean;
+  updatePassword: Awaited<ReturnType<SessionAuth["updatePassword"]>>;
 };
 
 export function makeRuntime(over: Partial<Fakes> = {}, cookies: { name: string; value: string }[] = []) {
   const f: Fakes = {
     user: googleUser(), exchangeOk: true, profile: "none", redeem: "ok", reserve: { grantId: GRANT }, purge: true, release: "ok",
-    signOut: "ok", startUrl: null, limiter: { allowed: true, retryAfter: 1 }, exchangeThrows: false, ...over,
+    signOut: "ok", startUrl: null, limiter: { allowed: true, retryAfter: 1 }, exchangeThrows: false,
+    emailState: null, reserveEmail: { grantId: GRANT }, redeemEmail: "ok", signUp: { ok: true, sessionCreated: false }, passwordSignIn: { ok: true }, resetSent: true, updatePassword: { ok: true }, ...over,
   };
   const config = testConfig();
   const calls: string[] = [];
@@ -79,12 +88,20 @@ export function makeRuntime(over: Partial<Fakes> = {}, cookies: { name: string; 
     async release() { calls.push("release"); if (f.release === "throw") throw new Error("db"); },
     async profileState() { calls.push("profileState"); return f.profile; },
     async purgeOrphan() { calls.push("purge"); if (f.purge === "throw") throw new Error("db"); return f.purge; },
+    async reserveForEmail() { calls.push("reserveForEmail"); if (f.reserveEmail === "throw") throw new Error("db"); return f.reserveEmail; },
+    async redeemForEmail() { calls.push("redeemForEmail"); if (f.redeemEmail === "throw") throw new Error("db"); return f.redeemEmail; },
+    async emailState(email) { calls.push(`emailState:${email}`); if (f.emailState === "throw") throw new Error("db"); return f.emailState; },
     limiter: { async hit() { calls.push("limit"); if (f.limiter === "throw") throw new Error("db"); return f.limiter; } },
   };
   const auth: SessionAuth = {
     async exchangeCodeForSession() { calls.push("exchange"); if (f.exchangeThrows) throw new Error("net"); return { ok: f.exchangeOk }; },
     async getUser() { calls.push("getUser"); return f.user; },
     async signOut() { calls.push("signOut"); if (f.signOut === "throw") throw new Error("net"); },
+    async signUp() { calls.push("signUp"); if (f.signUp === "throw") throw new Error("net"); return f.signUp; },
+    async signInWithPassword() { calls.push("signInWithPassword"); if (f.passwordSignIn === "throw") throw new Error("net"); return f.passwordSignIn; },
+    async sendPasswordReset() { calls.push("sendPasswordReset"); return f.resetSent; },
+    async updatePassword() { calls.push("updatePassword"); return f.updatePassword; },
+    async signOutEverywhere() { calls.push("signOutEverywhere"); },
     async startOAuth(redirectTo) {
       calls.push("startOAuth");
       if (f.startUrl === "throw") throw new Error("net");
