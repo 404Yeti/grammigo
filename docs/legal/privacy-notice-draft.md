@@ -24,7 +24,7 @@ To let you sign in, keep your progress between devices if you ask us to, keep ac
 Only when AI features are switched on, the text you type about your goals and your short written answers (and, if you choose to speak, a recording of up to 30 seconds) are sent to OpenAI to give feedback or turn your voice into text. Grammigo does **not** send your name, email or account to OpenAI. AI never grades multiple-choice or fill-in answers and never lowers your result. Grammigo does not keep recordings. Please don't type personal details. OpenAI handles what it receives under its own terms and retention policy.
 
 ## Who handles your data
-* **Supabase** runs our account database and sign-in. [Region and agreements to be confirmed.]
+* **Supabase** runs our account database and sign-in, in Singapore. [Agreements and transfer wording to be confirmed by legal review.]
 * **Google** provides the sign-in.
 * **Vercel** hosts the app, and keeps ordinary request logs under its own policy.
 * **OpenAI** receives text or audio only for the AI features above.
@@ -46,7 +46,7 @@ We do not sell your data, show ads, or use advertising or analytics trackers.
 | Abuse-prevention counters (a scrambled form of your network address) | Up to two days. |
 | A record that an account was deleted (a scrambled id, no personal details) | 35 days, so a restored backup can have your deletion applied again. |
 | A log that an invitation was used, an export was made or an account was deleted (no names, no content) | At least 90 days. |
-| Backups held by our database provider | [Period to be confirmed.] Deleted data can remain in backups until they expire. |
+| Backups: our database plan has no automatic backups, so the operator makes encrypted copies by hand | Each copy is kept for at most 35 days, then destroyed. Deleted data can remain in a copy until then. If a copy is ever restored, deletions are applied again before anyone signs in. |
 
 ## Your choices
 * **Look at and change** your profile any time.

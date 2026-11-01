@@ -7,7 +7,7 @@ The notice stays a **DRAFT** (`draft-2026-11`) in the app. Nothing below is publ
 | Operator legal name, contact address, jurisdiction | — | **The operator is an individual, not a registered company** (owner statement, 2026-11-01). No company name or address may be invented. The notice says so and leaves the legal name, address and jurisdiction-specific disclosures bracketed | Owner confirms; counsel advises what must be published |
 | Privacy contact email | e.g. `privacy@grammigo.si` | Needs a mailbox that exists on the new domain (MX records are not set up) | Owner |
 | Supabase region | "in Singapore (ap-southeast-1)" | **Verified 2026-11-01** through the Supabase connector (read-only). Fixed at project creation | Ready to fill once counsel has chosen the transfer wording |
-| Backup period | "up to 7 days" (Pro daily backups) | The project is on the **Free** plan today (no backups). The wording is true only after the upgrade to Pro; do not publish it before | Owner upgrades; then verify in the dashboard |
+| Backup period | "manual encrypted copies, each kept at most 35 days" | **Decision (2026-11-02): stay on Supabase Free, no automatic backups.** The notice now describes the manual procedure (`scripts/backup/`). It is only true if the operator actually takes the copies and destroys old ones: see the activation checklist | Operator follows `docs/ops/activation-checklist.md` |
 | Vercel hosting region | "functions run in [region]" | Unverified (Vercel project not reachable from this session) | Owner / `vercel.json` decision (readiness report §6) |
 | Vercel request-log retention | per plan | Unverified | Owner |
 | Lawful bases | — | Legal judgement | Counsel |
