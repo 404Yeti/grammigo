@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { seedReturningLearner } from "../e2e/helpers";
 import { BASE, browserHeaders, createAccount, q, sessionCookies, uniqueIp } from "./helpers";
 import { expect, test } from "./fixtures";
@@ -213,6 +214,10 @@ test.describe("owner invitation management in the browser", () => {
 
   test("create, copy, share a link, expire and revoke: the secret is shown once and lives nowhere else", async ({ browser, context, page }) => {
     const owner = await createAccount({ name: "Owner Olga", learner: true, admin: true });
+    // the owner list is global and the mobile and desktop runs go side by side, so each run labels its own invitations
+    const tag = randomUUID().slice(0, 6);
+    const AUTUMN = `Autumn ${tag}`;
+    const BETA = `Beta ${tag}`;
     await context.addCookies(sessionCookies(owner));
     await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: BASE });
 
@@ -225,7 +230,7 @@ test.describe("owner invitation management in the browser", () => {
     await page.goto("/account/invitations");
     await expect(page.getByTestId("invitations-empty").or(page.getByTestId("invitation-row").first())).toBeVisible();
     await page.getByRole("button", { name: /Create an invitation/ }).click();
-    await page.getByLabel("Who is this for?").fill("Autumn students");
+    await page.getByLabel("Who is this for?").fill(AUTUMN);
     await page.getByRole("radio", { name: "5 people", exact: true }).check();
     await page.getByRole("radio", { name: "7 days" }).check();
     await page.getByRole("button", { name: "Create invitation" }).click();
@@ -249,7 +254,7 @@ test.describe("owner invitation management in the browser", () => {
 
     await page.getByRole("button", { name: "Done" }).click();
     await expect(page.getByTestId("invitation-code")).toHaveCount(0);
-    const rowEl = page.getByTestId("invitation-row").filter({ hasText: "Autumn students" });
+    const rowEl = page.getByTestId("invitation-row").filter({ hasText: AUTUMN });
     await expect(rowEl).toContainText(`Code ending ${plain.slice(-4)}`);
     await expect(rowEl).toContainText("Active");
     await expect(rowEl).toContainText("0 of 5 used");
@@ -272,27 +277,27 @@ test.describe("owner invitation management in the browser", () => {
     await guest.close();
 
     // expire now: confirm first, then nobody new can start with it
-    await page.getByTestId("invitation-row").filter({ hasText: "Autumn students" }).getByRole("button", { name: "Expire now" }).click();
+    await page.getByTestId("invitation-row").filter({ hasText: AUTUMN }).getByRole("button", { name: "Expire now" }).click();
     await expect(page.getByTestId("invitation-confirm")).toContainText("already partway through signing in can finish");
     await page.getByRole("button", { name: "Expire now" }).click();
-    await expect(page.getByTestId("invitation-row").filter({ hasText: "Autumn students" })).toContainText("Expired");
+    await expect(page.getByTestId("invitation-row").filter({ hasText: AUTUMN })).toContainText("Expired");
     const afterExpire = await page.request.post("/api/auth/join", { form: { code, adult: "on" }, headers: browserHeaders(), maxRedirects: 0 });
     expect(afterExpire.headers().location).toBe(`${BASE}/join?e=expired`);
 
     // revoke a second one through the confirmation screen
     await page.getByRole("button", { name: /Create an invitation/ }).click();
-    await page.getByLabel("Who is this for?").fill("Beta friends");
+    await page.getByLabel("Who is this for?").fill(BETA);
     await page.getByRole("radio", { name: "1 person", exact: true }).check();
     await page.getByRole("button", { name: "Create invitation" }).click();
     const code2 = (await page.getByTestId("invitation-code").textContent())!.trim();
     await page.getByRole("button", { name: "Done" }).click();
-    await page.getByTestId("invitation-row").filter({ hasText: "Beta friends" }).getByRole("button", { name: "Revoke" }).click();
-    await expect(page.getByTestId("invitation-confirm")).toContainText("Revoke “Beta friends”?");
+    await page.getByTestId("invitation-row").filter({ hasText: BETA }).getByRole("button", { name: "Revoke" }).click();
+    await expect(page.getByTestId("invitation-confirm")).toContainText(`Revoke “${BETA}”?`);
     await page.getByRole("button", { name: "Keep it active" }).click();
-    await expect(page.getByTestId("invitation-row").filter({ hasText: "Beta friends" })).toContainText("Active");
-    await page.getByTestId("invitation-row").filter({ hasText: "Beta friends" }).getByRole("button", { name: "Revoke" }).click();
+    await expect(page.getByTestId("invitation-row").filter({ hasText: BETA })).toContainText("Active");
+    await page.getByTestId("invitation-row").filter({ hasText: BETA }).getByRole("button", { name: "Revoke" }).click();
     await page.getByRole("button", { name: "Revoke invitation" }).click();
-    await expect(page.getByTestId("invitation-row").filter({ hasText: "Beta friends" })).toContainText("Revoked");
+    await expect(page.getByTestId("invitation-row").filter({ hasText: BETA })).toContainText("Revoked");
     const afterRevoke = await page.request.post("/api/auth/join", { form: { code: code2, adult: "on" }, headers: browserHeaders(), maxRedirects: 0 });
     expect(afterRevoke.headers().location).toBe(`${BASE}/join?e=revoked`);
 
