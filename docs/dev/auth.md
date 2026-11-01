@@ -199,3 +199,7 @@ account yet"). Cloud sync and importing an anonymous device's progress are Phase
 * `POST /api/account/delete`: typed words + sign-in no older than `reauthWindowSeconds` (default and maximum 600; `AUTH_REAUTH_WINDOW_SECONDS` can only shorten it) + same origin + rate limit, then one database function. See `deletion-and-restore.md`.
 * Pages: `/account/data`, `/account/delete`, `/auth/deleted`. Account recovery is still out of scope.
 * Review notes: `security-review.md`. Legal: `docs/legal/`. Real iPhone checklist: `real-device-acceptance.md`.
+
+
+## Email + password (second method)
+Pages `/join/email`, `/signin` (second form), `/auth/check-email`, `/auth/confirmed`, `/auth/forgot`, `/auth/new-password`; routes `POST /api/auth/email/register`, `POST /api/auth/password/signin`, `POST /api/auth/password/forgot`, `GET /api/auth/recover`, `POST /api/auth/password/update`; code `lib/auth/password.ts` and `password-policy.ts`; database `20261106000100_email_password.sql`. Passwords live only in Supabase Auth. Threats and controls: `security-review.md` §9. Needs: Email provider ON, email confirmation ON, working SMTP (the built-in sender only reaches team members), minimum password length 12.

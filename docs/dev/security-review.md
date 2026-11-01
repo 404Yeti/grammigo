@@ -88,3 +88,22 @@ So the check defends against a **stolen or leaked session cookie used from elsew
 4. **Backups / point-in-time restore** of the real provider are untested (see the restore document).
 5. **Independent review**: no external security review or penetration test has been done.
 6. Account recovery is deliberately absent; a deleted account cannot be recovered.
+
+
+## 9. Email + password (added with the second sign-in method)
+
+Passwords are stored, hashed and checked **only by Supabase Auth**; Grammigo never stores or logs one and has no password column. Our code sets rules (12+ characters, ≤ 72 bytes, not trivial), rate limits and decides who may have an account.
+
+| Threat | Control | Evidence |
+|---|---|---|
+| Someone registers without an invitation | Our `/api/auth/email/register` requires a valid code and reserves a seat first. Making an account through the **public Auth API** directly is possible (the anon key is public) but yields a person with **no profile**: `is_active_learner()` is false, so row-level security shows them nothing, they cannot write a profile (no INSERT grant), and our sign-in refuses them and deletes the leftover. The nightly sweep deletes them too | `supabase/tests/auth/password.test.ts` (direct sign-up, confirm, sign in, REST reads return nothing, RPC denied, profile insert denied) |
+| Invitation redeemed by the wrong address | The seat is bound to a keyed hash of the registering address and is redeemed only by a **confirmed** account with exactly that address | same file ("the seat belongs to the address it was reserved for") |
+| Confirmation skipped | The Auth server refuses password sign-in until the link is opened; if the project ever auto-confirmed (a setting error), registration notices a session coming back, ends it, gives the seat back and fails closed; the readiness check fails on `mailer_autoconfirm` | unit + readiness tests |
+| Pre-registration ("squatting") of an invited address through the public API | Registration deletes any profile-less leftover for that address before creating the real account; the squatter's password then fails | database test "a squatter … is cleared" |
+| Two sign-in methods silently joined for one person | An address that already has a profile, or any Google identity, cannot register by email; reset emails are sent only to email-only accounts; every sign-in path refuses a user that has more than one identity. (Supabase can attach a second identity on its own when verified addresses match; the application then refuses to operate that account rather than treat it as one person, and the owner resolves it by hand.) | unit + database tests |
+| Password guessing | Supabase's own limits plus ours: 20 per 10 minutes per network address and **8 per 10 minutes per address being guessed**, whatever the right password is | database test (ninth guess refused) |
+| Account enumeration | Sign-in: one message for wrong password and unknown address; registration reports "can't be used" only to someone holding a valid invitation code; reset: the same page and no email for any non-eligible address | unit tests |
+| Reset-link abuse | The link works only in the browser that asked (PKCE verifier), only for an email-only account with a profile, and a new password ends **every** session on every device | database + browser tests |
+| Deleting an account with a stolen cookie | Same 10-minute rule as Google: a password sign-in is the "recent sign-in", and re-confirming must be the same account | database test |
+
+Residual and accepted: a person who holds a valid invitation can register an address that is not theirs (the mailbox owner receives a confirmation email; without confirming it nothing is created; confirming it hands the account to whoever set the password, who already had an invitation); registration and reset send email through the owner's SMTP quota, so abuse is limited by the per-address and per-network limits above and by Supabase's own email limits; the public Auth API can be used to send a limited number of confirmation emails to arbitrary addresses (Supabase rate-limits it; keep the custom SMTP limit low).

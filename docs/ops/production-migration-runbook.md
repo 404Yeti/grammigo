@@ -66,3 +66,7 @@ The same assertions run in CI against the local database on every change (`catal
 1. You take the first **encrypted backup** (empty project, proves the tool against production): `node scripts/backup/backup.mjs --out ~/grammigo-backups/first-empty.gmbackup` in a terminal in your Linux home (not `/mnt/c`, not inside the repository). It asks for the connection string and a passphrase without echoing either. Save the passphrase in your password manager.
 2. Vercel Production variables, then the `env` readiness check.
 3. The acceptance run with disposable Google accounts, then you say "enable accounts".
+
+
+## Migration 10 (NEW, needs its own authorization): `email_password` (`20261106000100`)
+Adds three server-only functions and two columns for **Email + Password** sign-in: `reserve_invitation_for_email`, `redeem_reservation_for_email`, `email_identity_state`, and `email_hash` / `adult_confirmed_at` on `invitation_reservations`. It is **not** in the nine already authorized and is **not** applied. It is merged to `main` only with the Email + Password pull request; apply it after that pull request is merged and CI is green, with the same method and the same post-migration checks (the function-privilege check then also expects these three to be `service_role`-only, as in the catalogue test). Until it is applied and the app deployed with accounts off, nothing depends on it.
