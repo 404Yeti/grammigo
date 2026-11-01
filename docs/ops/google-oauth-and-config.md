@@ -47,6 +47,8 @@ All are **server-side secrets**. Mark each **Sensitive**. None may start with `N
 | `AUTH_SITE_URL` | `https://grammigo.si` | Production only |
 | `CRON_SECRET` | `openssl rand -base64 32`; Vercel Cron sends it as `Authorization: Bearer …` | Production only |
 | *(unchanged)* `AI_FEATURES_ENABLED`, `OPENAI_API_KEY`, Upstash | as today | as today |
+| *(optional)* `AUTH_REQUEST_TIMEOUT_MS` | default 8000; kept between 1000 and 15000 | Production |
+| *(build-time, later)* `NEXT_PUBLIC_GUEST_TRANSFER=on`, `NEXT_PUBLIC_TRANSFER_SOURCE_ORIGIN`, `NEXT_PUBLIC_TRANSFER_TARGET_ORIGIN` | public, non-secret origins; set only at the transfer step of the domain plan | Production, when approved |
 | *(never set)* `AUTH_REAUTH_WINDOW_SECONDS` | default (10 min) is the maximum | |
 
 Two projects, two sets: if a staging Supabase project is created, it gets **its own** keys, pepper and Google client; production values never go into Preview.

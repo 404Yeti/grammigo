@@ -43,6 +43,9 @@ const ENTRY_POINTS: Record<string, string[]> = {
   "features/sync/guest-import.ts": ["@/features/guided/store/store", "@/types/guided"],
   // Removing a deleted account's own saved Guided Correction folder from the device: it names a storage key and reads nothing.
   "features/accounts/local-cleanup.ts": ["@/features/guided/store/schema"],
+  // Carrying a guest's saved Guided Correction activity from the old web address to the new one, on the learner's say-so: validate and merge, never score.
+  "features/transfer/apply.ts": ["@/features/guided/store/store", "@/features/guided/store/schema"],
+  "features/transfer/protocol.ts": ["@/features/guided/store/schema", "@/types/guided"],
 };
 
 describe("guided code and learning code cannot see each other", () => {

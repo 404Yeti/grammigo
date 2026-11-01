@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { AuthConfig } from "./config";
+import { fetchWithTimeout } from "./timeout-fetch";
 
 /** Session cookies live for a week of inactivity; they are rewritten (sliding) whenever the session is refreshed. */
 const SESSION_COOKIE_SECONDS = 7 * 24 * 60 * 60;
@@ -34,6 +35,7 @@ export function createSessionClient(config: AuthConfig, store: CookieStoreLike, 
   return createServerClient(config.supabaseUrl, config.anonKey, {
     cookieOptions: { name: config.cookieNames.auth },
     auth: { flowType: "pkce", detectSessionInUrl: false },
+    global: { fetch: fetchWithTimeout(config.requestTimeoutMs) }, // a Supabase that never answers must not hold the page open
     cookies: {
       getAll: () => store.getAll(),
       setAll: (cookies, headers) => {
@@ -55,5 +57,5 @@ export function createSessionClient(config: AuthConfig, store: CookieStoreLike, 
  * persists a session, and is used only for the narrow operations in `db.ts` (never to answer a learner's own data request).
  */
 export function createServiceClient(config: AuthConfig): SupabaseClient {
-  return createClient(config.supabaseUrl, config.serviceKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  return createClient(config.supabaseUrl, config.serviceKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: fetchWithTimeout(config.requestTimeoutMs) } });
 }

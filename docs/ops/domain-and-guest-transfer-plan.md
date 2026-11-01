@@ -7,6 +7,8 @@
 ## The problem the redirect creates: guest progress lives in the browser's origin
 Anonymous progress is in `localStorage`, which the browser keys by **origin**. `https://grammigo.si` and `https://grammigo.vercel.app` are different origins, so a guest redirected from one to the other **appears to lose all progress** (it is still on the old origin, unreachable from the new one). Accounts are not affected (none exist in production, and accounts will only ever run on `.si`). So: **do not redirect guests until a transfer exists.**
 
+> **Status (Phase 7B preparation):** option B, with option A as its fallback, is implemented behind `NEXT_PUBLIC_GUEST_TRANSFER` (off by default; both pages 404 while off), with unit tests for the protocol and e2e tests across two real origins. It is not linked from anywhere yet. See `readiness-checks.md`.
+
 ## Options for carrying guest progress across
 | Option | How | Pros | Cons |
 |---|---|---|---|

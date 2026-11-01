@@ -325,3 +325,72 @@ describe("Phase 6: the notice, the review pack and the acceptance checklist stay
     for (const f of ["app/api/account/export/route.ts", "app/api/account/delete/route.ts", "app/api/auth/reauth/route.ts"]) expect(read(path.join(SRC, f)), f).toMatch(/lifecycleDeps\(req\)|authGate\(\)/);
   });
 });
+
+describe("Phase 7B preparation: timeouts, guest transfer, readiness checks", () => {
+  const ROOT = path.resolve(SRC, "..");
+  const transferFiles = () => files.filter((f) => /^features\/transfer\//.test(rel(f)) && !isTest(f));
+
+  it("every Supabase client the server creates gives up after the configured time (session, service-role and the proxy)", () => {
+    for (const f of ["lib/auth/supabase.ts", "proxy.ts"]) expect(stripComments(read(path.join(SRC, f))), f).toMatch(/fetchWithTimeout\(config\.requestTimeoutMs\)/);
+    const creators = files.filter((f) => !isTest(f) && /\bcreate(Server)?Client\(/.test(stripComments(read(f))) && /@supabase\//.test(read(f))).map(rel).sort();
+    expect(creators).toEqual(["lib/auth/supabase.ts", "proxy.ts"]);
+    const src = stripComments(read(path.join(SRC, "lib/auth/supabase.ts")));
+    expect(src.match(/fetchWithTimeout\(/g)?.length).toBe(2);
+  });
+
+  it("the guest transfer is off unless switched on, and both pages are 404 while off", () => {
+    expect(read(path.join(SRC, "features/transfer/config.ts"))).toMatch(/NEXT_PUBLIC_GUEST_TRANSFER === "on"/);
+    for (const p of ["app/transfer/send/page.tsx", "app/transfer/receive/page.tsx"]) expect(read(path.join(SRC, p)), p).toMatch(/if \(!transferEnabled\(\)\) notFound\(\)/);
+  });
+
+  it("the transfer code makes no network request, sets no cookie, and only ever posts to a named origin", () => {
+    const fs = transferFiles();
+    expect(fs.length).toBeGreaterThanOrEqual(5);
+    for (const f of fs) {
+      const src = stripComments(read(f));
+      expect(src, rel(f)).not.toMatch(/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|document\.cookie|innerHTML|dangerouslySetInnerHTML|\beval\(|new Function\(/);
+      expect(src, rel(f)).not.toMatch(/postMessage\([^)]*["']\*["']/);
+    }
+  });
+
+  it("the receiver accepts a message only from the old origin AND the window it opened; the sender posts only to the new origin and listens only to it", () => {
+    const recv = stripComments(read(path.join(SRC, "features/transfer/ReceivePanel.tsx")));
+    expect(recv).toMatch(/event\.origin !== source/);
+    expect(recv).toMatch(/event\.source !== popup\.current/);
+    expect(recv).toMatch(/postMessage\(ackMessage_\(\), source\)/);
+    const send = stripComments(read(path.join(SRC, "features/transfer/SendPanel.tsx")));
+    expect(send).toMatch(/postMessage\(transferMessageFor\([^)]*\), target\)/);
+    expect(send).toMatch(/event\.origin !== target \|\| event\.source !== window\.opener/);
+    expect(send).not.toMatch(/removeItem|clear\(\)|localStorage\.setItem|updateState|updateGuided/); // the sender never writes or deletes anything
+  });
+
+  it("progress that arrives is written only through the guest-folder merge, never by a direct storage write", () => {
+    const apply = stripComments(read(path.join(SRC, "features/transfer/apply.ts")));
+    expect(apply).not.toMatch(/localStorage|sessionStorage/);
+    expect(apply).toMatch(/getStorageScope\(\) !== ""/);
+    expect(stripComments(read(path.join(SRC, "features/transfer/ReceivePanel.tsx")))).not.toMatch(/localStorage|sessionStorage/);
+  });
+
+  it("nothing in lesson, mastery, Guided, sync, storage or account code imports the transfer feature", () => {
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (isTest(f) || /^(features\/transfer|app\/transfer)\//.test(rel(f))) continue;
+      for (const i of imports(read(f))) if (/@\/features\/transfer/.test(i)) offenders.push(`${rel(f)} -> ${i}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the readiness scripts print results through the redactor only, and never an environment value", () => {
+    const cli = stripComments(read(path.join(ROOT, "scripts/check-production-readiness.mjs")));
+    const logs = [...cli.matchAll(/console\.(log|error)\(([^;]*)\);/g)].map((m) => m[2]);
+    for (const l of logs.filter((x) => !x.startsWith('"Usage:'))) expect(l, l).not.toMatch(/\benv\b(?!-file)|process\.env|SERVICE|ANON|PEPPER|SECRET|PASSWORD|DB_URL/i);
+    expect(cli).toMatch(/renderReport\(sections, redact\)/);
+    expect(cli).toMatch(/redactor\(env\)/);
+    const checks = stripComments(read(path.join(ROOT, "scripts/readiness/checks.mjs")));
+    expect(checks).not.toMatch(/console\./);
+  });
+
+  it("no vercel.json is committed with a guessed region: a region file may only come from the verified mapping tool", () => {
+    expect(read(path.join(ROOT, "scripts/vercel-region.mjs"))).toMatch(/This tool does not guess a region/);
+  });
+});
