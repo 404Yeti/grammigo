@@ -1,7 +1,6 @@
 import { BASE, browserHeaders, FLOW_COOKIE, invitation, q, uniqueIp } from "./helpers";
 import { expect, test } from "./fixtures";
 
-const AUTHORIZE = /\/auth\/v1\/authorize/;
 
 async function submitCode(page: import("@playwright/test").Page, code: string) {
   await page.goto("/join");
@@ -50,31 +49,27 @@ test.describe("the join page", () => {
     await expect(page.locator("main p[role=alert]")).toContainText("withdrawn");
   });
 
-  test("a used-up invitation says so, and the seat counts are exact", async ({ page, browser }) => {
+  test("a used-up invitation says so, and the seat counts are exact", async ({ page, request }) => {
     const inv = await invitation({ maxUses: 1 });
-    await page.route(AUTHORIZE, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<h1>Google</h1>" }));
+    // The first person reserves the only seat (driven directly: the hop to Google is a redirect the browser cannot be intercepted on).
+    const first = await request.post("/api/auth/join", { form: { code: inv.code, adult: "on" }, headers: browserHeaders(), maxRedirects: 0 });
+    expect(first.status()).toBe(303);
+    expect(first.headers().location).toContain("/auth/v1/authorize");
+    // The second person, in a real browser form, is told there is no place left.
     await submitCode(page, inv.code);
-    await expect(page.getByRole("heading", { name: "Google" })).toBeVisible(); // the one seat was reserved
-    const other = await browser.newContext({ extraHTTPHeaders: { "x-real-ip": uniqueIp() } });
-    const second = await other.newPage();
-    await submitCode(second, inv.code);
-    await expect(second).toHaveURL(/\/join\?e=full$/);
+    await expect(page).toHaveURL(/\/join\?e=full$/);
+    await expect(page.locator("main p[role=alert]")).toContainText("no places left");
     const row = (await q("select reserved_count, max_uses from public.invitations where id = $1", [inv.id])).rows[0];
     expect(row).toMatchObject({ reserved_count: 1, max_uses: 1 });
-    await other.close();
   });
 
-  test("a valid code sends the browser to Google with PKCE, and the cookies are hardened", async ({ page, context }) => {
+  test("a valid code sends the browser to Google with PKCE, and the cookies are hardened", async ({ request, context }) => {
     const inv = await invitation({ maxUses: 1 });
-    let authorize: URL | null = null;
-    await page.route(AUTHORIZE, (route) => {
-      authorize = new URL(route.request().url());
-      return route.fulfill({ status: 200, contentType: "text/html", body: "<h1>Google</h1>" });
-    });
-    await submitCode(page, inv.code.toLowerCase()); // a pasted lower-case code works
-    await expect(page.getByRole("heading", { name: "Google" })).toBeVisible();
-
-    const url = authorize as unknown as URL;
+    const res = await request.post("/api/auth/join", { form: { code: inv.code.toLowerCase(), adult: "on" }, headers: browserHeaders(), maxRedirects: 0 }); // a pasted lower-case code works
+    expect(res.status()).toBe(303);
+    const url = new URL(res.headers().location);
+    expect(url.origin).toBe(new URL(process.env.SUPABASE_API_URL as string).origin);
+    expect(url.pathname).toBe("/auth/v1/authorize");
     expect(url.searchParams.get("provider")).toBe("google");
     expect(url.searchParams.get("code_challenge_method")?.toLowerCase()).toBe("s256");
     expect((url.searchParams.get("code_challenge") ?? "").length).toBeGreaterThanOrEqual(43);

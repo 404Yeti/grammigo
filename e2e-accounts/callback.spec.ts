@@ -72,17 +72,14 @@ test.describe("the sign-in callback refuses anything that is not our own flow", 
 });
 
 test.describe("the sign-in page", () => {
-  test("starts a Google sign-in with no invitation, and points newcomers to the invitation page", async ({ page, context }) => {
-    let authorize: URL | null = null;
-    await page.route(/\/auth\/v1\/authorize/, (route) => {
-      authorize = new URL(route.request().url());
-      return route.fulfill({ status: 200, contentType: "text/html", body: "<h1>Google</h1>" });
-    });
+  test("starts a Google sign-in with no invitation, and points newcomers to the invitation page", async ({ page, request, context }) => {
     await page.goto("/signin");
     await expect(page.getByRole("link", { name: /Join with an invitation code/ })).toBeVisible();
-    await page.getByRole("button", { name: "Continue with Google" }).click();
-    await expect(page.getByRole("heading", { name: "Google" })).toBeVisible();
-    expect((authorize as unknown as URL).searchParams.get("provider")).toBe("google");
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+
+    const res = await request.post("/api/auth/signin", { headers: browserHeaders(), maxRedirects: 0 });
+    expect(res.status()).toBe(303);
+    expect(new URL(res.headers().location).searchParams.get("provider")).toBe("google");
     const flow = (await context.cookies()).find((c) => c.name === FLOW_COOKIE)!;
     const payload = JSON.parse(Buffer.from(flow.value.split(".")[0], "base64url").toString());
     expect(payload.intent).toBe("signin");
