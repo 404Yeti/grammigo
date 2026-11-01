@@ -10,22 +10,25 @@ import { z } from "zod";
  */
 export type FlowPayload = {
   v: 1;
-  intent: "join" | "signin";
+  intent: "join" | "signin" | "reauth";
   nonce: string;
   /** The reservation id from `reserve_invitation`. Present only for a join. */
   grant?: string;
   /** When the learner confirmed they are 18 or older. Present only for a join. */
   adultAt?: string;
+  /** The learner who is confirming it is them. Present only for a reauth: the callback accepts nobody else. */
+  uid?: string;
   /** Expiry, seconds since the epoch. */
   exp: number;
 };
 
 const schema = z.strictObject({
   v: z.literal(1),
-  intent: z.enum(["join", "signin"]),
+  intent: z.enum(["join", "signin", "reauth"]),
   nonce: z.string().regex(/^[A-Za-z0-9_-]{22,64}$/),
   grant: z.uuid().optional(),
   adultAt: z.iso.datetime().optional(),
+  uid: z.uuid().optional(),
   exp: z.number().int().positive(),
 });
 
@@ -67,7 +70,9 @@ export function verifyFlow(token: string | undefined | null, secret: Buffer, now
   const p = result.data;
   if (p.exp <= nowSeconds) return null;
   if (p.intent === "join" && (!p.grant || !p.adultAt)) return null;
-  if (p.intent === "signin" && (p.grant || p.adultAt)) return null;
+  if (p.intent === "signin" && (p.grant || p.adultAt || p.uid)) return null;
+  if (p.intent === "join" && p.uid) return null;
+  if (p.intent === "reauth" && (!p.uid || p.grant || p.adultAt)) return null;
   return p;
 }
 

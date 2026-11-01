@@ -26,4 +26,5 @@ export const ERROR_MESSAGES: Record<string, string> = {
   unverified: "Google hasn’t verified the email address on that account, so we can’t use it.",
   suspended: "This account can’t sign in right now.",
   server: "Something went wrong on our side. Nothing was saved. Please try again in a moment.",
+  reauth: "That Google account isn’t the one you were signed in with, so we couldn’t confirm it was you. Nothing was changed. Please sign in again.",
 };

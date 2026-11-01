@@ -64,7 +64,7 @@ describe("every account route is gated and answers per request", () => {
   it("finds the routes", () => expect(routes.length).toBeGreaterThanOrEqual(8));
   it.each(routes.map((f) => [rel(f), f]))("%s starts with the gate", (_name, f) => {
     const src = read(f);
-    expect(src).toMatch(/await authGate\(\)|await syncDeps\(req\)/); // syncDeps starts with the same gate
+    expect(src).toMatch(/await authGate\(\)|await syncDeps\(req\)|await lifecycleDeps\(req\)/); // syncDeps and lifecycleDeps start with the same gate
     // the gate is the first thing each handler does: nothing before it reads the request or touches a client
     for (const h of src.matchAll(/export async function (GET|POST)\([^)]*\)\s*\{\s*([^\n]*)/g)) expect(h[2], `${h[1]} first statement`).toMatch(/authGate|[dD]eps\(|gate/);
   });
@@ -194,5 +194,60 @@ describe("Phase 5: saving progress", () => {
     for (const f of ["features/sync/guided-doc.ts", "features/sync/merge-guided.ts", "features/sync/guest-import.ts"]) {
       expect(read(path.join(SRC, f)), f).not.toMatch(/GUIDED_OUTCOME_VALUES|outcomeValue|summarizeOutcomes|meanProvisionalValue/);
     }
+  });
+});
+
+describe("Phase 6: export, deletion and sign-in confirmation", () => {
+  const lifecycle = () => read(path.join(SRC, "lib/auth/lifecycle.ts"));
+  it("the lifecycle handlers use the service role for exactly two things: recording an export, and the one deletion function", () => {
+    const uses = [...lifecycle().matchAll(/d\.service\.(\w+)\(\s*"([a-z_]+)"/g)].map((m) => `${m[1]}:${m[2]}`).sort();
+    expect(uses).toEqual(["rpc:audit_export", "rpc:delete_learner"]);
+    expect(lifecycle().match(/d\.service/g)?.length).toBe(2); // nothing else touches it
+  });
+  it("the only other privileged calls are the three restore-replay functions, and they are not reachable from any route", () => {
+    const src = lifecycle();
+    const replay = [...src.matchAll(/service\.rpc\(\s*"([a-z_]+)"/g)].map((m) => m[1]).sort();
+    expect(replay).toEqual(["all_user_ids", "ledger_hashes", "redelete_learner"]);
+    const routes = files.filter((f) => /^app\//.test(rel(f)) && !isTest(f)).filter((f) => /replayDeletionLedger|serviceReplayDb/.test(read(f)));
+    expect(routes.map(rel)).toEqual([]);
+  });
+  it("export reads only through the learner's own session and names the learner from the verified viewer, never the request", () => {
+    const src = lifecycle();
+    const build = /export async function buildExport[\s\S]*?\n}\n/.exec(src)?.[0] ?? "";
+    expect(build).toMatch(/d\.client\.from\("profiles"\)/);
+    expect(build).not.toMatch(/d\.service|searchParams|params\./);
+    expect(src).toMatch(/buildExport\(d, d\.viewer\.id\)/);
+    expect(src).toMatch(/p_user: d\.viewer\.id/);
+    expect(src).not.toMatch(/searchParams|params\.(id|user)|raw\.(id|user)|body\.(id|user)/);
+  });
+  it("deleting requires, in this order: a learner, a same-origin request, a rate limit, the typed words, and a recent sign-in, before the database call", () => {
+    const body = /export async function handleDelete[\s\S]*?\n}\n/.exec(lifecycle())?.[0] ?? "";
+    const order = ["refuse(d.viewer)", "isTrustedOrigin", "isAdmin", "limited(d, LIMITS.delete", "normaliseConfirmation", "isRecentSignIn", "delete_learner"].map((m) => body.indexOf(m));
+    expect(order.every((i) => i >= 0), JSON.stringify(order)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+  it("recent sign-in comes from the session's authentication time (amr), never from the token's issue time, which moves on every refresh", () => {
+    const src = stripComments(lifecycle());
+    expect(src).toMatch(/getClaims\(\)/);
+    expect(src).not.toMatch(/\.iat\b|claims\.iat|\biat:/);
+  });
+  it("the lifecycle and re-sign-in modules never log a name, email, id, code or address (logs carry fixed outcome words only)", () => {
+    for (const f of ["lib/auth/lifecycle.ts", "lib/auth/lifecycle-http.ts"]) {
+      for (const m of stripComments(read(path.join(SRC, f))).matchAll(/\blog\(\s*"[a-z_]+"\s*,\s*(\{[^}]*\})/g)) expect(m[1], f).toMatch(/^\{\s*outcome:\s*"[a-z_]+"\s*\}$/);
+    }
+  });
+  it("the deletion screens and forms never put the confirmation or anything personal in the URL, storage or console", () => {
+    for (const f of ["features/accounts/DeleteAccountForm.tsx", "features/accounts/ExportButton.tsx"]) {
+      const src = read(path.join(SRC, f));
+      expect(src, f).not.toMatch(/console\.|document\.cookie|history\.(push|replace)State|router\.(push|replace)|location\.(search|hash)/);
+    }
+  });
+  it("no lesson, mastery, storage or sync code imports the lifecycle modules", () => {
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (isTest(f) || !/^(features\/(learning|practice|diagnostic|mastery|lessons|onboarding|ai|guided|sync)|lib\/storage|curriculum|data)\//.test(rel(f))) continue;
+      for (const i of imports(read(f))) if (/lifecycle|DeleteAccountForm|ExportButton/.test(i)) offenders.push(`${rel(f)} -> ${i}`);
+    }
+    expect(offenders).toEqual([]);
   });
 });
