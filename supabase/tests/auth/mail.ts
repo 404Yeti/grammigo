@@ -29,7 +29,7 @@ export function authLink(text: string): string {
 
 /** The password-reset link in an email: it points at OUR /auth/reset page and carries the one-time token. */
 export function resetLink(text: string): string {
-  const m = /https?:\/\/[^\s"'<>)]+\/auth\/reset\?token_hash=[^\s"'<>)]*/.exec(text);
+  const m = /https?:\/\/[^\s"'<>)]+\/auth\/reset#token_hash=[^\s"'<>)]*/.exec(text);
   if (!m) throw new Error("no reset link found in the email");
   return m[0].replace(/&amp;/g, "&");
 }

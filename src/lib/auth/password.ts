@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { RECOVERY_TOKEN } from "./recovery-token";
 import { clientAddress } from "./client-ip";
 import { PRIVACY_NOTICE_VERSION } from "./constants";
 import { hashCode, normaliseCode } from "./invite-code";
@@ -255,8 +256,6 @@ export async function handleRecover(rt: AuthRuntime, input: { code: string | nul
   }
 }
 
-/** The shape of the one-time token in the reset email (URL-safe characters only, bounded). */
-export const RECOVERY_TOKEN = /^[A-Za-z0-9_-]{16,200}$/;
 
 /**
  * POST /api/auth/recover: the reset email's link opens /auth/reset (which changes nothing, so a mail scanner that fetches the link cannot use the

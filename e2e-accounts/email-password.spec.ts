@@ -187,7 +187,7 @@ test.describe("forgot password", () => {
     await page.getByLabel("Email address").fill(address);
     await page.getByRole("button", { name: "Send the link" }).click();
     await expect(page.getByTestId("check-email-reset")).toBeVisible();
-    const mail = await waitForMail(address, { contains: /auth\/reset\?token_hash=/, after: t });
+    const mail = await waitForMail(address, { contains: /auth\/reset#token_hash=/, after: t });
     await page.goto(resetLink(mail.text));
     await expect(page.getByTestId("reset-form")).toBeVisible(); // opening the link changes nothing; the button does
     const [posted] = await Promise.all([page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/api/auth/recover")), page.getByRole("button", { name: "Choose a new password" }).click()]);
@@ -253,7 +253,7 @@ test.describe("forgot password", () => {
     await a.goto(`${BASE}/auth/forgot`);
     await a.getByLabel("Email address").fill(address);
     await a.getByRole("button", { name: "Send the link" }).click();
-    const link = resetLink((await waitForMail(address, { contains: /auth\/reset\?token_hash=/, after: t2 })).text);
+    const link = resetLink((await waitForMail(address, { contains: /auth\/reset#token_hash=/, after: t2 })).text);
     // a mail scanner / link preview fetches the link first: nothing is used up
     expect((await request.get(link)).status()).toBe(200);
     expect((await request.get(link)).status()).toBe(200);

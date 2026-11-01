@@ -259,8 +259,8 @@ describe("forgot password and choosing a new one", () => {
       const { rt } = runtimeFor([]);
       expect(await handleForgot(rt, { headers: freshHeaders(), email: e })).toMatchObject({ status: 303, location: "/auth/check-email?k=reset" });
     }
-    const mail = await waitForMail(a.email, { contains: /auth\/v1\/verify/, after: since });
-    expect(mail.text).toMatch(/auth\/reset\?token_hash=/);
+    const mail = await waitForMail(a.email, { contains: /auth\/reset#token_hash=/, after: since });
+    expect(mail.text).toMatch(/auth\/reset#token_hash=/);
     await new Promise((r) => setTimeout(r, 1_500));
     for (const e of [g.email, stranger]) await expect(waitForMail(e, { after: since, timeoutMs: 1_500 })).rejects.toThrow(/no email/);
   });
@@ -269,10 +269,11 @@ describe("forgot password and choosing a new one", () => {
     const since = t0();
     const { rt: rt0 } = runtimeFor([]); // the browser that asks for the reset; nothing from it is needed later
     await handleForgot(rt0, { headers: freshHeaders(), email: a.email });
-    const mail = await waitForMail(a.email, { contains: /auth\/reset\?token_hash=/, after: since });
+    const mail = await waitForMail(a.email, { contains: /auth\/reset#token_hash=/, after: since });
     const url = new URL(resetLink(mail.text));
     expect(url.pathname).toBe("/auth/reset");
-    const tokenHash = url.searchParams.get("token_hash") as string;
+    expect(url.search).toBe(""); // the token is in the fragment, which a browser never sends to a server
+    const tokenHash = new URLSearchParams(url.hash.slice(1)).get("token_hash") as string;
     expect(tokenHash).toBeTruthy();
     // an old session on another device
     const device2 = await signInWith(a.email, GOOD);
@@ -293,6 +294,20 @@ describe("forgot password and choosing a new one", () => {
     expect((await signInWith(a.email, GOOD)).result).toMatchObject({ location: "/signin?e=credentials" });
     expect((await signInWith(a.email, NEWPW)).result).toMatchObject({ location: "/account" });
   });
+  it("the reset button is rate limited per network address: changing the token (or anything submitted) does not reset the budget", async () => {
+    const h = () => new Headers({ origin: config.siteUrl.origin, "x-real-ip": "203.0.113.77" }); // one address, a different token every time
+    const seen: number[] = [];
+    for (let i = 0; i < 24; i++) {
+      const { rt } = runtimeFor([]);
+      const r = await handleRecoverToken(rt, { headers: h(), tokenHash: `rate-limit-probe-${String(i).padStart(4, "0")}-${randomUUID().replaceAll("-", "")}` });
+      seen.push(r.status);
+    }
+    expect(seen.slice(0, 20).every((s) => s === 303)).toBe(true); // refused as invalid, but each counted
+    expect(seen.slice(20).every((s) => s === 429)).toBe(true);
+    // a different address has its own budget
+    const { rt } = runtimeFor([]);
+    expect((await handleRecoverToken(rt, { headers: new Headers({ origin: config.siteUrl.origin, "x-real-ip": "203.0.113.78" }), tokenHash: `other-address-${randomUUID().replaceAll("-", "")}` })).status).toBe(303);
+  });
   it("a reset link for a Google account, or for an account without a profile, gives no session", async () => {
     const g = await createPerson({ label: "pw-reset-g", learner: true });
     const { rt, jar } = runtimeFor([]);
@@ -300,8 +315,8 @@ describe("forgot password and choosing a new one", () => {
     const anon = createClient(API, ANON, { auth: { persistSession: false } });
     const since = t0();
     await anon.auth.resetPasswordForEmail(g.email);
-    const mail = await waitForMail(g.email, { contains: /auth\/reset\?token_hash=/, after: since });
-    const tokenHash = new URL(resetLink(mail.text)).searchParams.get("token_hash") as string;
+    const mail = await waitForMail(g.email, { contains: /auth\/reset#token_hash=/, after: since });
+    const tokenHash = new URLSearchParams(new URL(resetLink(mail.text)).hash.slice(1)).get("token_hash") as string;
     expect(await handleRecoverToken(rt, { headers: freshHeaders(), tokenHash })).toMatchObject({ location: "/auth/error?r=recover" });
     expect(jar.getAll().length).toBe(0);
   });
