@@ -14,6 +14,7 @@ export function ResetForm() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token_hash");
     if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the fragment exists only in the browser, so it can only be read after hydration
     setState({ token: t && RECOVERY_TOKEN.test(t) ? t : null });
   }, []);
   if (!state) return <p className="text-sm font-medium leading-6 text-ink-2">One moment…</p>;
