@@ -1,3 +1,13 @@
+# Dependency update policy.
+#
+#   * Compatible updates (patch and minor) are grouped into ONE weekly pull request per ecosystem, so they are cheap to review and
+#     CI runs once.
+#   * Major-version updates are never grouped with them. Each arrives as its own pull request labelled `major-update`, so it gets
+#     its own review, its own CI run and its own decision.
+#   * The three packages below are tightly coupled to the framework and the type system. A major version of any of them can change how
+#     the whole project builds, lints or type-checks, so Dependabot does not propose them at all: upgrade them on purpose, in a
+#     dedicated change, after reading the release notes.
+#   * Nothing here merges anything. Every update waits for a person.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -5,11 +15,29 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    labels: [dependencies]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    labels: [dependencies, github-actions]
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

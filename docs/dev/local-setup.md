@@ -34,3 +34,15 @@ Isolation tests can run **only in CI** (GitHub's runners have Docker). Developme
 | `INVITE_HMAC_PEPPER`, `INVITE_GRANT_SECRET` | **server only** | Hash invitation codes; sign invitation grants |
 | `OWNER_EMAIL` | **server only** | Owner/admin identity (you provide this securely; I will never ask for it in chat) |
 | `CRON_SECRET` | **server only** | Protects the cleanup route |
+
+## Accounts tests (Phase 3)
+
+With the local Supabase stack running (`npx --yes supabase@2.122.0 start`):
+
+```bash
+npm run test:db            # database + account-flow integration tests (real Auth, real RLS)
+npm run test:e2e:accounts  # builds with NEXT_PUBLIC_ACCOUNTS=on into .next-accounts, then runs the accounts browser tests
+```
+
+Both FAIL (they never skip) when the stack is not running. CI runs both on every pull request. The accounts build uses its own folder
+(`.next-accounts`, via `NEXT_DIST_DIR`) so it never overwrites the normal build. See `docs/dev/auth.md`.
