@@ -45,3 +45,7 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# manual database backups hold personal data: never commit
+*.gmbackup
+*.gmbackup.*
