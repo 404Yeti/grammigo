@@ -79,5 +79,24 @@ The same assertions run in CI against the local database on every change (`catal
 3. The acceptance run with disposable Google accounts, then you say "enable accounts".
 
 
-## Migration 10 (NEW, needs its own authorization): `email_password` (`20261106000100`)
-Adds three server-only functions and two columns for **Email + Password** sign-in: `reserve_invitation_for_email`, `redeem_reservation_for_email`, `email_identity_state`, and `email_hash` / `adult_confirmed_at` on `invitation_reservations`. It is **not** in the nine already authorized and is **not** applied. It is merged to `main` only with the Email + Password pull request; apply it after that pull request is merged and CI is green, with the same method and the same post-migration checks (the function-privilege check then also expects these three to be `service_role`-only, as in the catalogue test). Until it is applied and the app deployed with accounts off, nothing depends on it.
+## Migration 10: `email_password` (`20261106000100`): NOT APPLIED; needs its own explicit authorization
+Merged to `main` in `ef10f9d` (PR #25) as a **file only**. Adds two columns and one partial index on `invitation_reservations` (`email_hash`, `adult_confirmed_at`) and three functions, all `service_role`-only: `reserve_invitation_for_email`, `redeem_reservation_for_email`, `email_identity_state`. Nothing granted to `anon` or `authenticated`; no data written; no change to existing objects. The deployed site does not need it while accounts are off.
+
+**Preflight (read-only, by me, immediately before):** project ref; history = the nine rows; ten tables; 0 users; none of the migration-10 columns/functions exist; migration 9's privilege restriction still in force; accounts and transfer routes still 404 on all three hostnames.
+
+**Procedure (WSL, you run it; same script as before, same safety properties: guard + file + history row in ONE transaction, state re-read before each of up to 3 attempts, never `db push`, never reset):**
+```
+cd ~/grammigo-prod-migrate
+git fetch origin && git checkout --detach ef10f9d505c19f0c3124f779b5eb191c2d264ca1     # the commit with ten migration files; tell me if main has moved
+export GM_EXPECT_COMMIT=ef10f9d505c19f0c3124f779b5eb191c2d264ca1
+export PGHOST='<Session pooler host from Dashboard > Connect, port 5432>'
+export PGUSER='postgres.ugifdvaaaioiqmwfiksw'
+cp /mnt/c/Users/Lenovo/projects/grammigo/scripts/ops/apply-production-migrations.sh ./apply-production-migrations.sh   # the version that has check10/apply10
+./apply-production-migrations.sh check10     # read-only; must end "CHECK finished"
+./apply-production-migrations.sh apply10     # password at the hidden prompt; then type ugifdvaaaioiqmwfiksw
+```
+The guard (inside the write transaction) refuses unless: the history is exactly the nine expected rows; 0 users; exactly the ten expected tables; **and** neither migration-10 column nor any migration-10 function exists yet. The script prints the new columns and the three functions' privileges at the end.
+
+**Post-migration checks (read-only, by me):** (A) history = ten rows; (B) the same ten tables, all with RLS, none new; (C) table and column privileges unchanged (`anon` nothing; `authenticated` only the three SELECTs and four profile columns); (D) the three new functions: `service_role` only, `search_path` fixed, not callable by `anon` or `authenticated`; all older function privileges unchanged; (E) security advisor: **no new finding** (only the known INFO/WARN items); (F) anonymous REST: tables denied, new functions not callable; (G) still 0 rows everywhere; (H) accounts and transfer routes still 404.
+
+**Recovery:** a failed or interrupted run keeps nothing (one transaction). After success there is no down-migration; the three functions and two columns are unused until accounts are enabled, so leaving them in place is harmless. No reset, ever.
