@@ -6,7 +6,7 @@ import { LESSON, seedReturningLearner } from "./helpers";
  * (the feature is hidden in production builds until the release gate clears). Network is mocked: no
  * OpenAI calls. Chromium's fake microphone supplies real MediaRecorder audio.
  */
-test.use({ launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] } });
+// (the fake microphone flags are Chromium-only, so they are set on the Chromium projects in playwright.config.ts)
 
 const UNSURE = "I will go to bed early tonight.";
 

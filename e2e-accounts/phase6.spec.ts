@@ -13,6 +13,9 @@ const exists = async (id: string) => (await q("select count(*)::int n from auth.
 const folder = (id: string) => `grammigo:v2:u:${id}`;
 const seedFolder = (page: Page, id: string, marker: string) =>
   page.addInitScript(([key, m]) => {
+    // once per tab: later page loads (such as after a deletion) must not put the folder back
+    if (window.sessionStorage.getItem("seeded:" + key)) return;
+    window.sessionStorage.setItem("seeded:" + key, "1");
     if (!window.localStorage.getItem(key)) window.localStorage.setItem(key, JSON.stringify({ version: 2, sessions: [], activeSessionId: null, onboarding: { status: "skipped", step: "welcome", draftText: "", draftSource: "typed", runId: null, startedAt: null, completedAt: null }, goals: null, diagnosticRuns: [], lastRecommendation: null, writingFeedback: { m: { text: m } } }));
   }, [folder(id), marker] as const);
 async function readDownload(download: import("@playwright/test").Download) {

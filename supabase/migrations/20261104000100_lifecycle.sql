@@ -49,3 +49,21 @@ end $$;
 
 revoke all on function public.audit_export(uuid), public.all_user_ids(), public.ledger_hashes(), public.redelete_learner(uuid) from public, anon, authenticated;
 grant execute on function public.audit_export(uuid), public.all_user_ids(), public.ledger_hashes(), public.redelete_learner(uuid) to service_role;
+
+-- ---------------------------------------------------------------- rate limiter: Retry-After can never exceed the window
+-- Concurrent transactions each see their own now(). A transaction that began a hair earlier than the one that opened the window computed
+-- window_start + window - now() slightly above the window (e.g. 61 for a 60 second window), found by a flaky concurrency test in CI.
+create or replace function public.rate_limit_hit(p_key bytea, p_limit int, p_window interval)
+returns table (allowed boolean, retry_after int)
+language plpgsql set search_path = public, pg_temp as $$
+declare h int; ws timestamptz;
+begin
+  if p_limit < 1 or p_window <= interval '0' then raise exception 'invalid rate limit'; end if;
+  insert into public.rate_limits as r (key, window_start, hits) values (p_key, now(), 1)
+  on conflict (key) do update set
+    window_start = case when r.window_start <= now() - p_window then now() else r.window_start end,
+    hits         = case when r.window_start <= now() - p_window then 1 else r.hits + 1 end
+  returning r.hits, r.window_start into h, ws;
+  return query select h <= p_limit,
+    least(greatest(1, ceil(extract(epoch from (ws + p_window - now())))::int), ceil(extract(epoch from p_window))::int);
+end $$;

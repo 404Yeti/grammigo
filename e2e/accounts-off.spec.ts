@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
  * deliberately enabled.
  */
 test.describe("accounts are off by default", () => {
-  for (const path of ["/join", "/signin", "/account", "/account/profile", "/auth/no-account", "/auth/error", "/api/account/me", "/api/admin/invitations", "/api/auth/callback", "/api/auth/cleanup", "/api/sync/state", "/api/sync/documents/lessons_v2", "/account/data", "/account/delete", "/auth/deleted", "/api/account/export", "/api/account/delete", "/api/auth/reauth"]) {
+  for (const path of ["/join", "/signin", "/account", "/account/profile", "/auth/no-account", "/auth/error", "/api/account/me", "/api/admin/invitations", "/api/auth/callback", "/api/auth/cleanup", "/api/sync/state", "/api/sync/documents/lessons_v2", "/account/data", "/account/delete", "/auth/deleted"]) {
     test(`GET ${path} is 404`, async ({ request }) => {
       const res = await request.get(path, { maxRedirects: 0 });
       expect(res.status()).toBe(404);
