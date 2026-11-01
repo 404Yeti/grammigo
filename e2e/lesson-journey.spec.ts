@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { answerCorrectly, check, cont, expectQuestion, LESSON, seedReturningLearner, startFromHome } from "./helpers";
 
-test("full journey: Home → Intro → 8 questions → Success → Review → Return Home", async ({ page }) => {
+test("@cross full journey: Home → Intro → 8 questions → Success → Review → Return Home", async ({ page }) => {
   await startFromHome(page);
 
   // Q1–Q3 correct first try
@@ -57,7 +57,7 @@ test("full journey: Home → Intro → 8 questions → Success → Review → Re
   await expect(page.getByTestId("home-assisted")).toContainText("1");
 });
 
-test("progress survives a refresh and Exit → Home → Continue Lesson resumes", async ({ page }) => {
+test("@cross progress survives a refresh and Exit → Home → Continue Lesson resumes", async ({ page }) => {
   await startFromHome(page);
   for (const n of [1, 2, 3]) {
     await answerCorrectly(page, n);

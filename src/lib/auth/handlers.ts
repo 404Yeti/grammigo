@@ -75,6 +75,33 @@ export async function handleSignIn(rt: AuthRuntime, input: { headers: Headers })
   return { status: 303, location: started.url };
 }
 
+/**
+ * POST /api/auth/reauth: a signed-in learner confirms it is them, by signing in with Google again, before something irreversible (deleting
+ * the account). Only an ACTIVE learner can start it, and the flow is tied to their id, so the callback accepts nobody else. Nothing about the
+ * session is changed until Google answers; if it fails the learner is still signed in as before.
+ */
+export async function handleReauth(rt: AuthRuntime, input: { headers: Headers }): Promise<HandlerResult> {
+  if (!isTrustedOrigin(input.headers, rt.config.siteUrl)) return { status: 403 };
+  try {
+    const decision = await checkLimits(rt.db.limiter, rt.config.flowSecret, LIMITS.reauth, clientAddress(input.headers));
+    if (!decision.allowed) return { status: 303, location: "/account/delete?e=rate", retryAfter: decision.retryAfter };
+  } catch {
+    return { status: 303, location: "/account/delete?e=server" };
+  }
+  let user;
+  try {
+    user = await rt.auth.getUser();
+    if (user && (await rt.db.profileState(user.id)) !== "active") user = null;
+  } catch {
+    return { status: 303, location: "/account/delete?e=server" };
+  }
+  if (!user) return { status: 303, location: "/signin?e=session" };
+  const started = await startGoogle(rt, { intent: "reauth", uid: user.id });
+  if (!started.ok) return { status: 303, location: "/account/delete?e=server" };
+  rt.log("reauth", { outcome: "started" });
+  return { status: 303, location: started.url };
+}
+
 /** POST /api/auth/signout: ends THIS device's session only, and clears every account cookie whatever the Auth server answers. */
 export async function handleSignOut(rt: AuthRuntime, input: { headers: Headers }): Promise<HandlerResult> {
   if (!isTrustedOrigin(input.headers, rt.config.siteUrl)) return { status: 403 };

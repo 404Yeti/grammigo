@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { REAUTH_WINDOW_SECONDS } from "./constants";
 
 /**
  * Account configuration. Accounts are OFF unless NEXT_PUBLIC_ACCOUNTS is exactly "on"; with the flag off (the default) Grammigo is
@@ -18,6 +19,8 @@ export type AuthConfig = {
   /** True when the site is served over https: cookies get Secure and the __Host- prefix. */
   secureCookies: boolean;
   cookieNames: { auth: string; flow: string; scope: string };
+  /** How recent a sign-in must be to delete an account. 1 to 600 seconds: the environment can only make this STRICTER than the default. */
+  reauthWindowSeconds: number;
 };
 
 export type AuthConfigState =
@@ -61,6 +64,8 @@ export function loadAuthConfig(env: Record<string, string | undefined> = process
 
   if (problems.length > 0 || !siteUrl) return { state: "misconfigured", problems };
 
+  const asked = Number(env.AUTH_REAUTH_WINDOW_SECONDS);
+  const reauthWindowSeconds = Number.isInteger(asked) && asked >= 1 && asked <= REAUTH_WINDOW_SECONDS ? asked : REAUTH_WINDOW_SECONDS;
   const secureCookies = siteUrl.protocol === "https:";
   const prefix = secureCookies ? "__Host-" : "";
   return {
@@ -75,6 +80,7 @@ export function loadAuthConfig(env: Record<string, string | undefined> = process
       cronSecret,
       secureCookies,
       cookieNames: { auth: `${prefix}gm-auth`, flow: `${prefix}gm-flow`, scope: `${prefix}gm-scope` },
+      reauthWindowSeconds,
     },
   };
 }

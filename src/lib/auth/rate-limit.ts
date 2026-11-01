@@ -29,6 +29,12 @@ export const LIMITS = {
   /** Progress saves happen at checkpoints (a finished lesson, leaving the page), so this is generous for real use and tight for abuse. */
   sync: [{ name: "sync:user:min", limit: 60, windowSeconds: 60 }],
   consent: [{ name: "consent:user:min", limit: 10, windowSeconds: 60 }],
+  /** Confirming it is you starts a Google sign-in, so it is throttled like one. */
+  reauth: [{ name: "reauth:ip:10m", limit: 10, windowSeconds: 600 }],
+  /** Downloading everything the account holds is a heavy read of private data: a few times an hour is plenty for a person. */
+  export: [{ name: "export:user:hour", limit: 5, windowSeconds: 3_600 }],
+  /** Deletion is irreversible, so wrong guesses at the confirmation are limited too. */
+  delete: [{ name: "delete:user:10m", limit: 5, windowSeconds: 600 }],
 } satisfies Record<string, LimitRule[]>;
 
 /** Checks every rule (all are counted, so a refused request still uses budget) and reports the strictest refusal. */

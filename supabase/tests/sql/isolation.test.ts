@@ -122,6 +122,10 @@ describe("functions", () => {
     "select public.revoke_invitation(gen_random_uuid(), null)",
     "select public.delete_learner(gen_random_uuid(), '\\x00'::bytea)",
     "select * from public.orphan_identities()",
+    "select public.audit_export(gen_random_uuid())",
+    "select * from public.all_user_ids()",
+    "select * from public.ledger_hashes()",
+    "select public.redelete_learner(gen_random_uuid())",
     "select public.valid_document('guided_v1', 1, '{}'::jsonb)",
   ];
   it("no client role (learner, admin, intermediate identity, anon) can execute any server function", async () => {

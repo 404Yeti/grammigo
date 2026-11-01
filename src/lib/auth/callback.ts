@@ -5,6 +5,7 @@ import type { AuthRuntime } from "./runtime";
 
 export type CallbackOutcome =
   | "signed_in"
+  | "reauthenticated"
   | "joined"
   | "no_account"
   | "invite_unusable"
@@ -75,6 +76,16 @@ export async function handleCallback(rt: AuthRuntime, input: CallbackInput): Pro
     }
 
     const profile = await rt.db.profileState(user.id);
+
+    // Confirming it is you before something irreversible. Only the learner who asked can complete it: a different Google account (or one
+    // with no profile) gets nothing, the session it just created is ended, and any profile-less identity is cleaned up as usual.
+    if (flow.intent === "reauth") {
+      if (profile !== "active" || !flow.uid || !safeEqual(flow.uid, user.id)) return refuse("identity", errorPage("reauth"), user.id);
+      rt.jar.setScope(user.id);
+      rt.log("callback", { outcome: "reauthenticated" });
+      return { redirect: "/account/delete", outcome: "reauthenticated" };
+    }
+
     if (profile === "suspended") {
       return refuse("suspended", errorPage("suspended")); // no cleanup: this is a real account
     }

@@ -4,12 +4,18 @@
 //
 //   node scripts/admin-cli.mjs invite  --label "Cohort 1" --seats 5 --days 14
 //   node scripts/admin-cli.mjs grant-admin --user <auth user id>
+//   node scripts/admin-cli.mjs suspended-find   --email <address>
+//   node scripts/admin-cli.mjs suspended-export --user <id> --out <new file>
+//   node scripts/admin-cli.mjs suspended-delete --user <id> --identity-verified
+//   (the last three: ONLY after the steps in docs/dev/suspended-requests.md; they refuse anyone who is not a suspended, non-owner learner)
 //
 // Required environment: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, INVITE_CODE_PEPPER (the SAME pepper the app uses).
 // The invitation code is printed once, here, and never stored. Prefer the owner API in the app once an owner exists; this script is how
 // the very first invitation (for the owner) is made.
 import { createHmac, randomInt } from "node:crypto";
+import { existsSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { deleteSuspended, exportSuspended, findSuspended } from "./suspended-requests.mjs";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : fallback; };
@@ -44,7 +50,24 @@ if (command === "invite") {
   const { error } = await service.from("app_admins").insert({ user_id: user });
   if (error && !/duplicate/i.test(error.message)) { console.error("Could not grant."); process.exit(1); }
   console.log("Done. That learner can now manage invitations.");
+} else if (command === "suspended-find") {
+  const r = await findSuspended(service, arg("email", ""));
+  console.log(r.found ? JSON.stringify({ found: true, id: r.id, suspended: r.suspended, owner: r.owner }) : JSON.stringify({ found: false }));
+} else if (command === "suspended-export") {
+  const out = arg("out");
+  if (!out || existsSync(out)) { console.error("--out must name a file that does not exist yet"); process.exit(1); }
+  try {
+    const data = await exportSuspended(service, arg("user", ""));
+    writeFileSync(out, JSON.stringify(data, null, 2), { mode: 0o600, flag: "wx" }); // only the owner can read it
+    console.log(`Wrote ${out} (owner-readable only): ${data.consents.length} consent record(s), ${data.progress.length} saved document(s). Deliver it as described in docs/dev/suspended-requests.md, then delete it.`);
+  } catch (e) { console.error(e.message); process.exit(1); }
+} else if (command === "suspended-delete") {
+  if (!process.argv.includes("--identity-verified")) { console.error("Add --identity-verified only after completing the identity steps in docs/dev/suspended-requests.md"); process.exit(1); }
+  try {
+    await deleteSuspended(service, arg("user", ""), process.env.INVITE_CODE_PEPPER ?? "");
+    console.log("Deleted, and recorded in the deletion ledger. Access was not restored at any point.");
+  } catch (e) { console.error(e.message); process.exit(1); }
 } else {
-  console.error("Usage: admin-cli.mjs invite --label <text> --seats <1-100> --days <1-90>\n       admin-cli.mjs grant-admin --user <auth user id>");
+  console.error("Usage: admin-cli.mjs invite --label <text> --seats <1-100> --days <1-90>\n       admin-cli.mjs grant-admin --user <auth user id>\n       admin-cli.mjs suspended-find --email <address> | suspended-export --user <id> --out <file> | suspended-delete --user <id> --identity-verified");
   process.exit(1);
 }

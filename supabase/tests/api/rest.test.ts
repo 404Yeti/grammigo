@@ -95,6 +95,10 @@ describe("server-only data and functions through the REST API", () => {
     ["revoke_invitation", { p_id: randomUUID(), p_actor: null }],
     ["delete_learner", { p_user: randomUUID(), p_user_hash: "\\x00" }],
     ["orphan_identities", {}],
+    ["audit_export", { p_user: randomUUID() }],
+    ["all_user_ids", {}],
+    ["ledger_hashes", {}],
+    ["redelete_learner", { p_user: randomUUID() }],
   ];
 
   it("learners, the intermediate identity, the ADMIN's own session and anonymous callers are all refused", async () => {

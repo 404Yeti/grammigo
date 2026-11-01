@@ -42,7 +42,7 @@ export function googleUser(over: Partial<AuthUser> = {}): AuthUser {
 export function flowToken(config: AuthConfig, over: Partial<FlowPayload> = {}): { token: string; nonce: string } {
   const nonce = over.nonce ?? newNonce();
   const payload: FlowPayload = { v: 1, intent: "join", nonce, grant: GRANT, adultAt: "2026-11-01T11:58:00.000Z", exp: Math.floor(NOW / 1000) + 1800, ...over };
-  if (payload.intent === "signin") {
+  if (payload.intent === "signin" || payload.intent === "reauth") {
     delete payload.grant;
     delete payload.adultAt;
   }

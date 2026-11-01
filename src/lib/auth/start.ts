@@ -1,7 +1,7 @@
 import { FLOW_TTL_SECONDS, newNonce, signFlow, type FlowPayload } from "./flow";
 import type { AuthRuntime } from "./runtime";
 
-export type StartInput = { intent: "signin" } | { intent: "join"; grantId: string; adultAt: string };
+export type StartInput = { intent: "signin" } | { intent: "join"; grantId: string; adultAt: string } | { intent: "reauth"; uid: string };
 export type StartResult = { ok: true; url: string } | { ok: false };
 
 /**
@@ -19,6 +19,7 @@ export async function startGoogle(rt: AuthRuntime, input: StartInput): Promise<S
     nonce,
     exp: Math.floor(rt.now() / 1000) + FLOW_TTL_SECONDS,
     ...(input.intent === "join" ? { grant: input.grantId, adultAt: input.adultAt } : {}),
+    ...(input.intent === "reauth" ? { uid: input.uid } : {}),
   };
   const redirectTo = `${rt.config.siteUrl.origin}/api/auth/callback?flow=${nonce}`;
 
