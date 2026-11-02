@@ -116,3 +116,45 @@ test("@cross browser-denied autoplay offers replay, and persistent mute suppress
   expect(calls).toHaveLength(paid);
   await expect(page.getByRole("button", { name: "Listen to Migo" })).toBeEnabled();
 });
+
+test("@cross an unfinished old attempt keeps its answers and draft, then reaches the added listening check", async ({ page }) => {
+  const { getLesson } = await import("../src/data/lessons");
+  const { createSession, advance, setDraft, submitAnswer } = await import("../src/features/practice/session");
+  const { emptyState } = await import("../src/lib/storage/schema");
+  const lesson = getLesson("a1-be-present")!;
+  const oldLesson = { ...lesson, questions: lesson.questions.slice(0, 8) };
+  let session = createSession(oldLesson, "saved-before-listening", Date.now());
+  for (const q of oldLesson.questions.slice(0, 7)) {
+    session = advance(submitAnswer(setDraft(session, q.acceptedAnswers[0], Date.now()), oldLesson, Date.now()).session, Date.now());
+  }
+  session = setDraft(session, "She is a teacher. They are my friends.", Date.now());
+  const previous = session.records.slice(0, 7);
+  const seed = { ...emptyState(), sessions: [session], activeSessionId: session.id };
+  seed.onboarding.status = "skipped";
+  await page.addInitScript(s => { if (!localStorage.getItem("grammigo:v2")) localStorage.setItem("grammigo:v2", JSON.stringify(s)); }, seed);
+  await audio(page);
+  await page.goto("/practice/a1-be-present/session");
+  await expect(page.getByText("Question 8 of 9", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Your answer")).toHaveValue(session.draft);
+  await page.reload();
+  const upgraded = await page.evaluate(() => JSON.parse(localStorage.getItem("grammigo:v2")!).sessions[0]);
+  expect(upgraded.records).toHaveLength(9);
+  expect(upgraded.records.slice(0, 7)).toEqual(previous);
+  await page.getByRole("button", { name: "Check Answer" }).click();
+  await cont(page);
+  await expect(page.getByTestId("listening-exercise")).toBeVisible();
+});
+
+test("@cross slow audio never blocks saved answers or moving to the next question", async ({ page }) => {
+  await seedReturningLearner(page);
+  await page.route("**/api/ai/status", route => route.fulfill({ json: { available: false } }));
+  await page.route("**/api/ai/tts", () => new Promise(() => {}));
+  await page.goto("/practice/a1-be-present");
+  await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
+  await answerLessonQuestion(page, "a1-be-present", 1);
+  await expect(page.getByRole("button", { name: "Preparing audio…" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
+  await cont(page);
+  await expect(page.getByText("Question 2 of 9", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("grammigo:v2")!).sessions[0].records[0].resolution)).toBe("correct");
+});
