@@ -57,6 +57,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_GUIDED_PREVIEW: "true"
+          GUIDED_PUBLIC_PREVIEW: "true"
           NEXT_PUBLIC_GUIDED_VOICE: "true"
           NEXT_PUBLIC_LESSON_SPEAKING: "true"
           NEXT_PUBLIC_MIGO_VOICE: "true"
@@ -72,6 +73,7 @@ jobs:
         env:
           CI: "true"
           E2E_TRANSFER: "1"
+          GUIDED_PUBLIC_PREVIEW: "true"
           E2E_SPEAKING: "1"
           E2E_MIGO_VOICE: "1"
           E2E_DIAGNOSTIC_SPEAKING: "1"

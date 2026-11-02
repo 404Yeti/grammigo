@@ -12,9 +12,12 @@
 const VALID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 let scope = "";
+let revision = 0;
 const listeners = new Set<() => void>();
 
 export const getStorageScope = (): string => scope;
+/** Changes even when returning to a previous account: in-flight access decisions must be reverified. */
+export const getScopeRevision = (): number => revision;
 
 /** True for "" (guest) and for a well-formed account id. Anything else is refused, so a key can never be built from arbitrary text. */
 export const isValidScope = (s: string): boolean => s === "" || VALID.test(s);
@@ -23,6 +26,7 @@ export function setStorageScope(next: string): void {
   if (!isValidScope(next)) throw new Error("invalid storage scope");
   if (next === scope) return;
   scope = next;
+  revision++;
   listeners.forEach((l) => l());
 }
 

@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
     ];
     return [
       { source: "/account/:path*", headers: privateHeaders },
+      { source: "/practice/:lessonId/guided", headers: privateHeaders },
+      { source: "/api/guided/:path*", headers: privateHeaders },
       { source: "/auth/:path*", headers: privateHeaders },
       { source: "/api/auth/:path*", headers: privateHeaders },
       { source: "/api/account/:path*", headers: privateHeaders },
