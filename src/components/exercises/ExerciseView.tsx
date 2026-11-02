@@ -7,8 +7,11 @@ import { TextField } from "@/components/ui/TextField";
 import { ChoiceExercise } from "./ChoiceExercise";
 import { SpeakingAnswer } from "@/features/speaking/SpeakingAnswer";
 import { TileExercise } from "./TileExercise";
+import { SpokenConstruction } from "./SpokenConstruction";
+import { ListeningExercise } from "./ListeningExercise";
 
 export interface ExerciseViewProps {
+  lessonId: string;
   question: Question;
   value: string;
   disabled: boolean;
@@ -20,7 +23,8 @@ export interface ExerciseViewProps {
 }
 
 /** Picks the input method for each exercise type. Rendering only; no grading in here. */
-export function ExerciseView({ question, value, disabled, error, resultStates, onChange, inputRef, onBusyChange }: ExerciseViewProps) {
+export function ExerciseView({ lessonId, question, value, disabled, error, resultStates, onChange, inputRef, onBusyChange }: ExerciseViewProps) {
+  if (question.listening) return <ListeningExercise lessonId={lessonId} question={question} value={value} disabled={disabled} resultStates={resultStates} onChange={onChange} />;
   switch (question.type) {
     case "speaking":
       return <SpeakingAnswer value={value} onChange={onChange} disabled={disabled} error={error} inputRef={inputRef} onBusyChange={onBusyChange} />;
@@ -53,6 +57,7 @@ export function ExerciseView({ question, value, disabled, error, resultStates, o
       );
 
     case "sentence-construction":
+      if (question.allowSpeaking) return <SpokenConstruction lessonId={lessonId} question={question} value={value} disabled={disabled} error={error} onChange={onChange} inputRef={inputRef} onBusyChange={onBusyChange} />;
       return (
         <TileExercise question={question} value={value} disabled={disabled} error={error} onChange={onChange} />
       );

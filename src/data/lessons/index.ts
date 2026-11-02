@@ -13,6 +13,23 @@ export function getLesson(id: string): Lesson | undefined {
   const skill = getCurriculumSkill(id);
   if (!skill) return undefined;
   const lesson = toLesson(skill);
+  if (id === DEFAULT_LESSON_ID) {
+    if (process.env.NEXT_PUBLIC_LESSON_LISTENING === "true") {
+      lesson.questions = lesson.questions.map(q => q.id !== "q1" ? q : ({
+        ...q,
+        prompt: "Listen to Migo. Which sentence matches the speaker’s experience of Hanoi?",
+        skillLabel: "Present perfect · Listening",
+        listening: { transcript: "I love travelling. Hanoi is one of my favourite cities, and I have been there twice. I hope to return someday." },
+        migoLine: "Listen for the speaker’s past experience. You can replay the audio or choose the reading alternative.",
+      }));
+    }
+    if (process.env.NEXT_PUBLIC_LESSON_SPEAKING === "true") {
+      const lastConstruction = lesson.questions.findLast(q => q.type === "sentence-construction")?.id;
+      lesson.questions = lesson.questions.map(q => q.id !== lastConstruction ? q : ({ ...q, allowSpeaking: true,
+        prompt: "Build the sentence with word tiles, or say or type it yourself.",
+      }));
+    }
+  }
   // Same objective, question IDs and record count: existing sessions remain compatible.
   if (process.env.NEXT_PUBLIC_LESSON_SPEAKING === "true" && id === DEFAULT_LESSON_ID) {
     lesson.questions = lesson.questions.map((q) => q.id !== "q8" ? q : ({

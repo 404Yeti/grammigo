@@ -233,6 +233,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
           )}
 
           <ExerciseView
+            lessonId={lessonId}
             key={`${scope}:${session.id}:${question.id}`}
             question={question}
             value={session.draft}
@@ -250,7 +251,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
         </div>
 
         <div className="flex flex-col gap-3 px-2 pt-4">
-          <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback ? record.resolution === "correct" ? "encouragement" : "correction" : "instruction"} />
+          {(!question.listening || inFeedback) && <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback ? record.resolution === "correct" ? "encouragement" : "correction" : "instruction"} />}
           {kind ? (
             <FeedbackPanel
               kind={kind}

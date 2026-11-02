@@ -324,7 +324,7 @@ function QuizQuestion({ runId, itemId }: { runId: string; itemId: string }) {
       <h2 id="question-prompt" className="text-2xl font-semibold leading-[34px] tracking-[-0.25px]">
         {item.question.prompt.split("___").flatMap((part, i, arr) => (i < arr.length - 1 ? [part, <span key={i} role="img" aria-label="blank">____</span>] : [part]))}
       </h2>
-      <ExerciseView question={item.question} value={value} disabled={false} onChange={setValue} />
+      <ExerciseView lessonId={item.skillId} question={item.question} value={value} disabled={false} onChange={setValue} />
       <div className="mt-auto flex flex-col gap-2.5 pt-3">
         <Button type="submit" disabled={!value.trim()} variant={value.trim() ? "primary" : "secondary"}>
           Next
