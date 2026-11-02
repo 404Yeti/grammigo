@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { Migo } from "@/components/mascot/Migo";
 import { fetchAiStatus, requestTranscription } from "@/features/ai/client";
-import { useVoiceCapture } from "@/features/guided/ui/use-voice-capture";
-import type { VoiceIssue } from "@/types/guided";
+import { useVoiceCapture } from "@/features/ai/use-voice-capture";
+import type { VoiceIssue } from "@/types/voice";
 
 type Phase = "ready" | "permission" | "recording" | "transcribing" | "review" | "typing";
 const ISSUES: Record<VoiceIssue, string> = {

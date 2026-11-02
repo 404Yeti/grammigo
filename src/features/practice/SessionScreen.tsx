@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HelpCircle } from "lucide-react";
 import { getLesson } from "@/data/lessons";
-import { useStorageScope } from "@/features/accounts/scope-client";
+import { getStorageScope, onScopeChange } from "@/lib/scope/storage-scope";
 import { ExerciseView } from "@/components/exercises/ExerciseView";
 import { FeedbackPanel, type FeedbackKind } from "@/components/feedback/FeedbackPanel";
 import { HintCard } from "@/components/feedback/HintCard";
@@ -33,7 +33,7 @@ function renderPrompt(prompt: string) {
 
 export function SessionScreen({ lessonId }: { lessonId: string }) {
   const lesson = getLesson(lessonId)!;
-  const scope = useStorageScope();
+  const scope = useSyncExternalStore(onScopeChange, getStorageScope, () => "");
   const router = useRouter();
   const state = usePracticeState();
   const session = state ? getActiveSession(state, lessonId) : null;

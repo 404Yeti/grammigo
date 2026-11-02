@@ -1,14 +1,14 @@
 import "@/tests/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CaptureResult } from "@/features/guided/ui/use-voice-capture";
+import type { CaptureResult } from "@/features/ai/use-voice-capture";
 import { SpeakingAnswer } from "./SpeakingAnswer";
 
 const mock = vi.hoisted(() => ({
   start: vi.fn(), stop: vi.fn(), cancel: vi.fn(), transcribe: vi.fn(), status: vi.fn(),
 }));
 vi.mock("@/features/ai/client", () => ({ fetchAiStatus: mock.status, requestTranscription: mock.transcribe }));
-vi.mock("@/features/guided/ui/use-voice-capture", () => ({ useVoiceCapture: () => ({ listening: true, seconds: 2, start: mock.start, stop: mock.stop, cancel: mock.cancel }) }));
+vi.mock("@/features/ai/use-voice-capture", () => ({ useVoiceCapture: () => ({ listening: true, seconds: 2, start: mock.start, stop: mock.stop, cancel: mock.cancel }) }));
 let done: (result: CaptureResult) => void;
 const audio = { ok: true, blob: new Blob(["audio"], { type: "audio/webm" }) } as const;
 

@@ -29,7 +29,7 @@ async function record(page: Page) {
   await page.getByRole("button", { name: "Stop recording" }).click();
 }
 
-test("review transcript → targeted grammar correction → retry → finish; audio never enters storage or sync", async ({ page }) => {
+test("review transcript → targeted grammar correction → retry → finish; audio never enters storage or sync", async ({ page }, testInfo) => {
   let uploads = 0;
   const unexpected: string[] = [];
   page.on("request", request => { if (/\/api\/(sync|account)/.test(request.url())) unexpected.push(request.url()); });
@@ -38,12 +38,14 @@ test("review transcript → targeted grammar correction → retry → finish; au
   await record(page);
   const heard = page.getByRole("textbox", { name: "What we heard" });
   await expect(heard).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("speaking-transcript.png"), fullPage: true });
   await expect(page.getByRole("button", { name: "Check Answer" })).toBeDisabled();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("grammigo:v2")!).sessions[0].records[7].attempts)).toEqual([]);
   await page.getByRole("button", { name: "Use this transcript" }).click();
   await page.getByRole("button", { name: "Check Answer" }).click();
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "incorrect");
   await expect(page.getByTestId("feedback-panel")).toContainText("Finished times take the past simple");
+  await page.screenshot({ path: testInfo.outputPath("speaking-correction.png"), fullPage: true });
   await page.getByRole("button", { name: "Try again" }).click();
   await page.getByRole("textbox", { name: "Your answer" }).fill("I have visited Paris this week. I watched a film yesterday.");
   await page.getByRole("button", { name: "Try again", exact: true }).click();
@@ -80,7 +82,7 @@ test("transcription failure offers a retry and typing without creating a wrong a
   await page.route("**/api/ai/transcribe", route => route.fulfill({ status: 502, json: { error: "upstream" } }));
   await openSpeaking(page);
   await record(page);
-  await expect(page.getByRole("alert")).toContainText("couldn’t turn that recording");
+  await expect(page.getByTestId("speaking-answer").getByRole("alert")).toContainText("couldn’t turn that recording");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("grammigo:v2")!).sessions[0].records[7].attempts)).toEqual([]);
   await page.getByRole("button", { name: "Type instead" }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeEnabled();
