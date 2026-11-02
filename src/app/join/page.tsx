@@ -13,7 +13,10 @@ export const metadata: Metadata = { title: "Join — Grammigo", robots: { index:
 export default function JoinPage({ searchParams }: PageProps<"/join">) {
   if (!accountsEnabled()) notFound();
   return (
-    <AuthShell title="Join Grammigo">
+    <AuthShell title="Join Grammigo" mascot="curious">
+      <p className="rounded-[14px] border border-line bg-subtle px-4 py-3 text-sm font-medium leading-6 text-ink-2" data-testid="join-returning">
+        Already have an account? <Link href="/signin" className="font-bold text-brand-text underline underline-offset-4">Sign in</Link>. You only use an invitation code the first time.
+      </p>
       <p className="text-sm font-medium leading-6 text-ink-2">
         Accounts are by invitation for now. You don’t need one to practise: lessons and your progress work on this device without signing in.
       </p>
@@ -36,9 +39,6 @@ export default function JoinPage({ searchParams }: PageProps<"/join">) {
       </form>
       <p className="text-sm font-medium text-ink-2">
         No Google account, or you prefer a password? <Link href="/join/email" className="font-bold underline">Join with email and a password</Link>.
-      </p>
-      <p className="text-sm font-medium text-ink-2">
-        Already have an account? <Link href="/signin" className="font-bold underline">Sign in</Link>
       </p>
     </AuthShell>
   );

@@ -72,7 +72,7 @@ test.describe("saving progress needs consent", () => {
     await expect.poll(async () => hasConsent(ana.id), { timeout: 20_000 }).toBe(true);
     await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 20_000 }).toBe(1);
     await expect(page.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 20_000 });
-    await expect(page.getByTestId("sync-detail")).toContainText(/Last saved/);
+    await expect(page.getByTestId("sync-detail")).toContainText(/safe in your account/);
   });
 });
 

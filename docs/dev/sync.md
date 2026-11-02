@@ -118,7 +118,7 @@ Every route: gated per request, same-origin on writes, rate-limited per learner 
 
 ## Measuring latency, and the outage proof
 
-* `getMetrics()` on the engine (and "Connection details" on the dashboard) report count, p50, p95 and max of every sync call.
+* `getMetrics()` on the engine reports count, p50, p95 and max of every sync call. It is for tests and diagnostics only: the learner-facing card shows no counts or timings.
 * **CI measures it** and prints it: `SYNC_LATENCY_MS` (real database, through verifying the session each time), `E2E_SYNC_LATENCY_MS` (whole stack, in a browser).
 * **Outage proof**, three ways: (1) unit: the real lesson actions on the real stores complete in the same time with the network hung, refused, 500 or crawling, with zero requests while
   answering and no unhandled rejection (`outage.test.ts`); (2) browser: sync routes aborted, 503, 500 and never-answering, a lesson completes and every answer gets feedback quickly, and a
