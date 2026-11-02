@@ -12,7 +12,7 @@ The process cache holds at most 24 authored clips (maximum 256,000 bytes each); 
 
 ## Bounds and cost reporting
 
-Model: `gpt-4o-mini-tts`; voice: `coral`. Source text is capped at 320 characters, provider timeout at 15 seconds, browser timeout at 18 seconds, and returned audio at 256,000 bytes. TTS uses separate visitor counters (6/minute, 40/day by default), the shared daily AI cap, and a separate paid-call daily cap (`TTS_DAILY_CALL_CAP`, default 50, maximum 100). Cache hits do not consume the paid-call cap; concurrent identical prompts share one synthesis operation. Limiter failures fail closed.
+Model: `gpt-4o-mini-tts`; voice: `coral`. Source text is capped at 320 characters, provider timeout at 15 seconds, browser timeout at 18 seconds, and returned audio at 256,000 bytes. TTS uses separate visitor counters (6/minute, 40/day by default), the shared daily AI cap, and a separate paid-call daily cap (`TTS_DAILY_CALL_CAP`, beta default 300, maximum 1,000; see [beta budgets](tts-beta-budget.md) for the primary and monthly credit guards). Cache hits do not consume the paid-call cap; concurrent identical prompts share one synthesis operation. Limiter failures fail closed.
 
 Official model pricing checked 2026-11-02: $0.60 per million text input tokens and $12 per million audio output tokens. An illustrative 100-input/300-output-token clip would cost about $0.00366. This is an example, not measured usage or a guaranteed per-clip cost. The character/byte limits are output bounds, not billing-token measurements. Source: https://developers.openai.com/api/docs/models/gpt-4o-mini-tts .
 
