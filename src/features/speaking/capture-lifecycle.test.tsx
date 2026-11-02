@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { useVoiceCapture } from "@/features/guided/ui/use-voice-capture";
+import { useVoiceCapture } from "@/features/ai/use-voice-capture";
 
 const original = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
 afterEach(() => {
