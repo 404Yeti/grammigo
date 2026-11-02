@@ -1,24 +1,32 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Cloud, Download } from "lucide-react";
+import { Cloud, CloudCheck, Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { timeAgo } from "@/lib/utils/time";
+import type { SyncEngine, SyncStatus } from "../engine";
 import { useSyncEngine, useSyncStatus } from "../hooks";
 import { downloadLocalCopy } from "../local-export";
 import { describeStatus } from "../status-text";
 
 /**
- * Saving to the account: whether it is on, what it is doing, and the one place to turn it on or off. Turning it ON is the learner's explicit
- * consent, so the card says exactly what is saved before asking. Nothing is uploaded before they press the button.
+ * Saving to the account, as the learner sees it. Turning it ON is the learner's explicit consent, so the card says exactly what is saved before
+ * asking; nothing is uploaded before they press the button. Once it is on, the card is a calm "your progress is saved" message: no technical
+ * numbers, and the manual controls are tucked away unless something actually needs the learner (unsaved work, a failed save, no connection).
  */
 export function SyncCard() {
   const engine = useSyncEngine();
   const status = useSyncStatus();
-  const [downloaded, setDownloaded] = useState<"idle" | "done" | "failed">("idle");
   if (!engine || !status) return null;
-  const view = describeStatus(status, (t) => timeAgo(t));
+  return <SyncCardView engine={engine} status={status} />;
+}
+
+type Controls = Pick<SyncEngine, "enable" | "pause" | "syncNow">;
+
+export function SyncCardView({ engine, status }: { engine: Controls; status: SyncStatus }) {
+  const [downloaded, setDownloaded] = useState<"idle" | "done" | "failed">("idle");
   const needsConsent = status.phase === "needs_consent" || status.phase === "off" || status.paused;
 
   if (needsConsent) {
@@ -35,11 +43,22 @@ export function SyncCard() {
     );
   }
 
-  const m = engine.getMetrics();
+  const allSaved = status.phase === "idle" && !status.unsaved && status.lastSyncedAt !== null;
+  const base = describeStatus(status, (t) => timeAgo(t));
+  // Calm and friendly when all is well; every problem keeps its full, honest explanation.
+  const view = allSaved ? { label: "All saved", detail: "Your progress is safe in your account." } : base;
+  const tone = allSaved ? "success" : base.tone;
+  // "Save now" is only worth showing when there is something to save or a save has failed. Otherwise it lives under "Saving options".
+  // (Not while signed out, blocked or too large: a save cannot succeed until the learner does something else.)
+  const canSaveNow = status.phase === "idle" || status.phase === "retrying" || status.phase === "offline";
+  const needsSaveNow = canSaveNow && !allSaved && (status.unsaved || status.phase === "retrying" || status.phase === "offline");
+
   return (
     <Card aria-labelledby="sync-title" data-testid="sync-card" data-phase={status.phase}>
-      <h2 id="sync-title" className="flex items-center gap-2 text-xl font-bold leading-7"><Cloud size={20} aria-hidden /> Saving to my account</h2>
-      <p className="mt-2 text-sm font-semibold" data-testid="sync-label">{view.label}</p>
+      <h2 id="sync-title" className="flex items-center gap-2 text-xl font-bold leading-7">
+        {allSaved ? <CloudCheck size={20} className="text-success" aria-hidden /> : <Cloud size={20} aria-hidden />} Your progress
+      </h2>
+      <p className={tone === "success" ? "mt-2 text-base font-bold text-success" : "mt-2 text-base font-bold"} data-testid="sync-label">{view.label}</p>
       <p className="mt-1 text-sm font-medium leading-5 text-ink-2" data-testid="sync-detail" role="status">{view.detail}</p>
       {status.phase === "too_large" && (
         <div role="alert" className="mt-3 rounded-xl bg-warning-soft p-3" data-testid="too-large-warning">
@@ -52,18 +71,21 @@ export function SyncCard() {
           {downloaded === "failed" && <p className="mt-2 text-sm font-semibold text-error" role="alert">Your browser would not save the file. Your progress is still on this device.</p>}
         </div>
       )}
-      <div className="mt-3 flex flex-wrap gap-3">
-        <Button variant="secondary" fullWidth={false} onClick={() => engine.syncNow()} disabled={status.phase === "syncing"}>Save now</Button>
-        <Button variant="ghost" fullWidth={false} onClick={() => engine.pause()}>Turn off on this device</Button>
-      </div>
-      {m.calls > 0 && (
-        <details className="mt-3 text-xs font-medium text-muted">
-          <summary className="min-h-11 cursor-pointer py-2.5">Connection details</summary>
-          <p data-testid="sync-metrics">
-            {m.calls} {m.calls === 1 ? "request" : "requests"} this visit; typical {m.p50} ms, slowest {m.max} ms. Saving happens in the background and never holds up a lesson.
-          </p>
-        </details>
+      {status.phase === "needs_signin" && (
+        <Link href="/signin" className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-brand-text underline underline-offset-4">Sign in again</Link>
       )}
+      {needsSaveNow && (
+        <Button className="mt-3" variant="secondary" fullWidth={false} onClick={() => engine.syncNow()}>Save now</Button>
+      )}
+      <details className="mt-3 text-sm font-medium text-ink-2" data-testid="sync-options">
+        <summary className="min-h-11 cursor-pointer py-2.5 text-xs font-bold text-muted">Saving options</summary>
+        <div className="flex flex-wrap gap-3 pb-1">
+          {!needsSaveNow && (
+            <Button variant="ghost" fullWidth={false} onClick={() => engine.syncNow()} disabled={status.phase === "syncing"}>Save now</Button>
+          )}
+          <Button variant="ghost" fullWidth={false} onClick={() => engine.pause()}>Turn off on this device</Button>
+        </div>
+      </details>
     </Card>
   );
 }

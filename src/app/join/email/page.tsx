@@ -15,7 +15,10 @@ const field = "min-h-[52px] rounded-[14px] border-[1.5px] border-line-strong bg-
 export default function JoinWithEmailPage({ searchParams }: PageProps<"/join/email">) {
   if (!accountsEnabled()) notFound();
   return (
-    <AuthShell title="Join with email">
+    <AuthShell title="Join with email" mascot="curious">
+      <p className="rounded-[14px] border border-line bg-subtle px-4 py-3 text-sm font-medium leading-6 text-ink-2" data-testid="join-returning">
+        Already have an account? <Link href="/signin" className="font-bold text-brand-text underline underline-offset-4">Sign in</Link>. You only use an invitation code the first time.
+      </p>
       <p className="text-sm font-medium leading-6 text-ink-2">
         Accounts are by invitation. Enter your invitation code, your email address and a password. We email you a link to confirm the address; after that you can sign in.
       </p>
@@ -45,7 +48,7 @@ export default function JoinWithEmailPage({ searchParams }: PageProps<"/join/ema
         <button type="submit" className={primaryButtonClass}>Create my account</button>
       </form>
       <p className="text-sm font-medium text-ink-2">
-        Prefer Google? <Link href="/join" className="font-bold underline">Join with Google</Link>. Already have an account? <Link href="/signin" className="font-bold underline">Sign in</Link>
+        Prefer Google? <Link href="/join" className="font-bold underline">Join with Google</Link>.
       </p>
     </AuthShell>
   );
