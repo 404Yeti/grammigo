@@ -57,7 +57,7 @@ function mergeOnboarding(x: OnboardingState, y: OnboardingState): OnboardingStat
   return tieBreak(x, y);
 }
 
-const runWhen = (r: DiagnosticRun) => r.finishedAt ?? r.startedAt;
+const runWhen = (r: DiagnosticRun) => Math.max(r.finishedAt ?? r.startedAt, r.optionalSpeaking?.at ?? 0);
 function betterRun(x: DiagnosticRun, y: DiagnosticRun): DiagnosticRun {
   const xDone = x.finishedAt !== null;
   const yDone = y.finishedAt !== null;

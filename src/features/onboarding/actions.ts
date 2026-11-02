@@ -1,3 +1,4 @@
+import { optionalSpeakingSchema, type OptionalSpeaking } from "@/features/diagnostic/speaking-schema";
 import { listSkills } from "@/curriculum";
 import { buildItemPool, createRun, extendRun, recordResponse, type DiagnosticItem, type ItemOutcome } from "@/features/diagnostic/engine";
 import { noGoals } from "@/features/learning/goals";
@@ -97,3 +98,10 @@ export function restartOnboarding(startAt: "concerns" | "quiz" = "concerns", now
 }
 
 export const diagnosticPool = () => buildItemPool(listSkills());
+
+/** Only confirmed text (or an explicit skip); never audio or an unreviewed transcript. */
+export function saveOptionalSpeaking(runId: string, sample: OptionalSpeaking): void {
+  const parsed = optionalSpeakingSchema.safeParse(sample);
+  if (!parsed.success) return;
+  updateState(state => ({ ...state, diagnosticRuns: state.diagnosticRuns.map(run => run.id === runId && run.finishedAt !== null ? { ...run, optionalSpeaking: parsed.data } : run) }));
+}
