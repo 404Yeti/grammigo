@@ -73,7 +73,7 @@ describe("Lesson introduction", () => {
 
   it("goes back to Home", () => {
     render(<IntroScreen lessonId={lesson.id} />);
-    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute("href", "/learn");
   });
 });
 
@@ -168,7 +168,7 @@ describe("Session screen", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Exit lesson" }));
     await user.click(screen.getByRole("button", { name: /Save & Exit/ }));
-    expect(router.push).toHaveBeenCalledWith("/");
+    expect(router.push).toHaveBeenCalledWith("/learn");
     expect(getActiveSession(getSnapshot(), lesson.id)).not.toBeNull(); // progress kept
   });
 
@@ -217,7 +217,7 @@ describe("Success → Review → Home", () => {
   it("Return Home goes to the dashboard", async () => {
     const id = playQuestions(8);
     render(<ReviewScreen lessonId={lesson.id} sessionId={id} />);
-    expect(await screen.findByRole("link", { name: "Return Home" })).toHaveAttribute("href", "/");
+    expect(await screen.findByRole("link", { name: "Return Home" })).toHaveAttribute("href", "/learn");
   });
 
   it("Practice Again creates a new session without overwriting the completed one", async () => {

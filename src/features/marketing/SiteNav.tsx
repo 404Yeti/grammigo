@@ -16,18 +16,18 @@ export function SiteNav() {
   const accounts = accountsEnabled();
   return (
     <header className="border-b border-line bg-canvas">
-      <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-5 lg:h-20 lg:px-20">
-        <Link href="/" aria-label="Grammigo home" className="inline-flex min-h-11 items-center"><Wordmark className="text-2xl" /></Link>
-        <nav aria-label="Main" className="hidden items-center gap-8 lg:flex">
+      <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-5 lg:h-20 lg:px-20">
+        <Link href="/" aria-label="Grammigo home" className="inline-flex min-h-11 items-center"><Wordmark className="text-2xl lg:text-[32px] lg:font-extrabold lg:leading-10" /></Link>
+        <nav aria-label="Main" className="hidden items-center gap-8 xl:flex">
           {NAV_LINKS.map((l) => (
             <a key={l.href} href={l.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-ink-2 hover:text-ink">{l.label}</a>
           ))}
         </nav>
-        <div className="hidden items-center gap-3 lg:flex">
-          {accounts && <ButtonLink href="/signin" variant="secondary" fullWidth={false}>Sign in</ButtonLink>}
-          <ButtonLink href="/learn" fullWidth={false}>Get started</ButtonLink>
+        <div className="hidden items-center gap-3 xl:flex">
+          {accounts && <ButtonLink href="/signin" variant="ghost" fullWidth={false}>Sign in</ButtonLink>}
+          <ButtonLink href={accounts ? "/join" : "/learn"} fullWidth={false}>{accounts ? "Join with invitation" : "Get started"}</ButtonLink>
         </div>
-        <details className="relative lg:hidden" data-testid="site-menu">
+        <details className="relative xl:hidden" data-testid="site-menu">
           <summary className="grid size-11 cursor-pointer list-none place-items-center rounded-[14px] border-[1.5px] border-line-strong bg-surface" aria-label="Menu">
             <Menu size={22} aria-hidden />
           </summary>
@@ -37,7 +37,7 @@ export function SiteNav() {
             ))}
             <div className="mt-2 flex flex-col gap-2">
               {accounts && <ButtonLink href="/signin" variant="secondary">Sign in</ButtonLink>}
-              <ButtonLink href="/learn">Get started</ButtonLink>
+              <ButtonLink href={accounts ? "/join" : "/learn"}>{accounts ? "Join with invitation" : "Get started"}</ButtonLink>
             </div>
           </div>
         </details>

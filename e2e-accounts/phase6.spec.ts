@@ -233,6 +233,6 @@ test.describe("private pages and the notice", () => {
   test("the goodbye page is public and plain", async ({ page }) => {
     await page.goto("/auth/deleted");
     await expect(page.getByRole("heading", { name: "Your account is deleted" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Keep practising" })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("link", { name: "Keep practising" })).toHaveAttribute("href", "/learn");
   });
 });

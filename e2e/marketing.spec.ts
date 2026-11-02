@@ -13,6 +13,15 @@ test.describe("front page", () => {
     await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
     expect(await context.cookies()).toEqual([]);
+    // Functional navigation can still pass when the CSS pipeline is broken.
+    const appearance = await page.locator("h1").evaluate((node) => ({
+      font: getComputedStyle(node).fontFamily,
+      size: parseFloat(getComputedStyle(node).fontSize),
+      overflow: document.documentElement.scrollWidth > window.innerWidth,
+    }));
+    expect(appearance.font).toContain("Manrope");
+    expect(appearance.size).toBeGreaterThanOrEqual(40);
+    expect(appearance.overflow).toBe(false);
   });
 
   test("the menu works on any screen: links on a wide one, a disclosure on a phone; Get started goes to the learner home", async ({ page, isMobile }) => {
@@ -33,10 +42,11 @@ test.describe("front page", () => {
     await page.goto("/");
     const first = page.locator("#faq details").first();
     await first.locator("summary").focus();
-    await page.keyboard.press("Enter");
     await expect(first).toHaveAttribute("open", "");
     await page.keyboard.press("Enter");
     await expect(first).not.toHaveAttribute("open", "");
+    await page.keyboard.press("Enter");
+    await expect(first).toHaveAttribute("open", "");
   });
 
   test("@cross someone who already practises here, opening the bare address from an old bookmark, goes straight to /learn", async ({ page }) => {

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight, Brain, CloudCheck, Compass, Lightbulb, Map, Smile } from "lucide-react";
 import { Migo } from "@/components/mascot/Migo";
 import { ButtonLink } from "@/components/ui/Button";
 import { GrammarTag } from "@/components/ui/GrammarTag";
@@ -19,12 +18,12 @@ const STEPS = [
  * (see the marketing test, which fails if such wording appears).
  */
 const FEATURES = [
-  { icon: Compass, title: "Adaptive practice", body: "Questions adapt to your answers, so you spend time where it helps." },
-  { icon: Lightbulb, title: "Explanations that teach", body: "Hints come first, then the rule, then an example, for every question you get wrong." },
-  { icon: Brain, title: "Type, build and write", body: "Fill in blanks, fix sentences, put words in order and write short answers of your own." },
-  { icon: Map, title: "An honest progress map", body: "Clear evidence for each grammar area. “Not assessed” never means “weak”." },
-  { icon: CloudCheck, title: "Your answers stay safe", body: "Answers save on your device first, so a bad connection never loses your work." },
-  { icon: Smile, title: "Made to be accessible", body: "Tap or keyboard alternatives to drag, clear focus states and reduced motion." },
+  { title: "Adaptive practice", body: "Questions adapt to your answers, so you spend time where it helps." },
+  { title: "Explanations that teach", body: "Hints come first, then the rule, then an example, for every question you get wrong." },
+  { title: "Type, build and write", body: "Fill in blanks, fix sentences, put words in order and write short answers of your own." },
+  { title: "An honest progress map", body: "Clear evidence for each grammar area. “Not assessed” never means “weak”." },
+  { title: "Your answers stay safe", body: "Answers save on your device first, so a bad connection never loses your work." },
+  { title: "Made to be accessible", body: "Tap or keyboard alternatives to drag, clear focus states and reduced motion." },
 ] as const;
 
 export function faq(accounts: boolean): { q: string; a: string }[] {
@@ -39,8 +38,8 @@ export function faq(accounts: boolean): { q: string; a: string }[] {
   ];
 }
 
-const wrap = "mx-auto w-full max-w-[1280px] px-5 lg:px-20";
-const card = "rounded-[20px] border border-line bg-surface p-6";
+const wrap = "mx-auto w-full max-w-[1440px] px-5 lg:px-[120px]";
+const card = "rounded-[24px] border border-line bg-surface p-6";
 
 export function MarketingHome() {
   const accounts = accountsEnabled();
@@ -49,35 +48,37 @@ export function MarketingHome() {
       <ReturningRedirect />
       <SiteNav />
       <main>
-        <section className={`${wrap} grid items-center gap-10 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:py-20`} aria-labelledby="hero-title">
+        <section className={`${wrap} grid items-center gap-6 pt-6 pb-12 xl:grid-cols-[minmax(0,1fr)_520px] lg:gap-16 lg:pt-16 lg:pb-24`} aria-labelledby="hero-title">
           <div className="flex flex-col items-start gap-5">
-            <GrammarTag style="info">Start in a minute · no sign-up needed</GrammarTag>
-            <h1 id="hero-title" className="text-balance text-[40px] font-extrabold leading-[1.1] tracking-[-1px] lg:text-[56px]">Better grammar. Your way.</h1>
+            <GrammarTag style="brand">Your grammar amigo</GrammarTag>
+            <h1 id="hero-title" className="text-balance text-[44px] font-extrabold leading-[52px] tracking-[-1px] lg:text-[56px] lg:leading-[64px] lg:tracking-[-1.5px]">Better grammar. Your way.</h1>
             <p className="max-w-[560px] text-lg font-medium leading-7 text-ink-2">
               Grammigo is a friendly grammar coach that adapts to what you actually need, so there’s no wasted practice.
             </p>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <ButtonLink href="/learn" fullWidth={false}>Get started <ArrowRight size={18} aria-hidden /></ButtonLink>
+              <ButtonLink href="/learn" fullWidth={false}>Get started</ButtonLink>
               <ButtonLink href="/#how-it-works" variant="secondary" fullWidth={false}>See how it works</ButtonLink>
             </div>
+            {accounts && <Link href="/join" className="inline-flex min-h-11 items-center text-sm font-bold text-brand-text underline underline-offset-4">Join with invitation</Link>}
           </div>
-          <div className="flex flex-col items-center gap-5" aria-label="An example of Migo's feedback">
-            <Migo expression="explaining" size={176} />
-            <div className="w-full max-w-[454px] rounded-[20px] border border-brand bg-brand-soft p-4">
-              <p className="text-lg font-bold">“I lived here since 2019.”</p>
-              <p className="mt-2 text-base font-medium leading-6 text-ink-2">Close! “Since” points to now, so use the present perfect: “I have lived here since 2019.”</p>
+          <div className="flex w-full flex-col items-center gap-4 rounded-[32px] border border-line bg-surface p-5 lg:p-8" aria-label="An example of Migo's feedback">
+            <div className="lg:hidden"><Migo expression="explaining" size={130} /></div>
+            <div className="hidden lg:block"><Migo expression="explaining" size={182} /></div>
+            <div className="w-full max-w-[454px] rounded-[20px] bg-subtle p-4">
+              <p className="text-lg font-medium leading-7">“I lived here since 2019.”</p>
+              <p className="mt-2 text-sm font-medium leading-5 text-ink-2">Close! “Since” points to now, so use the present perfect: “I have lived here since 2019.”</p>
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="scroll-mt-20 border-t border-line bg-subtle py-14 lg:py-24" aria-labelledby="how-title">
+        <section id="how-it-works" className="scroll-mt-20 border-t border-line bg-subtle py-12 lg:py-24" aria-labelledby="how-title">
           <div className={wrap}>
-            <h2 id="how-title" className="text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">How it works</h2>
-            <ol className="mt-8 grid gap-5 lg:grid-cols-3">
+            <h2 id="how-title" className="text-[44px] font-extrabold leading-[52px] tracking-[-1px]">How it works</h2>
+            <ol className="mt-6 grid gap-3 lg:mt-10 lg:gap-5 lg:grid-cols-3">
               {STEPS.map((s, i) => (
                 <li key={s.title} className={card}>
                   <span className="grid size-10 place-items-center rounded-full bg-brand text-base font-extrabold text-ink" aria-hidden>{i + 1}</span>
-                  <h3 className="mt-4 text-xl font-bold leading-7">{s.title}</h3>
+                  <h3 className="mt-2.5 text-xl font-bold leading-7">{s.title}</h3>
                   <p className="mt-2 text-base font-medium leading-6 text-ink-2">{s.body}</p>
                 </li>
               ))}
@@ -85,14 +86,13 @@ export function MarketingHome() {
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-20 py-14 lg:py-24" aria-labelledby="features-title">
+        <section id="features" className="scroll-mt-20 py-12 lg:py-24" aria-labelledby="features-title">
           <div className={wrap}>
-            <h2 id="features-title" className="text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">Built around how you learn</h2>
-            <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }) => (
+            <h2 id="features-title" className="text-[44px] font-extrabold leading-[52px] tracking-[-1px]">Built around how you learn</h2>
+            <ul className="mt-6 grid gap-3 lg:mt-10 lg:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map(({ title, body }) => (
                 <li key={title} className={card}>
-                  <Icon size={24} className="text-brand-text" aria-hidden />
-                  <h3 className="mt-3 text-xl font-bold leading-7">{title}</h3>
+                  <h3 className="text-xl font-bold leading-7">{title}</h3>
                   <p className="mt-2 text-base font-medium leading-6 text-ink-2">{body}</p>
                 </li>
               ))}
@@ -100,24 +100,24 @@ export function MarketingHome() {
           </div>
         </section>
 
-        <section id="about" className="scroll-mt-20 border-t border-line bg-subtle py-14 lg:py-24" aria-labelledby="about-title">
+        <section id="about" className="scroll-mt-20 bg-brand-soft py-12 lg:py-24" aria-labelledby="about-title">
           <div className={`${wrap} flex flex-col items-center gap-8 lg:flex-row lg:gap-12`}>
-            <Migo expression="happy" size={150} className="shrink-0" />
+            <Migo expression="happy" size={156} className="shrink-0" />
             <div>
-              <h2 id="about-title" className="text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">About Grammigo</h2>
-              <p className="mt-4 max-w-[760px] text-lg font-medium leading-7 text-ink-2">
+              <h2 id="about-title" className="text-[44px] font-extrabold leading-[52px] tracking-[-1px]">About Grammigo</h2>
+              <p className="mt-3 text-lg font-medium leading-7 text-ink-2">
                 Grammar practice is usually one-size-fits-all. Grammigo starts from you: what you want to say, what you already know, and what to practice next. Migo, our comma-shaped companion, keeps it friendly.
               </p>
             </div>
           </div>
         </section>
 
-        <section id="faq" className="scroll-mt-20 py-14 lg:py-24" aria-labelledby="faq-title">
-          <div className={`${wrap} max-w-[960px]`}>
-            <h2 id="faq-title" className="text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">Questions, answered</h2>
-            <div className="mt-8 flex flex-col gap-3">
+        <section id="faq" className="scroll-mt-20 py-12 lg:py-24" aria-labelledby="faq-title">
+          <div className={wrap}>
+            <h2 id="faq-title" className="text-[44px] font-extrabold leading-[52px] tracking-[-1px]">Questions, answered</h2>
+            <div className="mt-6 flex flex-col gap-3 lg:mt-10">
               {faq(accounts).map((f) => (
-                <details key={f.q} className="group rounded-[20px] border border-line bg-surface px-5">
+                <details key={f.q} open className="group rounded-[20px] border border-line bg-surface px-5">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-bold">
                     {f.q}
                     <span aria-hidden className="text-2xl font-medium text-muted group-open:rotate-45">+</span>
@@ -129,11 +129,11 @@ export function MarketingHome() {
           </div>
         </section>
 
-        <section className="border-t border-line bg-brand-soft py-14 text-center lg:py-20" aria-labelledby="cta-title">
-          <div className={`${wrap} flex flex-col items-center gap-6`}>
-            <h2 id="cta-title" className="max-w-[720px] text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">Ready for grammar that fits you?</h2>
+        <section className="bg-inverse py-12 text-center text-on-inverse lg:py-24" aria-labelledby="cta-title">
+          <div className={`${wrap} flex flex-col items-center gap-10`}>
+            <h2 id="cta-title" className="max-w-[720px] text-[44px] font-extrabold leading-[52px] tracking-[-1px]">Ready for grammar that fits you?</h2>
             <ButtonLink href="/learn" fullWidth={false}>Get started</ButtonLink>
-            {accounts && <p className="text-sm font-medium text-ink-2">Already have an account? <Link href="/signin" className="font-bold underline underline-offset-4">Sign in</Link></p>}
+            {accounts && <p className="text-sm font-medium">Already have an account? <Link href="/signin" className="font-bold underline underline-offset-4">Sign in</Link></p>}
           </div>
         </section>
       </main>

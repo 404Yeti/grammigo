@@ -10,6 +10,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   window.localStorage.clear();
   router.replace.mockClear?.();
+  window.history.replaceState(null, "", "/");
 });
 
 describe("the public front page", () => {
@@ -25,6 +26,7 @@ describe("the public front page", () => {
     }
     expect(screen.getAllByRole("link", { name: /Get started/ })[0]).toHaveAttribute("href", "/learn");
     expect(screen.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
     expect(screen.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
   });
 
@@ -43,6 +45,7 @@ describe("the public front page", () => {
     const on = render(<MarketingHome />);
     expect(screen.getAllByRole("link", { name: "Sign in" }).length).toBeGreaterThan(0);
     expect(on.container.textContent).toMatch(/by invitation/);
+    expect(screen.getAllByRole("link", { name: "Join with invitation" })[0]).toHaveAttribute("href", "/join");
     cleanup();
     vi.stubEnv("NEXT_PUBLIC_ACCOUNTS", "");
     const off = render(<MarketingHome />);
@@ -70,6 +73,13 @@ describe("someone who has used Grammigo on this device", () => {
     expect(hasUsedGrammigoHere(fake([]), "gm-scope=abc")).toBe(true);
     expect(hasUsedGrammigoHere(fake(["grammigo:v2:corrupt"]), "")).toBe(false);
     expect(hasUsedGrammigoHere(fake(["other", "theme"]), "x=1")).toBe(false);
+  });
+
+  it("keeps marketing section links accessible to returning learners", () => {
+    window.localStorage.setItem("grammigo:v2", "{}");
+    window.history.replaceState(null, "", "/#features");
+    render(<ReturningRedirect />);
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it("is sent to /learn from the bare address (old bookmarks keep working); a first-time visitor is not", () => {

@@ -19,6 +19,7 @@ export function ReturningRedirect() {
   const router = useRouter();
   useEffect(() => {
     try {
+      if (window.location.hash) return;
       if (hasUsedGrammigoHere(window.localStorage, document.cookie)) router.replace("/learn");
     } catch {
       // storage blocked: show the page

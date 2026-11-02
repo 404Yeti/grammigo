@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Wordmark } from "@/components/layout/Wordmark";
+import { SiteNav } from "@/features/marketing/SiteNav";
+import { SiteFooter } from "@/features/marketing/SiteFooter";
 import { accountsEnabled } from "@/features/accounts/enabled";
 import { PrivacyAccounts } from "@/features/accounts/PrivacyAccounts";
 
@@ -8,8 +9,9 @@ export const metadata: Metadata = { title: "Privacy — Grammigo" };
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[638px] flex-col gap-4 px-4 pb-10 pt-6">
-      <Wordmark />
+    <div className="bg-canvas text-ink">
+      <SiteNav />
+      <main className="mx-auto flex w-full max-w-[760px] flex-col gap-4 px-5 py-12 lg:py-16">
       <h1 className="text-[28px] font-extrabold leading-9 tracking-[-0.4px]">Privacy</h1>
       {accountsEnabled() && <PrivacyAccounts />}
       {!accountsEnabled() && (
@@ -50,6 +52,8 @@ export default function PrivacyPage() {
       <Link href="/learn" className="mt-2 text-sm font-bold underline">
         Back to Grammigo
       </Link>
+      </main>
+      <SiteFooter />
     </div>
   );
 }
