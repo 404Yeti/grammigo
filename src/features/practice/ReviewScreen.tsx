@@ -144,7 +144,7 @@ export function ReviewScreen({ lessonId, sessionId: sessionIdProp }: { lessonId:
         <GuidedEntryCard lessonId={lessonId} variant="review" />
 
         <div className="mt-4 flex flex-col gap-2.5">
-          <ButtonLink href="/">Return Home</ButtonLink>
+          <ButtonLink href="/learn">Return Home</ButtonLink>
           <Button variant="secondary" onClick={practiceAgain}>
             Practice This Skill Again
           </Button>

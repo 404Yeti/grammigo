@@ -33,7 +33,7 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
     <div className="mx-auto flex min-h-dvh w-full max-w-[638px] flex-col px-4 pb-8 pt-5">
       <header className="flex h-11 items-center">
         <Link
-          href="/"
+          href="/learn"
           aria-label="Back"
           className="grid size-11 place-items-center rounded-full bg-subtle text-ink hover:bg-sand"
         >
@@ -98,7 +98,7 @@ export function IntroScreen({ lessonId }: { lessonId: string }) {
 
         <div className="mt-auto flex flex-col gap-2.5 pt-4">
           <Button onClick={start}>{active ? "Continue Lesson" : "Start Lesson"}</Button>
-          <ButtonLink href="/" variant="ghost">
+          <ButtonLink href="/learn" variant="ghost">
             Back to Home
           </ButtonLink>
         </div>

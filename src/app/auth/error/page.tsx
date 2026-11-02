@@ -16,7 +16,7 @@ export default function AuthErrorPage({ searchParams }: PageProps<"/auth/error">
         <Reason searchParams={searchParams} />
       </Suspense>
       <Link href="/signin" className={primaryButtonClass}>Back to sign in</Link>
-      <Link href="/" className={secondaryLinkClass}>Keep practising</Link>
+      <Link href="/learn" className={secondaryLinkClass}>Keep practising</Link>
     </AuthShell>
   );
 }

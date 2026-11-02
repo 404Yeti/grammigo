@@ -14,7 +14,7 @@ export default function NoAccountPage() {
         That Google account isn’t set up for Grammigo. Accounts are by invitation, and nothing was created or kept.
       </p>
       <Link href="/join" className={primaryButtonClass}>I have an invitation code</Link>
-      <Link href="/" className={secondaryLinkClass}>Keep practising without an account</Link>
+      <Link href="/learn" className={secondaryLinkClass}>Keep practising without an account</Link>
       <form action="/api/auth/signout" method="post">
         <button type="submit" className={secondaryLinkClass}>Sign out</button>
       </form>

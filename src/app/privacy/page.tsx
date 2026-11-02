@@ -47,7 +47,7 @@ export default function PrivacyPage() {
         </p>
       </section>
       )}
-      <Link href="/" className="mt-2 text-sm font-bold underline">
+      <Link href="/learn" className="mt-2 text-sm font-bold underline">
         Back to Grammigo
       </Link>
     </div>

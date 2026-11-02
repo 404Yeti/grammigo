@@ -115,7 +115,7 @@ function Welcome({ aiAvailable }: { aiAvailable: boolean }) {
           className="mx-auto min-h-11 text-sm font-semibold text-muted underline underline-offset-4"
           onClick={() => {
             skipOnboarding();
-            router.replace("/");
+            router.replace("/learn");
           }}
         >
           Not now
@@ -372,7 +372,7 @@ function Quiz({ state }: { state: StoredState }) {
         className="mx-auto min-h-11 text-sm font-semibold text-muted underline underline-offset-4"
         onClick={() => {
           skipOnboarding();
-          router.replace("/");
+          router.replace("/learn");
         }}
       >
         Skip the check for now
@@ -488,7 +488,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (!status) return;
     if (status === "not_started") beginOnboarding();
-    else if ((status === "completed" || status === "skipped") && !leaving.current) router.replace("/");
+    else if ((status === "completed" || status === "skipped") && !leaving.current) router.replace("/learn");
   }, [status, router]);
 
   if (!state || status === "not_started" || status === "completed" || status === "skipped") {
