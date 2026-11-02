@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MigoAudio } from "@/features/voice/MigoAudio";
+import { pendingCelebration } from "@/features/voice/events";
+import { getStorageScope } from "@/lib/scope/storage-scope";
 import { Confetti } from "@/components/progress/Confetti";
 import { StatTile } from "@/components/progress/StatTile";
 import { Migo } from "@/components/mascot/Migo";
@@ -49,6 +52,8 @@ export function CompleteScreen({ lessonId, sessionId: sessionIdProp }: { lessonI
           Another step toward better English. Look how far you’ve come!
         </p>
 
+        <CompletionAudio key={`${getStorageScope()}:${session.id}`} sessionId={session.id} lessonId={lessonId} />
+
         <div className="mt-2 grid w-full grid-cols-2 gap-3 text-left">
           <StatTile value={summary.completed} label="exercises completed" />
           <StatTile kind="success" value={summary.independent} label="correct on your own" />
@@ -77,4 +82,9 @@ export function CompleteScreen({ lessonId, sessionId: sessionIdProp }: { lessonI
       </main>
     </div>
   );
+}
+
+function CompletionAudio({ sessionId, lessonId }: { sessionId: string; lessonId: string }) {
+  const [event] = useState(() => pendingCelebration(sessionId));
+  return <MigoAudio lessonId={lessonId} questionId="completion" kind="celebration" autoPlayKey={event} />;
 }

@@ -1,3 +1,4 @@
+import { listeningQuestion } from "./listening";
 import type { Lesson } from "@/types/lesson";
 import { getCurriculumSkill, listSkills, toLesson } from "@/curriculum";
 
@@ -14,15 +15,6 @@ export function getLesson(id: string): Lesson | undefined {
   if (!skill) return undefined;
   const lesson = toLesson(skill);
   if (id === DEFAULT_LESSON_ID) {
-    if (process.env.NEXT_PUBLIC_LESSON_LISTENING === "true") {
-      lesson.questions = lesson.questions.map(q => q.id !== "q1" ? q : ({
-        ...q,
-        prompt: "Listen to Migo. Which sentence matches the speaker’s experience of Hanoi?",
-        skillLabel: "Present perfect · Listening",
-        listening: { transcript: "I love travelling. Hanoi is one of my favourite cities, and I have been there twice. I hope to return someday." },
-        migoLine: "Listen for the speaker’s past experience. You can replay the audio or choose the reading alternative.",
-      }));
-    }
     if (process.env.NEXT_PUBLIC_LESSON_SPEAKING === "true") {
       const lastConstruction = lesson.questions.findLast(q => q.type === "sentence-construction")?.id;
       lesson.questions = lesson.questions.map(q => q.id !== lastConstruction ? q : ({ ...q, allowSpeaking: true,
@@ -37,6 +29,10 @@ export function getLesson(id: string): Lesson | undefined {
       prompt: "Say or write two sentences: one about something you have done this week, and one about something you did yesterday.",
       praise: "You used both tenses!",
     }));
+  }
+  if (process.env.NEXT_PUBLIC_LESSON_LISTENING === "true") {
+    const listening = listeningQuestion(lesson);
+    if (listening) lesson.questions = [...lesson.questions, listening];
   }
   CACHE.set(id, lesson);
   return lesson;

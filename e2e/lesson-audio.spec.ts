@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { getLesson } from "../src/data/lessons";
 import { createSession, setDraft, submitAnswer, advance } from "../src/features/practice/session";
 import { emptyState } from "../src/lib/storage/schema";
-import { LESSON, seedReturningLearner } from "./helpers";
+import { LESSON, answerCorrectly, cont, seedReturningLearner } from "./helpers";
 
 test.skip(process.env.E2E_LISTENING !== "1", "Requires listening build");
 const scenario = "I love travelling. Hanoi is one of my favourite cities, and I have been there twice. I hope to return someday.";
@@ -26,16 +26,22 @@ async function construction(page: Page) {
   await page.getByRole("button", { name: "Speak or type my sentence", exact: true }).click();
   await expect(page.getByText(/Use these words:/)).toContainText("since · They · 2018 · lived · here · have");
 }
+async function reachListening(page: Page) {
+  await seedReturningLearner(page); await page.goto(`/practice/${LESSON}`);
+  await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
+  for (let n = 1; n <= 8; n++) { await answerCorrectly(page, n); await cont(page); }
+}
 test("listening uses authored audio, hides transcript, and supports replay, persisted mute and deterministic answers", async ({ page }, info) => {
   let calls = 0; const grading: string[] = [];
   page.on("request", r => { if (/\/api\/ai\/(writing-feedback|guided-check)/.test(r.url())) grading.push(r.url()); });
   await page.route("**/api/ai/tts", r => {
-    calls++;
-    expect(r.request().postDataJSON()).toEqual({ lessonId: LESSON, questionId: "q1", kind: "listening" });
+    if (r.request().postDataJSON().kind === "listening") {
+      calls++;
+      expect(r.request().postDataJSON()).toEqual({ lessonId: LESSON, questionId: "q9-listening", kind: "listening" });
+    }
     return r.fulfill({ contentType: "audio/wav", body: wav() });
   });
-  await seedReturningLearner(page); await page.goto(`/practice/${LESSON}`);
-  await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
+  await reachListening(page);
   await expect(page.getByTestId("listening-exercise")).toBeVisible();
   expect(calls).toBe(0);
   await expect(page.getByText(scenario, { exact: true })).toHaveCount(0);
@@ -52,14 +58,13 @@ test("listening uses authored audio, hides transcript, and supports replay, pers
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "correct-independent");
   await expect(page.getByTestId("listening-transcript")).toContainText(scenario);
   await page.screenshot({ path: info.outputPath("listening-feedback.png"), fullPage: true });
-  await page.getByRole("button", { name: "Continue", exact: true }).click(); await page.reload();
-  await expect(page.getByText("Question 2 of 8", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Finish lesson", exact: true }).click(); await page.reload();
+  await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
   expect(grading).toEqual([]);
 });
 test("audio failure or mute always has an explicit accessible reading alternative", async ({ page }) => {
   await page.route("**/api/ai/tts", r => r.fulfill({ status: 503, json: { error: "voice_unavailable" } }));
-  await seedReturningLearner(page); await page.goto(`/practice/${LESSON}`);
-  await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
+  await reachListening(page);
   await page.getByRole("button", { name: "Listen to Migo", exact: true }).click();
   await expect(page.getByText(/Audio is unavailable/)).toBeVisible();
   await expect(page.getByText(scenario, { exact: true })).toHaveCount(0);

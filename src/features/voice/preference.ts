@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 const KEY = "grammigo:audio:v1";
 const listeners = new Set<() => void>();
 let memoryMuted = false;
-function read(): boolean {
+export function isMigoMuted(): boolean {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return memoryMuted;
@@ -24,4 +24,4 @@ export function setMigoMuted(muted: boolean) {
   try { localStorage.setItem(KEY, JSON.stringify({ version: 1, muted })); } catch { /* memory remains usable */ }
   listeners.forEach(listener => listener());
 }
-export function useMigoMuted() { return useSyncExternalStore(subscribe, read, () => false); }
+export function useMigoMuted() { return useSyncExternalStore(subscribe, isMigoMuted, () => false); }
