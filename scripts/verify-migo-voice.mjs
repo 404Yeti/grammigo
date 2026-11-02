@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Supply the key securely in the process environment. Never pass it as an argument or print it.
-import { writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 const voice = "v50G5ovlVt3QsSRU1EhH";
 const key = process.env.ELEVENLABS_API_KEY?.trim();
 if (!key) { console.error("ELEVENLABS_API_KEY is required in the server/terminal environment; do not paste it in chat."); process.exit(2); }
@@ -20,8 +22,9 @@ try {
     const reader = response.body.getReader(); const chunks = []; let size = 0;
     try { while (true) { const part = await reader.read(); if (part.done) break; size += part.value.byteLength; if (size > 256000) { await reader.cancel(); throw new Error("Audio exceeded256KB."); } chunks.push(part.value); } } finally { reader.releaseLock(); }
     if (!size) throw new Error("Empty audio.");
-    const destination = process.env.MIGO_VOICE_SAMPLE_PATH || "/tmp/grammigo-elevenlabs-migo-sample.mp3";
-    await writeFile(destination, Buffer.concat(chunks));
+    const sampleDirectory = await mkdtemp(join(tmpdir(), "grammigo-migo-voice-"));
+    const destination = join(sampleDirectory, "migo-sample.mp3");
+    await writeFile(destination, Buffer.concat(chunks), { flag: "wx", mode: 0o600 });
     Object.assign(result, { synthesisTested: true, audioBytes: size, sampleFile: destination, paidRequests: 1, humanListeningAcceptance: "pending" });
   }
   console.log(JSON.stringify(result));
