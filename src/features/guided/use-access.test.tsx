@@ -13,7 +13,8 @@ it("drops a previous owner's affordance immediately when account scope changes, 
   await waitFor(() => expect(result.current).toBe(true));
   act(() => setStorageScope("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"));
   expect(result.current).toBe(false);
-  act(() => setStorageScope(""));
+  act(() => setStorageScope("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"));
+  expect(result.current).toBe(false);
   await act(async () => resolve({ ok: true, json: async () => ({ allowed: true }) }));
   expect(result.current).toBe(false);
 });

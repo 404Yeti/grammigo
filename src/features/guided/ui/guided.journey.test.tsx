@@ -107,7 +107,7 @@ beforeEach(() => {
   opinion.calls = [];
   mic("ok");
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("typed journey: Attempt → Notice → Correct → Understand → Apply", () => {
   it("a good first answer is credited as first try, then the new-situation exercise and the summary", async () => {
@@ -497,6 +497,7 @@ describe("release configuration: Beta, typed-only", () => {
   it("the entry card says Beta, describes typing only, and keeps the honest note", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_GUIDED_PREVIEW", "true");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ allowed: true }), { status: 200 })));
     vi.stubEnv("NEXT_PUBLIC_GUIDED_VOICE", "");
     render(<IntroScreen lessonId={LESSON} />);
     const card = await screen.findByTestId("guided-entry");

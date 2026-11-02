@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { getStorageScope, onScopeChange } from "@/lib/scope/storage-scope";
+import { getScopeRevision, onScopeChange } from "@/lib/scope/storage-scope";
 import { guidedOwnerPreviewRequested, guidedVisible } from "./visibility";
 
 /** An affordance only: the server page independently verifies access. Never retain owner access across scope changes. */
 export function useGuidedAccess(): boolean {
-  const scope = useSyncExternalStore(onScopeChange, getStorageScope, () => "");
-  const [result, setResult] = useState<{ scope: string; allowed: boolean } | null>(null);
+  const scope = useSyncExternalStore(onScopeChange, getScopeRevision, () => 0);
+  const [result, setResult] = useState<{ scope: number; allowed: boolean } | null>(null);
   const publicAccess = guidedVisible();
   useEffect(() => {
     if (publicAccess || !guidedOwnerPreviewRequested()) return;
