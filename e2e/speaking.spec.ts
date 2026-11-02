@@ -87,3 +87,17 @@ test("transcription failure offers a retry and typing without creating a wrong a
   await page.getByRole("button", { name: "Type instead" }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeEnabled();
 });
+
+
+test("an uncertain spoken exercise is saved for review without paid writing evaluation", async ({ page }) => {
+  let writingCalls = 0;
+  await page.route("**/api/ai/writing-feedback", route => { writingCalls++; return route.fulfill({ status: 503, json: { error: "unavailable" } }); });
+  await openSpeaking(page);
+  await page.getByRole("button", { name: "Type instead" }).click();
+  await page.getByRole("textbox", { name: "Your answer" }).fill("I enjoy the park. The weather seems pleasant.");
+  await page.getByRole("button", { name: "Check Answer" }).click();
+  await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "needs-review");
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
+  expect(writingCalls).toBe(0);
+});
