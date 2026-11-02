@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
       { source: "/signin", headers: frameGuard },
     ];
   },
+  // Keep the supported Webpack fallback styled too (useful where Turbopack workers cannot bind ports).
+  // Reuse the same Tailwind loader; its exported interface is a Webpack LoaderContext.
+  webpack(config) {
+    config.module.rules.push({
+      test: /globals\.css$/,
+      enforce: "pre",
+      use: ["@tailwindcss/turbopack"],
+    });
+    return config;
+  },
   turbopack: {
     rules: {
       "*.css": {

@@ -274,7 +274,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     await answerCorrectly(page, 1);
     await cont(page);
     await expectQuestion(page, 2);
-    await page.goto("/");
+    await page.goto("/learn");
     const guestRaw = (await read(page, GUEST))!;
     const guestSessionId = (JSON.parse(guestRaw).sessions[0] as { id: string }).id;
 
@@ -318,7 +318,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     await startFromHome(page);
     await answerCorrectly(page, 1);
     await cont(page);
-    await page.goto("/");
+    await page.goto("/learn");
     const guestRaw = (await read(page, GUEST))!;
 
     const [a, b] = await Promise.all([createAccount({ name: "First Importer", learner: true }), createAccount({ name: "Second Learner", learner: true })]);
@@ -330,7 +330,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     // A signs out; B signs in on the same browser
     await page.goto("/account/profile");
     await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(`${BASE}/`);
+    await expect(page).toHaveURL(`${BASE}/learn`);
     await context.addCookies(sessionCookies(b));
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-greeting")).toContainText("Second Learner");

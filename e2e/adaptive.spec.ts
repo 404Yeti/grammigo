@@ -13,7 +13,7 @@ import {
 
 test.describe("onboarding: the acceptance journey", () => {
   test("tell Migo what is hard → quick adaptive check → profile → first lesson, never choosing a level", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/learn");
     await expect(page).toHaveURL(/\/onboarding$/);
     await expect(page.getByText("What would you like to improve about your English?")).toBeVisible();
     await expect(page.getByTestId("voice-unavailable")).toBeVisible(); // AI is off: typing only, said honestly
@@ -73,7 +73,7 @@ test.describe("onboarding: the acceptance journey", () => {
   test("a learner can skip the whole conversation and still reach Home", async ({ page }) => {
     await page.goto("/onboarding");
     await page.getByRole("button", { name: "Not now" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/learn");
     await expect(page.getByRole("link", { name: "Start Practice" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Tell Migo" })).toBeVisible();
   });
@@ -110,7 +110,7 @@ test.describe("library and multiple lessons", () => {
   test("recommendations adapt: after a lesson Home explains what changed and why", async ({ page }) => {
     await startFromHome(page, "a1-be-present");
     await playWholeLesson(page, "a1-be-present");
-    await page.goto("/");
+    await page.goto("/learn");
     const reason = page.getByTestId("next-step-text");
     await expect(reason).toContainText("You finished “Present simple of “be””");
     await expect(page.getByTestId("home-independent")).toContainText("7");
@@ -136,8 +136,8 @@ test.describe("compatibility with v0.1", () => {
     const v1 = JSON.stringify({ version: 1, sessions: [s], activeSessionId: null });
     await page.addInitScript((doc) => window.localStorage.setItem("grammigo:v1", doc), v1);
 
-    await page.goto("/");
-    await expect(page).toHaveURL("/"); // not forced through onboarding
+    await page.goto("/learn");
+    await expect(page).toHaveURL("/learn"); // not forced through onboarding
     await expect(page.getByTestId("home-independent")).toContainText("8");
 
     await page.getByRole("link", { name: "Review last lesson" }).click();
