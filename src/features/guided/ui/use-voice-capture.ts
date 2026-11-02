@@ -92,6 +92,13 @@ export function useVoiceCapture() {
           if (cancelled) return;
           onDone(blob.size > 0 ? { ok: true, blob } : { ok: false, reason: "no_speech" });
         };
+        rec.onerror = () => {
+          if (currentGeneration !== generation.current) return;
+          discard.current = true;
+          if (rec.state !== "inactive") rec.stop();
+          release();
+          onDone({ ok: false, reason: "failed" });
+        };
         rec.start();
         setSeconds(0);
         setListening(true);
