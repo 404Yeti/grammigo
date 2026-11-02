@@ -1,55 +1,57 @@
-# FAI-53: Migo beta synthesis budgets
+# FAI-53: Migo beta synthesis reliability and budgets
 
-## Confirmed cause (read-only inspection, 2026-11-02 UTC)
+## Confirmed original fallback cause
 
-Production has `TTS_DAILY_CALL_CAP=50`, no `ELEVENLABS_DAILY_CALL_CAP` override, and therefore the old ElevenLabs default of **20**, not 50. The current UTC-day durable counters were: shared TTS **36**, ElevenLabs **32**, shared AI guard **77**. Denied quota checks also increment counters: 32 does **not** mean 32 paid ElevenLabs calls. The exhausted independent 20-attempt primary quota routes to Coral while the shared cap still has room. Exhausting the shared 50 cap would return unavailable, not permit Coral. Existing code suppresses provider failure details, and the requested 24h logs exceeded Vercel Hobby retention; earlier provider failures cannot be excluded or reconstructed. No production synthesis was requested to diagnose this.
+Read-only production inspection on 2026-11-02 found `TTS_DAILY_CALL_CAP=50`, no ElevenLabs daily override, and therefore the old primary default of **20 attempts/day**. Durable counters were shared TTS **36** and ElevenLabs **32**. Legacy denied checks also incremented counters; 32 did not represent 32 paid calls. The independent primary quota explained Coral routing while the shared cap still had room. Shared-cap exhaustion would return audio unavailable. Earlier provider failures cannot be reconstructed from the old logs.
 
-Using the local ElevenLabs key, free metadata requests succeeded for subscription/model/fixed voice. Multilingual v2 reports character-cost and discount multipliers of 1; the voice is generated, without a sharing surcharge. Subscription metadata distinguishes used credits from the total allocation. Current account balances are reported privately to the owner, not recorded in app diagnostics. Production's sensitive key cannot be exported to compare with the local key, so that observation is conditional on both keys belonging to the same account.
+## Proposed server-only configuration
 
-## Review configuration (not applied to Vercel)
-
-| Server variable | Beta default | Meaning |
+| Variable | Beta default | Meaning |
 | --- | --- | --- |
-| `TTS_DAILY_CALL_CAP` | `300` | Shared paid attempt ceiling per UTC day. Every actual ElevenLabs AND Coral attempt requires a slot, including failures. |
-| `ELEVENLABS_DAILY_CALL_CAP` | `300` | Independent primary attempt ceiling; exhausting it permits bounded Coral fallback. |
-| `ELEVENLABS_MONTHLY_CREDIT_BUDGET` | `100000` | Conservative Grammigo reservation ceiling for the fixed one-credit-per-character model/voice per UTC calendar month. |
+| `TTS_DAILY_CALL_CAP` | `300` | Shared dispatched synthesis attempts per UTC day, across ElevenLabs and Coral. |
+| `ELEVENLABS_DAILY_CALL_CAP` | `300` | ElevenLabs attempts per UTC day. |
+| `ELEVENLABS_MONTHLY_CREDIT_BUDGET` | `100000` | Approximate conservative Grammigo credit reservations per UTC calendar month. |
 
-Daily settings accept non-negative integers, bounded at 1,000; zero stops synthesis for that budget. Monthly settings accept 0..10,000,000; zero disables paid ElevenLabs synthesis. Missing, empty or invalid settings use beta defaults. These are server-only variables; no client usage endpoint/header is added.
+Daily values accept non-negative integers, bounded at 1,000; monthly values accept 0..10,000,000. Zero disables that budget. Missing/empty/invalid values retain beta defaults. The existing production TTS override is still 50 until an approved environment update/deployment. Set all three variables explicitly on release. This PR changes neither provider billing settings nor the production key.
 
-**Before an approved deployment:** change the existing Vercel production `TTS_DAILY_CALL_CAP` from 50 to 300; set `ELEVENLABS_DAILY_CALL_CAP=300` and `ELEVENLABS_MONTHLY_CREDIT_BUDGET=100000` explicitly for operator visibility. Existing environment overrides take precedence over defaults. This PR does not change Vercel settings. Do not merge or deploy without owner approval.
+Balance, production/local key identity and exact billing reconciliation are not independent release gates under the owner's latest direction. Application reliability, bounded attempts and passing tests are the gates. **No merge or deployment is authorized.** `vercel.json` disables automatic deployments for this review branch only.
 
-The existing shared AI request budget and per-visitor guards are unchanged. Cache hits still pass those guards, so they can reduce the reachable synthesis volume. Cache/coalescing remain per-instance (24 entries, 24h primary / 60s fallback under primary identity); warm replay often avoids synthesis, but cold starts and different instances can synthesize the same copy again. Browser replay and persistent mute are unchanged. Existing auth/origin/input protections and provider timeout/size/redirect bounds are untouched.
+## Atomic reservations and bounded failures
 
-## Credits, concurrency, and limits of accounting
+One Redis Lua script checks the shared daily allowance and, for ElevenLabs, its daily allowance plus monthly credit headroom **before changing any counter**. A denied check writes nothing: it neither inflates paid-attempt counters nor reserves monthly credits. Only an admitted provider attempt increments its applicable counters. Coral needs its own shared slot; a failed primary cannot obtain an uncounted fallback. Simultaneous requests across instances cannot over-admit either provider or the shared/monthly budget.
 
-Calls are not credits. Fixed `eleven_multilingual_v2` plus this generated voice currently costs one credit per submitted character. Reserve `text.length` credits before dispatch (UTF-16 length conservatively overcounts non-BMP characters). Keep reservations after failure, timeout or later shared-budget rejection: billing may be uncertain, so this can stop earlier than actual invoice usage. No retries or refunds. Recheck provider pricing/model/voice before changing that fixed identity; this is a conservative application spending guard, not invoice reconciliation.
+All applicable counters are read and validated before writes. This matters because Redis script runtime errors do not roll back earlier writes. Non-integer/corrupt counters fail closed before mutation; errors returned by Redis and malformed responses never authorize synthesis. Limits are non-negative safe integers and bounded by configuration.
 
-Redis runs one Lua script to check and reserve the entire credit amount atomically; concurrent requests across instances cannot overrun the cap. Denied credit reservations do not consume remaining credit headroom. UTC month keys and fixed expiration avoid a shifting monthly-window bucket. Storage errors fail closed before any provider call. Daily reservations retain the existing atomic Redis `INCR` checks for each provider attempt; local in-flight coalescing is an optimization, not quota enforcement.
+Reservations for dispatched requests are retained on HTTP rejection, timeout, network failure, invalid audio or uncertain billing. There are no automatic synthesis retries or refunds; this prevents repeated failures from creating unlimited provider attempts. This is intentionally conservative and may stop earlier than actual billed usage. A lost Redis response is also treated as uncertain and fails closed; any reservation retained in that case expires with its UTC period. There are no permanent locks or quota leases. Failures return generic audio-unavailable responses while lessons remain usable.
 
-The new counter starts at activation and tracks **only this Grammigo implementation**, not earlier usage or other apps/keys. It resets on UTC calendar months, which may differ from the ElevenLabs subscription billing cycle. It must not be advertised as an account-wide 100k billing-period guarantee. For an activation partway through the month, choose a remaining-period allowance after checking prior usage; verify the actual remaining credits on the production account privately before activation. Provider API-key spending controls remain the source for an account/key billing hard stop. Do not assume raising this cap adds credits or enables overage.
+Daily keys contain the UTC date and day bucket; monthly keys contain the UTC year/month. Fixed expirations are set to five seconds after the corresponding boundary. Denied requests do not extend expirations. A new day resets daily headroom while retaining the current month's credits; a new month starts a fresh monthly counter. Existing production key names are retained, so deploying cannot reset already consumed allowances. Historical denied counts in legacy keys remain conservative until that period ends; this change does not rewrite production usage.
 
-## Expected monthly usage / cost exposure
+Existing visitor and shared AI request guards remain unchanged. Those guards count requests, including cache hits/denied requests, to retain abuse protection; they are distinct from synthesis allowances. Local pending-request coalescing is an optimization, not quota enforcement. The server cache retains 24 entries, 24h primary audio and a 60s fallback clip under the primary identity. Browser cached replay, persistent mute, lesson progression, auth/origin/input checks, provider timeout/redirect/audio bounds and Coral's shutdown gate remain intact.
 
-At 300 primary syntheses/day for a 30-day month, there are at most 9,000 attempts. Before the monthly guard, that is:
+## Approximate credits: known limitation
 
-| Average submitted clip length | Monthly character-credits at full daily usage |
-| --- | --- |
-| 25 | 225,000 |
-| 100 | 900,000 |
-| 320 (input maximum) | 2,880,000 |
+The fixed model is `eleven_multilingual_v2` and the fixed Migo voice is generated (no Voice Library sharing surcharge). Read-only metadata checked on 2026-11-02 reported `character_cost_multiplier=1` and `cost_discount_multiplier=1`. The app reserves `text.length` credits using that validated current rate, conservatively counting UTF-16 units; it does **not** assume one call equals one credit.
 
-The monthly reservation ceiling instead permits at most **100,000 newly reserved character-credits per full UTC month** (up to 100,000 at activation in a partial month unless reduced manually). This corresponds to about 4,000 25-character clips, 1,000 100-character clips, or 312 full 320-character clips, before conservative failed-attempt reservations. It is 82.4% of the stated 121,314 monthly allocation, leaving 21,314 for other use in a fresh allocation. Actual beta usage cannot be predicted from the counters: cache reuse, clip lengths, active learners and instance churn determine demand. This is a ceiling/scenario estimate, not a forecast or dollar invoice.
+This is approximate accounting, not exact invoice reconciliation. Provider responses can expose `character-cost`, but this focused change does not implement a financial reconciliation system or dynamically refresh pricing. Revalidate the rate when changing model/voice/plan or when provider pricing changes. Missing response metadata and uncertain failed attempts do not trigger refunds. Submitted character reservations can differ from actual provider billing. The app budget cannot add credits, change provider overage settings or force a rejected synthesis to succeed. HTTP errors, exhausted credits and timeouts route to Coral within its remaining shared allowance.
 
-Coral does not consume ElevenLabs credits, but has a separate OpenAI cost. Its attempts share the 300/day TTS ceiling, at most 9,000/30 days if every attempt is Coral; a failed primary consumes a slot as well. Existing usage logs record counts; confirm actual OpenAI charges in its billing dashboard. No billing settings are changed.
+The monthly counter tracks Grammigo from activation, excluding earlier spending and other apps. UTC calendar months may differ from the subscription renewal cycle. Do not present it as an account-wide monthly billing guarantee. Account balances/identifiers/keys are not exposed to learners or app diagnostics.
+
+At 300 primary attempts/day for 30 days, there are up to 9,000 attempts. With 100 characters/clip that would reserve about 900,000 credits before the monthly guard. A 100,000-credit budget instead admits roughly 1,000 such clips, or 4,000 clips averaging 25 characters. This is a ceiling/scenario, not a forecast. Cache hits require no new synthesis reservation. Coral uses separate OpenAI billing and is bounded by shared attempts; subscriptions and overage settings are unchanged.
 
 ## Diagnostics and verification
 
-`[tts-diagnostic]` lines record allowlisted event/reason/provider and optional HTTP status only: `elevenlabs_daily_cap`, `elevenlabs_monthly_credit_budget`, `elevenlabs_not_configured`, `provider_http`, `provider_timeout`, `provider_network`, `invalid_audio`, `shared_daily_cap`, `limiter_unavailable`, `credit_budget_unavailable`, `coral_retired`, and generic provider failure. These are emitted even if optional usage logs are off. No text, raw errors/bodies, key, user identifiers or IP addresses are logged. A fallback event records the routing decision; fallback still requires its own slot and may fail. Responses remain generic audio/unavailable responses.
+`[tts-diagnostic]` contains only event, allowlisted reason, provider and optional HTTP status. Reasons distinguish primary daily/monthly denial, shared denial, missing primary configuration, provider HTTP/network/timeout/invalid-audio failure, unavailable quota storage and retired Coral. Raw errors/bodies, authored text, credentials, account balances, names and IPs are never logged. No new learner-facing usage endpoint/header is added. A fallback log records a routing decision; Coral still requires its own reservation.
 
-Verification uses mocked providers/storage and synthetic browser audio; no paid audio is needed. See the PR for executed commands/results.
+The exact-equality sync failure was fixed by deterministically ordering evidence with tied timestamps before floating-point summation. The equality assertion is unchanged; a regression checks identical results across rotations/reversals of the same evidence. The original implementation produced two distinct scores for that fixture.
+
+Unit/component tests cover denial without consumption, smaller valid requests after denial, shared/primary competition, UTC boundaries, safe failures and cached fallback. Existing mobile/desktop smoke tests cover replay, persisted mute, disabled synthesis and uninterrupted lesson progression. An opt-in integration test executes the actual Lua script against isolated expiring keys in existing Redis storage:
+
+`TTS_QUOTA_LIVE=1 node --env-file=<private-existing-storage-env-file> node_modules/vitest/vitest.mjs run src/features/voice/budgets.live.test.ts`
+
+The live test never touches production budget keys or synthesizes audio. Normal CI skips it without explicit opt-in and storage credentials. See PR #35 for executed verification results.
 
 References checked 2026-11-02:
 - https://elevenlabs.io/docs/api-reference/models/list
 - https://elevenlabs.io/docs/api-reference/voices/get
-- https://elevenlabs.io/docs/api-reference/user/subscription/get
-- https://elevenlabs.io/pricing
+- https://elevenlabs.io/docs/api-reference/introduction/
+- https://elevenlabs.io/docs/help-center/product/voices/voice-library/what-are-custom-rates-and-credit-multipliers
