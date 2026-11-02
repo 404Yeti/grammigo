@@ -47,3 +47,9 @@ test("TTS failure does not block an ordinary answer or lesson navigation", async
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByText("Question 2 of 8", { exact: true })).toBeVisible();
 });
+
+
+test("the synthesis endpoint is closed when its server flag is off", async ({ request, baseURL }) => {
+  const response = await request.post("/api/ai/tts", { headers: { origin: baseURL! }, data: { lessonId: LESSON, questionId: "q1", kind: "instruction" } });
+  expect(response.status()).toBe(503);
+});
