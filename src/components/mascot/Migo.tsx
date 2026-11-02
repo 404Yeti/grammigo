@@ -9,9 +9,15 @@ export type MigoExpression =
   | "thinking"
   | "explaining"
   | "encouraging"
-  | "celebrating";
+  | "celebrating"
+  | "listening"
+  | "confused"
+  | "sleeping";
 
 const ALT: Record<MigoExpression, string> = {
+  listening: "Migo, listening",
+  confused: "Migo, unsure",
+  sleeping: "Migo, sleeping",
   idle: "Migo, waiting",
   happy: "Migo, happy",
   curious: "Migo, curious",
@@ -48,7 +54,7 @@ export function Migo({ expression = "idle", size = 96, decorative = true, classN
       data-migo={expression}
     >
       <Image
-        src={`/migo/${expression}.svg`}
+        src={`/migo/${expression}.${["listening", "confused", "sleeping"].includes(expression) ? "png" : "svg"}`}
         alt={decorative ? "" : ALT[expression]}
         width={260}
         height={300}

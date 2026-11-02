@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { json } from "@/lib/ai/guard";
+import { speechUsageSnapshot } from "@/features/voice/usage";
 import { usageMeter } from "@/lib/ai/usage";
 
 /**
@@ -9,5 +10,5 @@ import { usageMeter } from "@/lib/ai/usage";
 export async function GET() {
   await connection();
   if (process.env.NODE_ENV === "production") return new Response("Not found", { status: 404 });
-  return json(200, usageMeter.snapshot());
+  return json(200, { ...usageMeter.snapshot(), speech: speechUsageSnapshot() });
 }
