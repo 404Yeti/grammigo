@@ -12,6 +12,7 @@ it("keeps the transcript out of the DOM until explicit accessible fallback or an
   expect(screen.queryByText(question.listening.transcript)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Read instead/ }));
   expect(screen.getByText(question.listening.transcript)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Hide reading alternative" })).toHaveAttribute("aria-expanded", "true");
   view.unmount();
   render(<ListeningExercise {...props} disabled value="b" />);
   expect(screen.getByRole("heading", { name: "What Migo said" })).toBeVisible();
