@@ -14,7 +14,11 @@ test("ordinary learner cannot see the preview card or open the direct route", as
   await context.addCookies(sessionCookies(learner));
   expect(await (await request.get("/api/guided/access")).json()).toEqual({ allowed: false });
   const response = await page.goto(path);
-  expect(response?.status()).toBe(404);
+  // With Cache Components the outer shell may already be streamed with HTTP 200.
+  // Verify the denial actually rendered and that no private activity rendered.
+  expect(response?.headers()["cache-control"]).toContain("no-store");
+  await expect(page.getByRole("heading", { name: "404", exact: true })).toBeVisible();
+  await expect(page.getByTestId("guided-screen")).toHaveCount(0);
   await page.goto("/practice/present-perfect-vs-past-simple");
   await expect(page.getByTestId("guided-entry")).toHaveCount(0);
 });
