@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { ArrowRight, Brain, CloudCheck, Compass, Lightbulb, Map, Smile } from "lucide-react";
 import { Migo } from "@/components/mascot/Migo";
 import { ButtonLink } from "@/components/ui/Button";
 import { GrammarTag } from "@/components/ui/GrammarTag";
+import { accountsEnabled } from "@/features/accounts/enabled";
 import { ReturningRedirect } from "./ReturningRedirect";
 import { SiteFooter } from "./SiteFooter";
 import { SiteNav } from "./SiteNav";
@@ -25,18 +27,23 @@ const FEATURES = [
   { icon: Smile, title: "Made to be accessible", body: "Tap or keyboard alternatives to drag, clear focus states and reduced motion." },
 ] as const;
 
-export const FAQ = [
-  { q: "Do I have to take the placement check?", a: "No. It’s optional and skippable. We’ll learn from your practice either way." },
-  { q: "Which levels is it for?", a: "Grammar practice from beginner (A1) up to upper-intermediate (B2); the plan adapts to where you are." },
-  { q: "Do I need an account?", a: "No. You can practise right away and your progress stays on your device. Accounts are by invitation for now, and add saving your progress online and picking up on another device." },
-  { q: "How much does it cost?", a: "Pricing hasn’t been announced yet. We’ll share it before launch." },
-  { q: "What happens to my data?", a: "You can export or delete it any time. See the Privacy page." },
-] as const;
+export function faq(accounts: boolean): { q: string; a: string }[] {
+  return [
+    { q: "Do I have to take the placement check?", a: "No. It’s optional and skippable. We’ll learn from your practice either way." },
+    { q: "Which levels is it for?", a: "Grammar practice from beginner (A1) up to upper-intermediate (B2); the plan adapts to where you are." },
+    accounts
+      ? { q: "Do I need an account?", a: "No. You can practise right away and your progress stays on your device. Accounts are by invitation for now, and add saving your progress online and picking up on another device." }
+      : { q: "Do I need an account?", a: "No. There are no accounts: you can practise right away and your progress stays on your device." },
+    { q: "How much does it cost?", a: "Pricing hasn’t been announced yet. We’ll share it before launch." },
+    { q: "What happens to my data?", a: accounts ? "You can export or delete it any time. See the Privacy page." : "Your progress stays on your device. See the Privacy page for exactly what is and isn’t sent anywhere." },
+  ];
+}
 
 const wrap = "mx-auto w-full max-w-[1280px] px-5 lg:px-20";
 const card = "rounded-[20px] border border-line bg-surface p-6";
 
 export function MarketingHome() {
+  const accounts = accountsEnabled();
   return (
     <div className="bg-canvas text-ink">
       <ReturningRedirect />
@@ -44,8 +51,8 @@ export function MarketingHome() {
       <main>
         <section className={`${wrap} grid items-center gap-10 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:py-20`} aria-labelledby="hero-title">
           <div className="flex flex-col items-start gap-5">
-            <GrammarTag style="info">Free to try · no sign-up needed</GrammarTag>
-            <h1 id="hero-title" className="text-[40px] font-extrabold leading-[1.1] tracking-[-1px] lg:text-[56px]">Better grammar. Your way.</h1>
+            <GrammarTag style="info">Start in a minute · no sign-up needed</GrammarTag>
+            <h1 id="hero-title" className="text-balance text-[40px] font-extrabold leading-[1.1] tracking-[-1px] lg:text-[56px]">Better grammar. Your way.</h1>
             <p className="max-w-[560px] text-lg font-medium leading-7 text-ink-2">
               Grammigo is a friendly grammar coach that adapts to what you actually need, so there’s no wasted practice.
             </p>
@@ -109,7 +116,7 @@ export function MarketingHome() {
           <div className={`${wrap} max-w-[960px]`}>
             <h2 id="faq-title" className="text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">Questions, answered</h2>
             <div className="mt-8 flex flex-col gap-3">
-              {FAQ.map((f) => (
+              {faq(accounts).map((f) => (
                 <details key={f.q} className="group rounded-[20px] border border-line bg-surface px-5">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-bold">
                     {f.q}
@@ -126,7 +133,7 @@ export function MarketingHome() {
           <div className={`${wrap} flex flex-col items-center gap-6`}>
             <h2 id="cta-title" className="max-w-[720px] text-[32px] font-extrabold leading-10 tracking-[-0.5px] lg:text-[40px]">Ready for grammar that fits you?</h2>
             <ButtonLink href="/learn" fullWidth={false}>Get started</ButtonLink>
-            <p className="text-sm font-medium text-ink-2">Already have an account? <a href="/signin" className="font-bold underline underline-offset-4">Sign in</a></p>
+            {accounts && <p className="text-sm font-medium text-ink-2">Already have an account? <Link href="/signin" className="font-bold underline underline-offset-4">Sign in</Link></p>}
           </div>
         </section>
       </main>

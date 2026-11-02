@@ -267,7 +267,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     await answerCorrectly(page, 1);
     await cont(page);
     await expectQuestion(page, 2);
-    await page.goto("/");
+    await page.goto("/learn");
     const guestRaw = (await read(page, GUEST))!;
     const guestSessionId = (JSON.parse(guestRaw).sessions[0] as { id: string }).id;
 
@@ -311,7 +311,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     await startFromHome(page);
     await answerCorrectly(page, 1);
     await cont(page);
-    await page.goto("/");
+    await page.goto("/learn");
     const guestRaw = (await read(page, GUEST))!;
 
     const [a, b] = await Promise.all([createAccount({ name: "First Importer", learner: true }), createAccount({ name: "Second Learner", learner: true })]);

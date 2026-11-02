@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { ButtonLink } from "@/components/ui/Button";
+import { accountsEnabled } from "@/features/accounts/enabled";
 
 export const NAV_LINKS = [
   { label: "How it works", href: "/#how-it-works" },
@@ -12,6 +13,7 @@ export const NAV_LINKS = [
 
 /** The public site header: links and two buttons on a wide screen; a plain, script-free menu on a phone. */
 export function SiteNav() {
+  const accounts = accountsEnabled();
   return (
     <header className="border-b border-line bg-canvas">
       <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-5 lg:h-20 lg:px-20">
@@ -22,7 +24,7 @@ export function SiteNav() {
           ))}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
-          <ButtonLink href="/signin" variant="secondary" fullWidth={false}>Sign in</ButtonLink>
+          {accounts && <ButtonLink href="/signin" variant="secondary" fullWidth={false}>Sign in</ButtonLink>}
           <ButtonLink href="/learn" fullWidth={false}>Get started</ButtonLink>
         </div>
         <details className="relative lg:hidden" data-testid="site-menu">
@@ -34,7 +36,7 @@ export function SiteNav() {
               <a key={l.href} href={l.href} className="inline-flex min-h-11 items-center rounded-xl px-3 text-base font-semibold hover:bg-subtle">{l.label}</a>
             ))}
             <div className="mt-2 flex flex-col gap-2">
-              <ButtonLink href="/signin" variant="secondary">Sign in</ButtonLink>
+              {accounts && <ButtonLink href="/signin" variant="secondary">Sign in</ButtonLink>}
               <ButtonLink href="/learn">Get started</ButtonLink>
             </div>
           </div>

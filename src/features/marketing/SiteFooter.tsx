@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/Wordmark";
+import { accountsEnabled } from "@/features/accounts/enabled";
 
 export function SiteFooter() {
   return (
@@ -9,7 +10,7 @@ export function SiteFooter() {
         <nav aria-label="Footer" className="flex gap-6 text-sm font-semibold text-ink-2">
           <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-ink">Privacy</Link>
           <Link href="/terms" className="inline-flex min-h-11 items-center hover:text-ink">Terms</Link>
-          <Link href="/signin" className="inline-flex min-h-11 items-center hover:text-ink">Sign in</Link>
+          {accountsEnabled() && <Link href="/signin" className="inline-flex min-h-11 items-center hover:text-ink">Sign in</Link>}
         </nav>
         <p className="text-xs font-medium text-muted">© Grammigo</p>
       </div>

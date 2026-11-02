@@ -52,7 +52,7 @@ test("@cross full journey: Home → Intro → 8 questions → Success → Review
 
   // Return Home shows the updated summary
   await page.getByRole("link", { name: "Return Home" }).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/learn");
   await expect(page.getByTestId("home-independent")).toContainText("7");
   await expect(page.getByTestId("home-assisted")).toContainText("1");
 });
@@ -73,7 +73,7 @@ test("@cross progress survives a refresh and Exit → Home → Continue Lesson r
   await page.getByRole("button", { name: "Exit lesson" }).click();
   await expect(page.getByRole("dialog", { name: "Leave this lesson?" })).toBeVisible();
   await page.getByRole("button", { name: /Save & Exit/ }).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/learn");
   await expect(page.getByTestId("next-step-text")).toContainText("question 4 of 8");
 
   await page.getByRole("link", { name: "Continue Lesson" }).click();
@@ -93,7 +93,7 @@ test("Practice This Skill Again starts a fresh attempt and keeps the completed o
   await expect(page.getByLabel("I have visited Hanoi twice.")).not.toBeChecked();
 
   // The completed attempt is still reviewable from Home
-  await page.goto("/");
+  await page.goto("/learn");
   await expect(page.getByRole("link", { name: "Continue Lesson" })).toBeVisible();
   await page.getByRole("link", { name: "Review last lesson" }).click();
   await expect(page.getByTestId("review-card")).toHaveCount(8);
