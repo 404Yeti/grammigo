@@ -25,6 +25,13 @@ async function finishLesson(page: Page, skill = LESSON) {
   await expect(page).toHaveURL(new RegExp(`/practice/${skill}/complete`));
 }
 
+/** The manual "Save now": offered up front when something is unsaved, otherwise tucked under "Saving options". Press it either way. */
+async function pressSaveNow(page: Page, opts: { timeout?: number } = {}) {
+  const button = page.getByRole("button", { name: "Save now" });
+  if (!(await button.first().isVisible())) await page.getByText("Saving options").click({ timeout: opts.timeout });
+  await button.first().click({ timeout: opts.timeout });
+}
+
 /** Every request the page makes to the sync routes, with its method, status and time. */
 function watchSync(page: Page) {
   const seen: { method: string; path: string; status: number | null; ms: number | null }[] = [];
@@ -147,7 +154,7 @@ test.describe("a failing or missing network never blocks a lesson", () => {
       await expect(page.getByTestId("dashboard-skills")).toBeVisible(); // the learner's progress is all there
 
       await page.unroute("**/api/sync/**");
-      await page.getByRole("button", { name: "Save now" }).click();
+      await pressSaveNow(page);
       await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(1);
       await expect(page.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 20_000 });
       expect(errors).toEqual([]);
@@ -371,7 +378,7 @@ test.describe("one account on two devices", () => {
     // the laptop's connection returns: its save finds the phone's copy there first, folds it in, and saves both
     await laptop.unroute("**/api/sync/**");
     await laptop.goto(`${BASE}/account`);
-    await laptop.getByRole("button", { name: "Save now" }).click();
+    await pressSaveNow(laptop);
     await expect.poll(async () => (await lessonsDoc(ana.id))?.body.sessions.length, { timeout: 30_000 }).toBe(2);
     expect(Number((await lessonsDoc(ana.id))?.revision)).toBe(2);
     await expect(laptop.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 30_000 });
@@ -379,7 +386,7 @@ test.describe("one account on two devices", () => {
 
     // the phone learns of the laptop's lesson at its next checkpoint
     await phone.goto(`${BASE}/account`);
-    await phone.getByRole("button", { name: "Save now" }).click();
+    await pressSaveNow(phone);
     // The chip can already read "Saved" from before (nothing unsaved), so wait for the REAL effect: the laptop's lesson arriving on the phone.
     // (Leaving the page first would cut the request off. That used to cost the next page a back-off, which is how this test once failed.)
     await expect.poll(() => phone.evaluate((k) => (JSON.parse(window.localStorage.getItem(k) ?? "{}").sessions ?? []).length, `grammigo:v2:u:${ana.id}`), { timeout: 30_000 }).toBe(2);
@@ -419,7 +426,7 @@ test.describe("leaving a page while it is saving", () => {
     // the phone starts to check the account, and its request is held back while the page is left
     await phone.goto(`${BASE}/account`);
     await phone.route("**/api/sync/state", (r) => r.abort("connectionreset"));
-    await phone.getByRole("button", { name: "Save now" }).click();
+    await pressSaveNow(phone);
     await phone.goto(`${BASE}/library`); // the page is left with the request failing
     await phone.unroute("**/api/sync/state");
     // the new page does not wait out a penalty: it pulls the laptop's lesson within a few seconds
@@ -472,7 +479,7 @@ test.describe("measured latency", () => {
     await expect.poll(async () => Number((await lessonsDoc(ana.id))?.revision), { timeout: 30_000 }).toBe(1);
     await page.goto("/account"); // the "Save now" button lives on the dashboard, not on the lesson-complete page
     for (let i = 0; i < 4; i++) {
-      await page.getByRole("button", { name: "Save now" }).click({ timeout: 10_000 });
+      await pressSaveNow(page, { timeout: 10_000 });
       await expect(page.getByTestId("sync-chip")).toContainText("Saved to your account", { timeout: 10_000 });
     }
     const ms = seen.map((s) => s.ms).filter((x): x is number => typeof x === "number").sort((x, y) => x - y);

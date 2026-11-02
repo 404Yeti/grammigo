@@ -81,6 +81,7 @@ test.describe("joining with email and a password", () => {
     await expect.poll(async () => ((await q("select body from public.learner_documents where user_id = $1 and doc_key = 'lessons_v2'", [me])).rows[0]?.body.sessions ?? []).length, { timeout: 30_000 }).toBe(1);
 
     // sign out, then come back on a fresh device: progress restored from the account
+    await expect(page).toHaveURL(new RegExp(`/practice/${LESSON}/complete`)); // let the lesson's own redirect finish before navigating away
     await page.goto("/account/profile");
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect.poll(async () => (await context.cookies()).some((c) => c.name === "gm-auth")).toBe(false);
