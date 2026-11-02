@@ -83,6 +83,8 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   useEffect(() => {
     if (!aiAvailable || !session || !writingState || session.phase !== "feedback") return;
     const q = lesson.questions[session.currentIndex];
+    // Speaking uses the local target-grammar rubric; only transcription is a paid call.
+    if (q.type === "speaking") return;
     const rec = session.records[session.currentIndex];
     if (rec.resolution !== "needs_review") return;
     const key = `${session.id}:${q.id}`;
@@ -242,7 +244,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
             onBusyChange={setSpeakingBusy}
           />
 
-          {!inFeedback && aiAvailable && (question.type === "short-writing" || question.type === "speaking") && <AiNotice what="writing" />}
+          {!inFeedback && aiAvailable && question.type === "short-writing" && <AiNotice what="writing" />}
 
           {!inFeedback && nextHint && <HintCard index={record.hintsUsed} total={question.hints.length} text={nextHint} />}
         </div>
