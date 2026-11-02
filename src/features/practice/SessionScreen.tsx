@@ -277,7 +277,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
       </form>
 
       {exitOpen && (
-        <ExitDialog onContinue={() => setExitOpen(false)} onSaveAndExit={() => router.push("/")} />
+        <ExitDialog onContinue={() => setExitOpen(false)} onSaveAndExit={() => router.push("/learn")} />
       )}
     </div>
   );

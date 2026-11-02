@@ -53,7 +53,7 @@ export default function SignInPage({ searchParams }: PageProps<"/signin">) {
         </p>
       </Card>
       <p className="text-center text-sm font-medium text-ink-2">
-        You don’t need an account to practise. <Link href="/" className="font-bold underline underline-offset-4">Keep practising without an account</Link>
+        You don’t need an account to practise. <Link href="/learn" className="font-bold underline underline-offset-4">Keep practising without an account</Link>
       </p>
     </AuthShell>
   );

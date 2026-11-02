@@ -75,7 +75,7 @@ export async function answerCorrectly(page: Page, n: number) {
 /** v0.1 entry: Home → choose a lesson in the library → introduction → Start Lesson. */
 export async function startFromHome(page: Page, skillId = LESSON) {
   await seedReturningLearner(page);
-  await page.goto("/");
+  await page.goto("/learn");
   await page.getByRole("link", { name: "Choose another lesson" }).click();
   await expect(page.getByRole("heading", { name: "Grammar library" })).toBeVisible();
   await page.getByTestId("lesson-card").and(page.locator(`[data-skill="${skillId}"]`)).getByRole("link").click();
