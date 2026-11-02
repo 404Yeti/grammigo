@@ -1,3 +1,4 @@
+import { QUESTION_COUNT } from "./helpers";
 import { expect, test } from "@playwright/test";
 import { createSession } from "../src/features/practice/session";
 import { getLesson } from "../src/data/lessons";
@@ -99,7 +100,7 @@ test.describe("library and multiple lessons", () => {
     // writing in a non-v0.1 lesson cannot be graded deterministically, and AI is off: saved for review, not penalized
     await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
     await expect(page.getByTestId("success-notices")).toContainText("saved for review");
-    await expect(page.getByTestId("stat-tile").nth(1)).toContainText("7");
+    await expect(page.getByTestId("stat-tile").nth(1)).toContainText(String(QUESTION_COUNT - 1));
 
     await page.goto("/library");
     const card = page.getByTestId("lesson-card").and(page.locator('[data-skill="a1-articles"]'));
@@ -113,7 +114,7 @@ test.describe("library and multiple lessons", () => {
     await page.goto("/learn");
     const reason = page.getByTestId("next-step-text");
     await expect(reason).toContainText("You finished “Present simple of “be””");
-    await expect(page.getByTestId("home-independent")).toContainText("7");
+    await expect(page.getByTestId("home-independent")).toContainText(String(QUESTION_COUNT - 1));
   });
 });
 

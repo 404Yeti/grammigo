@@ -1,6 +1,8 @@
 import { expect, type Page } from "@playwright/test";
-import { listSkills } from "../src/curriculum";
+import { listeningQuestion } from "../src/data/lessons/listening";
+import { toLesson, listSkills } from "../src/curriculum";
 
+export const QUESTION_COUNT = process.env.E2E_LISTENING === "1" ? 9 : 8;
 export const LESSON = "present-perfect-vs-past-simple";
 
 /**
@@ -35,12 +37,13 @@ export async function cont(page: Page) {
 }
 
 export async function expectQuestion(page: Page, n: number) {
-  await expect(page.getByText(`Question ${n} of 8`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`Question ${n} of ${QUESTION_COUNT}`, { exact: true })).toBeVisible();
 }
 
 /** Answers question n of the v0.1 lesson correctly on the first try. */
 export async function answerCorrectly(page: Page, n: number) {
   switch (n) {
+    case 9:
     case 1:
       await page.getByLabel("I have visited Hanoi twice.").check({ force: true });
       break;
@@ -86,7 +89,7 @@ export async function startFromHome(page: Page, skillId = LESSON) {
 /** Answers question n of ANY lesson using the curriculum's own answer keys (never AI). */
 export async function answerLessonQuestion(page: Page, skillId: string, n: number) {
   const skill = listSkills().find((s) => s.id === skillId)!;
-  const q = skill.questions[n - 1];
+  const q = n === 9 ? listeningQuestion(toLesson(skill))! : skill.questions[n - 1];
   if (q.options) {
     const correct = q.options.find((o) => o.id === q.acceptedAnswers[0])!;
     await page.getByLabel(correct.label, { exact: true }).check({ force: true });
@@ -104,7 +107,7 @@ export async function answerLessonQuestion(page: Page, skillId: string, n: numbe
 }
 
 export async function playWholeLesson(page: Page, skillId: string) {
-  for (let n = 1; n <= 8; n++) {
+  for (let n = 1; n <= QUESTION_COUNT; n++) {
     await expectQuestion(page, n);
     await answerLessonQuestion(page, skillId, n);
     await cont(page);

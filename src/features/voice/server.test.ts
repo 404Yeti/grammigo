@@ -67,3 +67,15 @@ describe("bounded authored speech", () => {
     }
   });
 });
+
+it("reuses one paid positive clip across questions and lessons, including the automatic feedback kinds", async () => {
+  const deps = setup();
+  expect((await handleSpeech(request({ ...input, kind: "positive" }), deps)).status).toBe(200);
+  expect((await handleSpeech(request({ lessonId: "a1-be-present", questionId: "q2", kind: "positive" }), deps)).status).toBe(200);
+  expect(deps.generate).toHaveBeenCalledOnce();
+  expect((await handleSpeech(request({ ...input, kind: "supportive" }), deps)).status).toBe(200);
+  expect((await handleSpeech(request({ ...input, questionId: "completion", kind: "celebration" }), deps)).status).toBe(200);
+  expect(deps.generate).toHaveBeenCalledTimes(3);
+  expect(speechText({ ...input, kind: "supportive" })!.length).toBeLessThanOrEqual(170);
+  expect(speechText({ lessonId: "not-a-lesson", questionId: "completion", kind: "celebration" })).toBeNull();
+});

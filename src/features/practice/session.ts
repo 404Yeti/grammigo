@@ -41,6 +41,14 @@ export function createSession(lesson: Lesson, id: string, now: number): Session 
   };
 }
 
+/** Append the new listening check without changing earlier answers or completed history. */
+export function ensureListeningQuestion(session: Session, lesson: Lesson, now: number): Session {
+  if (session.status !== "in_progress") return session;
+  const missing = lesson.questions.filter(q => q.listening && !session.records.some(r => r.questionId === q.id));
+  if (!missing.length) return session;
+  return { ...session, updatedAt: now, records: [...session.records, ...missing.map(q => emptyRecord(q.id))] };
+}
+
 /** Stamps activity and accumulates active time, capping idle gaps. */
 function touch(session: Session, now: number): Session {
   const gap = Math.max(0, now - session.lastActiveAt);

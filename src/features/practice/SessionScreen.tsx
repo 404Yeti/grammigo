@@ -10,6 +10,8 @@ import { FeedbackPanel, type FeedbackKind } from "@/components/feedback/Feedback
 import { HintCard } from "@/components/feedback/HintCard";
 import { ExitDialog } from "@/components/lesson/ExitDialog";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { armCelebration } from "@/features/voice/events";
+import { primeMigoAudio } from "@/features/voice/player";
 import { MigoAudio } from "@/features/voice/MigoAudio";
 import { MigoBubble } from "@/components/mascot/MigoBubble";
 import type { AnswerState } from "@/components/ui/AnswerOption";
@@ -38,6 +40,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   const state = usePracticeState();
   const session = state ? getActiveSession(state, lessonId) : null;
 
+  const [autoFeedback, setAutoFeedback] = useState<string>();
   const [speakingBusy, setSpeakingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exitOpen, setExitOpen] = useState(false);
@@ -52,6 +55,11 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   const sessionId = session?.id;
   const index = session?.currentIndex;
   const phase = session?.phase;
+
+  const needsListening = !!session && lesson.questions.some(q => q.listening && !session.records.some(r => r.questionId === q.id));
+  useEffect(() => {
+    if (sessionId && needsListening) practiceActions.prepareLesson(sessionId, lesson);
+  }, [sessionId, needsListening, lesson]);
 
   // No active attempt (fresh visit or stale link): back to the lesson introduction.
   useEffect(() => {
@@ -96,7 +104,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
     );
   }, [aiAvailable, session, writingState, lesson]);
 
-  if (!session) {
+  if (!session || needsListening) {
     return <div className="min-h-dvh" aria-busy="true" />;
   }
 
@@ -152,12 +160,18 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
     event?.preventDefault();
     if (inFeedback || !hasDraft || speakingBusy) return;
     const outcome = practiceActions.submit(session.id, lesson);
+    if (outcome.kind === "submitted") {
+      primeMigoAudio();
+      setAutoFeedback(`${scope}:${session.id}:${question.id}:${record.attempts.length + 1}`);
+    }
     if (outcome.kind === "invalid" || outcome.kind === "unchanged") setError(outcome.message);
     else setError(null);
   };
 
   const onContinue = () => {
     if (isLastQuestion(session)) {
+      primeMigoAudio();
+      armCelebration(session.id);
       leaving.current = true;
       practiceActions.advance(session.id);
       router.push(`/practice/${lessonId}/complete?session=${session.id}`);
@@ -196,7 +210,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[638px] flex-col px-4 pb-6 pt-5">
-      <LessonHeader current={session.currentIndex} total={lesson.questions.length} onExit={() => setExitOpen(true)} />
+      <LessonHeader current={session.currentIndex} total={session.records.length} onExit={() => setExitOpen(true)} />
 
       <div aria-live="polite" className="sr-only" data-testid="announcer">
         {announcement}
@@ -251,7 +265,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
         </div>
 
         <div className="flex flex-col gap-3 px-2 pt-4">
-          {(!question.listening || inFeedback) && <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback ? record.resolution === "correct" ? "encouragement" : "correction" : "instruction"} />}
+          {(!question.listening || inFeedback) && <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback && record.resolution !== "needs_review" ? record.resolution === "correct" ? "positive" : "supportive" : "instruction"} autoPlayKey={inFeedback && record.resolution !== "needs_review" && autoFeedback === `${scope}:${session.id}:${question.id}:${record.attempts.length}` ? autoFeedback : undefined} />}
           {kind ? (
             <FeedbackPanel
               kind={kind}

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import type { SpeechRequest } from "./content";
+import { speechText, type SpeechRequest } from "./content";
+import { claimAutomaticSpeech } from "./events";
+import { stopMigoAudio, takeMigoAudio } from "./player";
 import { setMigoMuted, useMigoMuted } from "./preference";
 
 const audioCache = new Map<string, string>();
@@ -20,29 +22,35 @@ function remember(key: string, blob: Blob) {
   return url;
 }
 
-export function MigoAudio(input: SpeechRequest) {
+type AudioInput = SpeechRequest & { autoPlayKey?: string };
+export function MigoAudio(input: AudioInput) {
   if (process.env.NEXT_PUBLIC_MIGO_VOICE !== "true") return null;
   return <AudioPreference input={input} />;
 }
-function AudioPreference({ input }: { input: SpeechRequest }) {
+function AudioPreference({ input }: { input: AudioInput }) {
   const muted = useMigoMuted();
   return <AudioControl key={`${input.lessonId}:${input.questionId}:${input.kind}:${input.hintIndex ?? 0}:${muted}`} input={input} muted={muted} />;
 }
-function AudioControl({ input, muted }: { input: SpeechRequest; muted: boolean }) {
+function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "playing" | "failed">("idle");
   const audio = useRef<HTMLAudioElement | null>(null);
   const request = useRef<AbortController | null>(null);
   const generation = useRef(0);
-  const key = JSON.stringify(input);
+  const { autoPlayKey, ...requestInput } = input;
+  const body = JSON.stringify(requestInput);
+  const short = ["positive", "supportive", "celebration"].includes(input.kind);
+  const spokenText = short ? speechText(requestInput) : null;
+  const key = short ? `short:${spokenText}` : body;
+  const owner = useRef(Symbol("migo-audio"));
 
   const stop = useCallback(() => {
     generation.current++;
     request.current?.abort();
-    audio.current?.pause();
+    stopMigoAudio(owner.current);
   }, []);
   useEffect(() => () => stop(), [stop]);
 
-  async function play() {
+  const play = useCallback(async () => {
     if (muted || status === "loading") return;
     const current = ++generation.current;
     setStatus("loading");
@@ -54,7 +62,7 @@ function AudioControl({ input, muted }: { input: SpeechRequest; muted: boolean }
         const timer = setTimeout(() => controller.abort(), 18_000);
         try {
           const response = await fetch("/api/ai/tts", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: key,
+            method: "POST", headers: { "Content-Type": "application/json" }, body,
             signal: controller.signal, cache: "no-store",
           });
           if (!response.ok || !response.headers.get("content-type")?.startsWith("audio/")) throw new Error("unavailable");
@@ -65,20 +73,31 @@ function AudioControl({ input, muted }: { input: SpeechRequest; muted: boolean }
         } finally { clearTimeout(timer); }
       }
       if (current !== generation.current) return;
-      audio.current?.pause();
-      const player = new Audio(url);
+      stopMigoAudio(owner.current);
+      const player = takeMigoAudio(owner.current, url);
       audio.current = player;
       player.onended = () => { if (current === generation.current) setStatus("ready"); };
       player.onerror = () => { if (current === generation.current) setStatus("failed"); };
-      // Only this explicit button handler requests playback. No navigation/effect autoplay.
+      // Browser-denied autoplay offers explicit replay; learning never waits for audio.
       try { await player.play(); if (current === generation.current) setStatus("playing"); }
       catch { if (current === generation.current) setStatus("ready"); }
     } catch {
       if (current === generation.current) setStatus("failed");
     }
-  }
+  }, [muted, status, key, body]);
+
+  useEffect(() => {
+    let live = true;
+    // Deferring avoids consuming the one-shot event during Strict Mode’s discarded setup.
+    void Promise.resolve().then(() => {
+      if (live && autoPlayKey && claimAutomaticSpeech(autoPlayKey) && !muted) void play();
+    });
+    return () => { live = false; };
+  }, [autoPlayKey, muted, play]);
+
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3" data-testid="migo-audio">
+      {spokenText && <p className="text-sm font-medium leading-6" data-testid="migo-spoken-text">{spokenText}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" fullWidth={false} disabled={muted || status === "loading"} onClick={play}>
           {status === "ready" || status === "playing" ? <RotateCcw size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}

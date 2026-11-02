@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { getLesson } from "../src/data/lessons";
 import { createSession, setDraft, submitAnswer, advance } from "../src/features/practice/session";
 import { emptyState } from "../src/lib/storage/schema";
-import { LESSON } from "./helpers";
+import { answerCorrectly, cont, LESSON } from "./helpers";
 
 test.skip(process.env.E2E_SPEAKING !== "1", "Build with NEXT_PUBLIC_LESSON_SPEAKING=true and run with E2E_SPEAKING=1");
 async function openSpeaking(page: Page, available = true) {
@@ -51,6 +51,10 @@ test("review transcript → targeted grammar correction → retry → finish; au
   await page.getByRole("textbox", { name: "Your answer" }).fill("I have visited Paris this week. I watched a film yesterday.");
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "correct-assisted");
+  if (process.env.E2E_LISTENING === "1") {
+    await cont(page);
+    await answerCorrectly(page, 9);
+  }
   await page.getByRole("button", { name: "Finish lesson" }).click();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
   expect(uploads).toBe(1);
@@ -99,6 +103,10 @@ test("an uncertain spoken exercise is saved for review without paid writing eval
   await page.getByRole("textbox", { name: "Your answer" }).fill("I enjoy the park. The weather seems pleasant.");
   await page.getByRole("button", { name: "Check Answer" }).click();
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "needs-review");
+  if (process.env.E2E_LISTENING === "1") {
+    await cont(page);
+    await answerCorrectly(page, 9);
+  }
   await page.getByRole("button", { name: "Finish lesson" }).click();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
   expect(writingCalls).toBe(0);

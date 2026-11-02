@@ -5,6 +5,7 @@ import type { Session, StoredState, StoredWritingFeedback } from "@/types/sessio
 import { getSnapshot, updateState } from "@/lib/storage/store";
 import {
   abandonSession,
+  ensureListeningQuestion,
   advance,
   applyWritingEvaluation,
   createSession,
@@ -74,6 +75,9 @@ export function attachWritingFeedback(
 }
 
 export const practiceActions = {
+  prepareLesson: (sessionId: string, lesson: Lesson) =>
+    mutate(sessionId, s => ensureListeningQuestion(s, lesson, Date.now())),
+
   setDraft: (sessionId: string, draft: string) =>
     mutate(sessionId, (s) => setDraft(s, draft, Date.now())),
 
