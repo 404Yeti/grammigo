@@ -21,11 +21,12 @@ async function openSpeaking(page: Page, available = true) {
   await page.goto(`/practice/${LESSON}/session`);
   await expect(page.getByTestId("speaking-answer")).toBeVisible();
 }
-async function record(page: Page) {
+async function record(page: Page, screenshot?: string) {
   await page.getByRole("button", { name: "Record an answer" }).click();
   await expect(page.getByRole("button", { name: "Stop recording" })).toBeEnabled();
   // Chromium's fake microphone must emit at least one nonempty media chunk.
   await page.waitForTimeout(400);
+  if (screenshot) await page.screenshot({ path: screenshot, fullPage: true });
   await page.getByRole("button", { name: "Stop recording" }).click();
 }
 
@@ -35,7 +36,7 @@ test("review transcript → targeted grammar correction → retry → finish; au
   page.on("request", request => { if (/\/api\/(sync|account)/.test(request.url())) unexpected.push(request.url()); });
   await page.route("**/api/ai/transcribe", route => { uploads++; return route.fulfill({ json: { status: "ok", text: "I have visited Paris yesterday. I watched a film yesterday." } }); });
   await openSpeaking(page);
-  await record(page);
+  await record(page, testInfo.outputPath("speaking-listening.png"));
   const heard = page.getByRole("textbox", { name: "What we heard" });
   await expect(heard).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("speaking-transcript.png"), fullPage: true });
@@ -78,12 +79,27 @@ test("no paid API or offline connection is required to finish by typing", async 
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "correct-independent");
 });
 
-test("transcription failure offers a retry and typing without creating a wrong answer", async ({ page }) => {
+test("transcription failure offers a retry and typing without creating a wrong answer", async ({ page }, testInfo) => {
   await page.route("**/api/ai/transcribe", route => route.fulfill({ status: 502, json: { error: "upstream" } }));
   await openSpeaking(page);
   await record(page);
   await expect(page.getByTestId("speaking-answer").getByRole("alert")).toContainText("couldn’t turn that recording");
+  await page.screenshot({ path: testInfo.outputPath("speaking-confused.png"), fullPage: true });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("grammigo:v2")!).sessions[0].records[7].attempts)).toEqual([]);
   await page.getByRole("button", { name: "Type instead" }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeEnabled();
+});
+
+
+test("an uncertain spoken exercise is saved for review without paid writing evaluation", async ({ page }) => {
+  let writingCalls = 0;
+  await page.route("**/api/ai/writing-feedback", route => { writingCalls++; return route.fulfill({ status: 503, json: { error: "unavailable" } }); });
+  await openSpeaking(page);
+  await page.getByRole("button", { name: "Type instead" }).click();
+  await page.getByRole("textbox", { name: "Your answer" }).fill("I enjoy the park. The weather seems pleasant.");
+  await page.getByRole("button", { name: "Check Answer" }).click();
+  await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "needs-review");
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
+  expect(writingCalls).toBe(0);
 });
