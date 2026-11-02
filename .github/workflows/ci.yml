@@ -58,6 +58,7 @@ jobs:
         env:
           NEXT_PUBLIC_GUIDED_PREVIEW: "true"
           NEXT_PUBLIC_GUIDED_VOICE: "true"
+          NEXT_PUBLIC_LESSON_SPEAKING: "true"
           # The guest-transfer tests use two local origins of this one build. Production has none of these set.
           NEXT_PUBLIC_GUEST_TRANSFER: "on"
           NEXT_PUBLIC_TRANSFER_SOURCE_ORIGIN: "http://localhost:3105"
@@ -69,6 +70,7 @@ jobs:
         env:
           CI: "true"
           E2E_TRANSFER: "1"
+          E2E_SPEAKING: "1"
       - name: Keep traces of failures
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

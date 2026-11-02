@@ -6,7 +6,8 @@ export type ExerciseType =
   | "sentence-construction"
   | "contextual-verb"
   | "sentence-transformation"
-  | "short-writing";
+  | "short-writing"
+  | "speaking";
 
 /** How an answer is judged. Closed-ended questions never need a network call. */
 export type EvaluationStrategy =
