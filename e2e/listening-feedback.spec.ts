@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { getLesson } from "../src/data/lessons";
+import { createSession, advance, setDraft, submitAnswer } from "../src/features/practice/session";
+import { emptyState } from "../src/lib/storage/schema";
 import { listSkills } from "../src/curriculum";
 import { answerLessonQuestion, cont, seedReturningLearner } from "./helpers";
 
@@ -64,10 +67,12 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   await expect(page.getByTestId("migo-spoken-text")).toContainText("Good try.");
   await expect.poll(() => calls.some(c => c.kind === "supportive")).toBe(true);
   await expect(page.getByRole("button", { name: "Replay Migo" })).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { migoPlays: number }).migoPlays)).toBe(1);
   await page.screenshot({ path: info.outputPath("automatic-grammar-feedback.png"), fullPage: true });
   await page.reload();
   await expect(page.getByTestId("migo-spoken-text")).toContainText("Good try.");
   expect(calls.filter(c => c.kind === "supportive")).toHaveLength(1);
+  expect(await page.evaluate(() => (window as unknown as { migoPlays: number }).migoPlays)).toBe(0);
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   expect(calls.filter(c => c.kind === "supportive")).toHaveLength(1);
   await page.getByLabel("She is a teacher.", { exact: true }).check({ force: true });
@@ -118,9 +123,6 @@ test("@cross browser-denied autoplay offers replay, and persistent mute suppress
 });
 
 test("@cross an unfinished old attempt keeps its answers and draft, then reaches the added listening check", async ({ page }) => {
-  const { getLesson } = await import("../src/data/lessons");
-  const { createSession, advance, setDraft, submitAnswer } = await import("../src/features/practice/session");
-  const { emptyState } = await import("../src/lib/storage/schema");
   const lesson = getLesson("a1-be-present")!;
   const oldLesson = { ...lesson, questions: lesson.questions.slice(0, 8) };
   let session = createSession(oldLesson, "saved-before-listening", Date.now());
