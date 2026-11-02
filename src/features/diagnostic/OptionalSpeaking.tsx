@@ -22,7 +22,7 @@ export function OptionalSpeaking({ runId, previous, onDone }: { runId: string; p
       <div className="flex justify-center"><GrammarTag style="neutral">Speaking · optional</GrammarTag></div>
       <h1 id="optional-speaking-prompt" className="text-2xl font-semibold leading-[34px] tracking-[-0.25px]">Say one sentence about your favorite place.</h1>
       <p className="text-sm font-medium leading-6 text-ink-2">Use the present simple to describe it. This optional sample stays separate from your quick-check result.</p>
-      <SpeakingAnswer value={answer} onChange={setAnswer} disabled={checked} onBusyChange={setBusy} />
+      <SpeakingAnswer draftSaved={false} value={answer} onChange={setAnswer} disabled={checked} onBusyChange={setBusy} />
       {observation && <div role="status" className="rounded-2xl border border-line-strong bg-subtle p-4 text-sm font-medium leading-6">{observation.message}</div>}
       <p className="text-xs font-medium leading-5 text-muted">Only confirmed text is saved, when you choose Continue. Audio is never saved by Grammigo.</p>
       <div className="mt-auto flex flex-col gap-2.5 pt-4">

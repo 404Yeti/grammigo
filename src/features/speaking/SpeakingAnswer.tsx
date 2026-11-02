@@ -19,9 +19,9 @@ const ISSUES: Record<VoiceIssue, string> = {
   failed: "We couldn’t turn that recording into text. Record again or type instead.",
 };
 
-export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onBusyChange }: {
+export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onBusyChange, draftSaved = true }: {
   value: string; onChange: (text: string) => void; disabled: boolean; error?: string | null;
-  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>; onBusyChange?: (busy: boolean) => void;
+  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>; onBusyChange?: (busy: boolean) => void; draftSaved?: boolean;
 }) {
   const capture = useVoiceCapture();
   const [phase, setPhase] = useState<Phase>(value ? "typing" : "ready");
@@ -107,7 +107,7 @@ export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onB
           <Button variant="ghost" onClick={() => cancel("typing")}>Cancel and type instead</Button>
         </div>
       ) : null}
-      {(phase === "typing" || disabled) && <TextField label="Your answer" multiline value={value} onChange={onChange} disabled={disabled} error={error} inputRef={inputRef} maxLength={500} savedNote />}
+      {(phase === "typing" || disabled) && <TextField label="Your answer" multiline value={value} onChange={onChange} disabled={disabled} error={error} inputRef={inputRef} maxLength={500} savedNote={draftSaved} />}
       {!disabled && !busy && <>
         <div className="flex justify-center">
           <Button onClick={record} disabled={available !== true} fullWidth={false}><Mic size={24} aria-hidden />{value ? "Record again" : "Record an answer"}</Button>

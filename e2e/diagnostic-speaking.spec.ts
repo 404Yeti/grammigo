@@ -33,6 +33,7 @@ test("typed fallback supports correction and saves only after Continue", async (
   await page.getByRole("button", { name: "Try my sentence again" }).click();
   await page.getByLabel("Your answer").fill("My favorite place is the park.");
   await page.getByRole("button", { name: "Check my sentence" }).click();
+  await expect(page.getByTestId("optional-diagnostic-speaking")).not.toContainText("saved on this device");
   await page.screenshot({ path: info.outputPath("diagnostic-speaking.png"), fullPage: true });
   await page.getByRole("button", { name: "Continue to my results" }).click();
   await page.reload();
