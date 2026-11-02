@@ -13,6 +13,14 @@ export function getLesson(id: string): Lesson | undefined {
   const skill = getCurriculumSkill(id);
   if (!skill) return undefined;
   const lesson = toLesson(skill);
+  // Same objective, question IDs and record count: existing sessions remain compatible.
+  if (process.env.NEXT_PUBLIC_LESSON_SPEAKING === "true" && id === DEFAULT_LESSON_ID) {
+    lesson.questions = lesson.questions.map((q) => q.id !== "q8" ? q : ({
+      ...q, type: "speaking", skillLabel: "Independent production · Speak or type",
+      prompt: "Say or write two sentences: one about something you have done this week, and one about something you did yesterday.",
+      praise: "You used both tenses!",
+    }));
+  }
   CACHE.set(id, lesson);
   return lesson;
 }

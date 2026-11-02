@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HelpCircle } from "lucide-react";
 import { getLesson } from "@/data/lessons";
+import { useStorageScope } from "@/features/accounts/scope-client";
 import { ExerciseView } from "@/components/exercises/ExerciseView";
 import { FeedbackPanel, type FeedbackKind } from "@/components/feedback/FeedbackPanel";
 import { HintCard } from "@/components/feedback/HintCard";
@@ -31,10 +32,12 @@ function renderPrompt(prompt: string) {
 
 export function SessionScreen({ lessonId }: { lessonId: string }) {
   const lesson = getLesson(lessonId)!;
+  const scope = useStorageScope();
   const router = useRouter();
   const state = usePracticeState();
   const session = state ? getActiveSession(state, lessonId) : null;
 
+  const [speakingBusy, setSpeakingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exitOpen, setExitOpen] = useState(false);
   const leaving = useRef(false);
@@ -144,7 +147,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
 
   const onSubmit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (inFeedback || !hasDraft) return;
+    if (inFeedback || !hasDraft || speakingBusy) return;
     const outcome = practiceActions.submit(session.id, lesson);
     if (outcome.kind === "invalid" || outcome.kind === "unchanged") setError(outcome.message);
     else setError(null);
@@ -227,7 +230,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
           )}
 
           <ExerciseView
-            key={question.id}
+            key={`${scope}:${session.id}:${question.id}`}
             question={question}
             value={session.draft}
             disabled={inFeedback}
@@ -235,9 +238,10 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
             resultStates={resultStates}
             onChange={onChange}
             inputRef={inputRef}
+            onBusyChange={setSpeakingBusy}
           />
 
-          {!inFeedback && aiAvailable && question.type === "short-writing" && <AiNotice what="writing" />}
+          {!inFeedback && aiAvailable && (question.type === "short-writing" || question.type === "speaking") && <AiNotice what="writing" />}
 
           {!inFeedback && nextHint && <HintCard index={record.hintsUsed} total={question.hints.length} text={nextHint} />}
         </div>
@@ -264,7 +268,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
               <MigoBubble expression={retrying ? "encouraging" : hasDraft ? "idle" : "thinking"}>
                 {retrying ? "No rush. A small nudge, then try again." : question.migoLine}
               </MigoBubble>
-              <Button type="submit" variant={retrying ? "primary" : hasDraft ? "primary" : "secondary"} disabled={!hasDraft}>
+              <Button type="submit" variant={retrying ? "primary" : hasDraft ? "primary" : "secondary"} disabled={!hasDraft || speakingBusy}>
                 {retrying ? "Try again" : "Check Answer"}
               </Button>
             </>

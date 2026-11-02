@@ -16,6 +16,7 @@ export const EXERCISE_TYPES = [
   "contextual-verb",
   "sentence-transformation",
   "short-writing",
+  "speaking",
 ] as const;
 
 export const EVALUATION_STRATEGIES = [

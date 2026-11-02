@@ -35,6 +35,7 @@ const MIGO: Record<ExerciseType, string> = {
   "contextual-verb": "Read the whole conversation first.",
   "sentence-transformation": "Keep the meaning, change the form.",
   "short-writing": "Short and simple is perfect. No pressure on length.",
+  "speaking": "Say it your way, then check what we heard. Typing works too.",
 };
 
 const TAG: Record<ExerciseType, string> = {
@@ -46,6 +47,7 @@ const TAG: Record<ExerciseType, string> = {
   "contextual-verb": "In context",
   "sentence-transformation": "Rewrite",
   "short-writing": "Writing",
+  "speaking": "Speak or type",
 };
 
 const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0];

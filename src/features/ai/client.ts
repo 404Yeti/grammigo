@@ -8,12 +8,20 @@ import type { WritingFeedback } from "./schemas";
  */
 
 async function call<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T | null> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  const timer = setTimeout(abort, timeoutMs);
+  init.signal?.addEventListener("abort", abort, { once: true });
+  if (init.signal?.aborted) abort();
   try {
-    const res = await fetch(path, { ...init, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
+    const res = await fetch(path, { ...init, signal: controller.signal, cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener("abort", abort);
   }
 }
 
@@ -35,10 +43,10 @@ export async function requestGoals(text: string): Promise<{ goals: GoalItem[]; s
   return out?.status === "ok" ? { goals: out.goals, skillIds: out.skillIds, summary: out.summary } : null;
 }
 
-export async function requestTranscription(audio: Blob): Promise<string | null> {
+export async function requestTranscription(audio: Blob, signal?: AbortSignal): Promise<string | null> {
   const body = new FormData();
   body.set("audio", audio, "speech.webm");
-  const out = await call<{ status: string; text: string }>("/api/ai/transcribe", { method: "POST", body }, 22_000);
+  const out = await call<{ status: string; text: string }>("/api/ai/transcribe", { method: "POST", body, signal }, 22_000);
   return out?.status === "ok" ? out.text : null;
 }
 

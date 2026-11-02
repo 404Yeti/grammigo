@@ -35,6 +35,8 @@ export function useVoiceCapture() {
   const chunks = useRef<Blob[]>([]);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const discard = useRef(false);
+  const generation = useRef(0);
+  const invalidate = useCallback(() => { generation.current++; }, []);
 
   const release = useCallback(() => {
     if (timer.current) clearInterval(timer.current);
@@ -46,22 +48,28 @@ export function useVoiceCapture() {
 
   useEffect(() => {
     return () => {
+      invalidate();
       discard.current = true;
       if (recorder.current && recorder.current.state !== "inactive") recorder.current.stop();
       release();
     };
-  }, [release]);
+  }, [release, invalidate]);
 
   /** Resolves when the microphone is open (or why it could not be). `onDone` fires once, when recording ends. */
   const start = useCallback(
     async (onDone: (result: CaptureResult) => void): Promise<{ ok: true } | { ok: false; reason: VoiceIssue }> => {
       if (!voiceSupported()) return { ok: false, reason: "unsupported" };
+      const currentGeneration = ++generation.current;
       discard.current = false;
       let media: MediaStream;
       try {
         media = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (error) {
         return { ok: false, reason: issueFor(error) };
+      }
+      if (currentGeneration !== generation.current) {
+        media.getTracks().forEach((track) => track.stop());
+        return { ok: false, reason: "failed" };
       }
       try {
         stream.current = media;
@@ -70,9 +78,13 @@ export function useVoiceCapture() {
         const rec = new MediaRecorder(media, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 32_000 });
         recorder.current = rec;
         rec.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.current.push(e.data);
+          if (currentGeneration === generation.current && e.data.size > 0) chunks.current.push(e.data);
         };
         rec.onstop = () => {
+          if (currentGeneration !== generation.current) {
+            media.getTracks().forEach((track) => track.stop());
+            return;
+          }
           const type = rec.mimeType || mimeType || "audio/webm";
           const blob = new Blob(chunks.current, { type });
           const cancelled = discard.current;
@@ -104,10 +116,11 @@ export function useVoiceCapture() {
 
   /** Throws the recording away without handing anything on. */
   const cancel = useCallback(() => {
+    invalidate();
     discard.current = true;
     if (recorder.current && recorder.current.state !== "inactive") recorder.current.stop();
-    else release();
-  }, [release]);
+    release();
+  }, [release, invalidate]);
 
   return { listening, seconds, start, stop, cancel };
 }
