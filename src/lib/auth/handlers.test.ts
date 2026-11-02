@@ -122,7 +122,7 @@ describe("POST /api/auth/signin", () => {
 describe("POST /api/auth/signout", () => {
   it("clears every account cookie even if the Auth server cannot be reached", async () => {
     const m = makeRuntime({ signOut: "throw" }, [{ name: cfg.cookieNames.auth, value: "s" }]);
-    expect(await handleSignOut(m.rt, { headers: postHeaders(cfg) })).toMatchObject({ status: 303, location: "/" });
+    expect(await handleSignOut(m.rt, { headers: postHeaders(cfg) })).toMatchObject({ status: 303, location: "/learn" });
     expect(m.cookies.outgoing.get(cfg.cookieNames.auth)?.options.maxAge).toBe(0);
   });
   it("cannot be triggered cross-site (no logout CSRF)", async () => {

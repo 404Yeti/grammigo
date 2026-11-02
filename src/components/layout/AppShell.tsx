@@ -9,14 +9,14 @@ import { cn } from "@/lib/utils/cn";
 import { Wordmark } from "./Wordmark";
 
 const ITEMS = [
-  { label: "Home", href: "/", icon: Home },
+  { label: "Home", href: "/learn", icon: Home },
   { label: "Practice", href: "/library", icon: BookOpen },
   { label: "Progress", href: null, icon: BarChart3 },
 ] as const;
 
 function isActive(pathname: string, href: string | null): boolean {
   if (!href) return false;
-  return href === "/" ? pathname === "/" : pathname.startsWith("/practice") || pathname.startsWith("/library");
+  return href === "/learn" ? pathname === "/learn" : pathname.startsWith("/practice") || pathname.startsWith("/library");
 }
 
 function NavItem({ item, pathname, layout }: { item: (typeof ITEMS)[number]; pathname: string; layout: "bottom" | "side" }) {

@@ -5,6 +5,7 @@ import type { Question } from "@/types/lesson";
 import type { AnswerState } from "@/components/ui/AnswerOption";
 import { TextField } from "@/components/ui/TextField";
 import { ChoiceExercise } from "./ChoiceExercise";
+import { SpeakingAnswer } from "@/features/speaking/SpeakingAnswer";
 import { TileExercise } from "./TileExercise";
 
 export interface ExerciseViewProps {
@@ -14,12 +15,15 @@ export interface ExerciseViewProps {
   error?: string | null;
   resultStates?: Record<string, AnswerState>;
   onChange: (value: string) => void;
+  onBusyChange?: (busy: boolean) => void;
   inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>;
 }
 
 /** Picks the input method for each exercise type. Rendering only; no grading in here. */
-export function ExerciseView({ question, value, disabled, error, resultStates, onChange, inputRef }: ExerciseViewProps) {
+export function ExerciseView({ question, value, disabled, error, resultStates, onChange, inputRef, onBusyChange }: ExerciseViewProps) {
   switch (question.type) {
+    case "speaking":
+      return <SpeakingAnswer value={value} onChange={onChange} disabled={disabled} error={error} inputRef={inputRef} onBusyChange={onBusyChange} />;
     case "multiple-choice":
     case "multiple-choice-context":
       return (

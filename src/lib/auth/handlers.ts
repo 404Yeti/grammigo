@@ -112,7 +112,7 @@ export async function handleSignOut(rt: AuthRuntime, input: { headers: Headers }
     // the cookies below are what end the session in this browser
   }
   rt.jar.clearAuthCookies();
-  return { status: 303, location: "/" };
+  return { status: 303, location: "/learn" };
 }
 
 /** Rate limit for the sign-in callback, applied by the route before the exchange so a flood cannot burn Auth server capacity. */

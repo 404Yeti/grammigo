@@ -21,7 +21,8 @@ export interface GuidedOutcome {
   at: number;
 }
 
-export type VoiceIssue = "permission_denied" | "unsupported" | "no_speech" | "failed" | "timeout" | "offline";
+import type { VoiceIssue } from "./voice";
+export type { VoiceIssue } from "./voice";
 
 /** What the AI said about an answer the deterministic check could not judge. Validated before use. */
 export type OpinionFit = "fits" | "off_prompt" | "incomplete" | "grammar_concern" | "unclear";

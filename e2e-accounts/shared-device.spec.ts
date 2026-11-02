@@ -13,7 +13,7 @@ const read = (page: import("@playwright/test").Page, key: string) => page.evalua
 async function signOut(page: import("@playwright/test").Page) {
   await page.goto("/account/profile");
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page).toHaveURL(`${BASE}/`);
+  await expect(page).toHaveURL(`${BASE}/learn`);
 }
 
 test.describe("shared device", () => {
@@ -25,7 +25,7 @@ test.describe("shared device", () => {
     await answerCorrectly(page, 1);
     await cont(page);
     await expectQuestion(page, 2);
-    await page.goto("/");
+    await page.goto("/learn");
     await expect(page.getByTestId("next-step-text")).toContainText("question 2 of 8");
     await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible(); // a plain way in, never a requirement
     const guestRaw = await read(page, GUEST_KEY);

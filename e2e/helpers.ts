@@ -65,6 +65,7 @@ export async function answerCorrectly(page: Page, n: number) {
       await page.getByLabel("Your answer").fill("I have been learning English since 2020.");
       break;
     case 8:
+      if (await page.getByRole("button", { name: "Type instead", exact: true }).isVisible()) await page.getByRole("button", { name: "Type instead", exact: true }).click();
       await page.getByLabel("Your answer").fill("I have read two books this week. I watched a film yesterday.");
       break;
   }
@@ -74,7 +75,7 @@ export async function answerCorrectly(page: Page, n: number) {
 /** v0.1 entry: Home → choose a lesson in the library → introduction → Start Lesson. */
 export async function startFromHome(page: Page, skillId = LESSON) {
   await seedReturningLearner(page);
-  await page.goto("/");
+  await page.goto("/learn");
   await page.getByRole("link", { name: "Choose another lesson" }).click();
   await expect(page.getByRole("heading", { name: "Grammar library" })).toBeVisible();
   await page.getByTestId("lesson-card").and(page.locator(`[data-skill="${skillId}"]`)).getByRole("link").click();
@@ -94,6 +95,7 @@ export async function answerLessonQuestion(page: Page, skillId: string, n: numbe
       await page.getByRole("group", { name: "Available words" }).getByRole("button", { name: word, exact: true }).first().click();
     }
   } else if (q.type === "short-writing") {
+    if (await page.getByRole("button", { name: "Type instead", exact: true }).isVisible()) await page.getByRole("button", { name: "Type instead", exact: true }).click();
     await page.getByLabel("Your answer").fill("I have a good plan for today. She is my friend and we are happy.");
   } else {
     await page.getByLabel("Your answer").fill(q.acceptedAnswers[0]);

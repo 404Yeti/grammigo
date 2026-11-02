@@ -1,3 +1,5 @@
+import type { DiagnosticRun } from "@/features/diagnostic/engine";
+import { optionalSpeakingSchema } from "@/features/diagnostic/speaking-schema";
 import type {
   OnboardingState,
   QuestionRecord,
@@ -135,6 +137,16 @@ function isRun(v: unknown): boolean {
   );
 }
 
+/** Invalid optional samples are discarded without losing valid closed-question evidence. */
+function parseRun(value: unknown): DiagnosticRun | null {
+  if (!isRun(value)) return null;
+  const run = { ...(value as DiagnosticRun) };
+  const optional = optionalSpeakingSchema.safeParse(run.optionalSpeaking);
+  delete run.optionalSpeaking;
+  if (optional.success) run.optionalSpeaking = optional.data;
+  return run;
+}
+
 /**
  * v1 → v2: every v0.1 session is kept untouched. New fields get defaults. A learner who already
  * used v0.1 is not forced through onboarding; it is marked skipped and offered later instead.
@@ -183,7 +195,7 @@ export function parseStoredState(raw: string | null): StoredState | null {
     onboarding: parseOnboarding(data.onboarding),
     goals: isGoals(data.goals) ? (data.goals as StoredState["goals"]) : null,
     diagnosticRuns: Array.isArray(data.diagnosticRuns)
-      ? (data.diagnosticRuns.filter(isRun) as StoredState["diagnosticRuns"])
+      ? data.diagnosticRuns.map(parseRun).filter((run): run is DiagnosticRun => run !== null)
       : [],
     lastRecommendation:
       isObject(data.lastRecommendation) && isStr(data.lastRecommendation.skillId) && isStr(data.lastRecommendation.kind) && isNum(data.lastRecommendation.at)

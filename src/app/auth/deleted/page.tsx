@@ -13,7 +13,7 @@ export default function DeletedPage() {
       <p role="status" className="text-sm font-medium leading-6 text-ink-2">
         Your account and everything saved in it have been deleted, and you are signed out. You can still practise Grammigo as a guest on this device any time.
       </p>
-      <Link href="/" className={primaryButtonClass}>Keep practising</Link>
+      <Link href="/learn" className={primaryButtonClass}>Keep practising</Link>
     </AuthShell>
   );
 }

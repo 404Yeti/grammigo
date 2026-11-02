@@ -105,7 +105,7 @@ describe("welcome", () => {
     const user = userEvent.setup();
     render(<OnboardingFlow />);
     await user.click(await screen.findByRole("button", { name: "Not now" }));
-    expect(router.replace).toHaveBeenCalledWith("/");
+    expect(router.replace).toHaveBeenCalledWith("/learn");
     expect(ob().status).toBe("skipped");
   });
 });
@@ -336,6 +336,6 @@ describe("returning learners", () => {
     updateState((s) => ({ ...s, onboarding: { ...s.onboarding, status: "completed" } }));
     render(<OnboardingFlow />);
     await act(async () => {});
-    expect(router.replace).toHaveBeenCalledWith("/");
+    expect(router.replace).toHaveBeenCalledWith("/learn");
   });
 });

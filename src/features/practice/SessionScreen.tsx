@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HelpCircle } from "lucide-react";
 import { getLesson } from "@/data/lessons";
+import { getStorageScope, onScopeChange } from "@/lib/scope/storage-scope";
 import { ExerciseView } from "@/components/exercises/ExerciseView";
 import { FeedbackPanel, type FeedbackKind } from "@/components/feedback/FeedbackPanel";
 import { HintCard } from "@/components/feedback/HintCard";
 import { ExitDialog } from "@/components/lesson/ExitDialog";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { MigoAudio } from "@/features/voice/MigoAudio";
 import { MigoBubble } from "@/components/mascot/MigoBubble";
 import type { AnswerState } from "@/components/ui/AnswerOption";
 import { AiNotice } from "@/components/ui/AiNotice";
@@ -31,10 +33,12 @@ function renderPrompt(prompt: string) {
 
 export function SessionScreen({ lessonId }: { lessonId: string }) {
   const lesson = getLesson(lessonId)!;
+  const scope = useSyncExternalStore(onScopeChange, getStorageScope, () => "");
   const router = useRouter();
   const state = usePracticeState();
   const session = state ? getActiveSession(state, lessonId) : null;
 
+  const [speakingBusy, setSpeakingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exitOpen, setExitOpen] = useState(false);
   const leaving = useRef(false);
@@ -79,6 +83,8 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   useEffect(() => {
     if (!aiAvailable || !session || !writingState || session.phase !== "feedback") return;
     const q = lesson.questions[session.currentIndex];
+    // Speaking uses the local target-grammar rubric; only transcription is a paid call.
+    if (q.type === "speaking") return;
     const rec = session.records[session.currentIndex];
     if (rec.resolution !== "needs_review") return;
     const key = `${session.id}:${q.id}`;
@@ -144,7 +150,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
 
   const onSubmit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (inFeedback || !hasDraft) return;
+    if (inFeedback || !hasDraft || speakingBusy) return;
     const outcome = practiceActions.submit(session.id, lesson);
     if (outcome.kind === "invalid" || outcome.kind === "unchanged") setError(outcome.message);
     else setError(null);
@@ -227,7 +233,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
           )}
 
           <ExerciseView
-            key={question.id}
+            key={`${scope}:${session.id}:${question.id}`}
             question={question}
             value={session.draft}
             disabled={inFeedback}
@@ -235,6 +241,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
             resultStates={resultStates}
             onChange={onChange}
             inputRef={inputRef}
+            onBusyChange={setSpeakingBusy}
           />
 
           {!inFeedback && aiAvailable && question.type === "short-writing" && <AiNotice what="writing" />}
@@ -243,6 +250,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
         </div>
 
         <div className="flex flex-col gap-3 px-2 pt-4">
+          <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback ? record.resolution === "correct" ? "encouragement" : "correction" : "instruction"} />
           {kind ? (
             <FeedbackPanel
               kind={kind}
@@ -264,7 +272,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
               <MigoBubble expression={retrying ? "encouraging" : hasDraft ? "idle" : "thinking"}>
                 {retrying ? "No rush. A small nudge, then try again." : question.migoLine}
               </MigoBubble>
-              <Button type="submit" variant={retrying ? "primary" : hasDraft ? "primary" : "secondary"} disabled={!hasDraft}>
+              <Button type="submit" variant={retrying ? "primary" : hasDraft ? "primary" : "secondary"} disabled={!hasDraft || speakingBusy}>
                 {retrying ? "Try again" : "Check Answer"}
               </Button>
             </>
@@ -273,7 +281,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
       </form>
 
       {exitOpen && (
-        <ExitDialog onContinue={() => setExitOpen(false)} onSaveAndExit={() => router.push("/")} />
+        <ExitDialog onContinue={() => setExitOpen(false)} onSaveAndExit={() => router.push("/learn")} />
       )}
     </div>
   );

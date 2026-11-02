@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { MigoVoiceArt } from "./MigoVoiceArt";
 import { cn } from "@/lib/utils/cn";
 
 /** Expressions exported from Figma. Expression is chosen from local UI state; no network involved. */
@@ -9,9 +10,15 @@ export type MigoExpression =
   | "thinking"
   | "explaining"
   | "encouraging"
-  | "celebrating";
+  | "celebrating"
+  | "listening"
+  | "confused"
+  | "sleeping";
 
 const ALT: Record<MigoExpression, string> = {
+  listening: "Migo, listening",
+  confused: "Migo, unsure",
+  sleeping: "Migo, sleeping",
   idle: "Migo, waiting",
   happy: "Migo, happy",
   curious: "Migo, curious",
@@ -47,7 +54,9 @@ export function Migo({ expression = "idle", size = 96, decorative = true, classN
       style={{ width: size, height: (size * 300) / 260 }}
       data-migo={expression}
     >
-      <Image
+      {expression === "listening" || expression === "confused" || expression === "sleeping" ? (
+        <MigoVoiceArt expression={expression} size={size} label={decorative ? undefined : ALT[expression]} />
+      ) : <Image
         src={`/migo/${expression}.svg`}
         alt={decorative ? "" : ALT[expression]}
         width={260}
@@ -55,7 +64,7 @@ export function Migo({ expression = "idle", size = 96, decorative = true, classN
         unoptimized
         priority={false}
         className="size-full"
-      />
+      />}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import type { OptionalSpeaking } from "./speaking-schema";
 import { CEFR_LEVELS, DIAGNOSTIC_TYPES, type CefrLevel, type CurriculumSkill } from "@/curriculum/schema";
 import { evaluateAnswer } from "@/features/practice/grading";
 import type { EvidenceEvent } from "@/features/learning/mastery";
@@ -60,6 +61,8 @@ export interface DiagnosticRun {
   responses: DiagnosticResponse[];
   /** The learner chose to answer a few more questions for a clearer picture. */
   extended: boolean;
+  /** Optional confirmed sample, kept out of adaptive selection and evidence. */
+  optionalSpeaking?: OptionalSpeaking;
 }
 
 export const levelNumber = (cefr: CefrLevel) => CEFR_LEVELS.indexOf(cefr) + 1;

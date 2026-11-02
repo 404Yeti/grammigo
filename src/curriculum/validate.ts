@@ -19,6 +19,7 @@ const STRATEGY_FOR_TYPE: Record<string, string[]> = {
   "sentence-transformation": ["normalized-text"],
   "sentence-construction": ["ordered-words"],
   "short-writing": ["limited-rubric", "ai-writing"],
+  "speaking": ["limited-rubric", "ai-writing"],
 };
 
 function sortedWords(value: string): string {

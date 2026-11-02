@@ -44,6 +44,13 @@ test.describe("accounts are off by default", () => {
     await expect(page.getByRole("link", { name: /sign in|account/i })).toHaveCount(0);
   });
 
+  test("the public front page shows no sign-in or account wording when accounts are off", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1, name: "Better grammar. Your way." })).toBeVisible();
+    await expect(page.getByRole("link", { name: /sign in|account/i })).toHaveCount(0);
+    await expect(page.getByText(/by invitation/i)).toHaveCount(0);
+  });
+
   test("@cross the learning app is unaffected and sets no cookies", async ({ request }) => {
     for (const path of ["/", "/library", "/onboarding", "/privacy"]) {
       const res = await request.get(path);
