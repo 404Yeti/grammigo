@@ -51,7 +51,7 @@ export function MarketingHome() {
         <section className={`${wrap} grid items-center gap-6 pt-6 pb-12 xl:grid-cols-[minmax(0,1fr)_520px] lg:gap-16 lg:pt-16 lg:pb-24`} aria-labelledby="hero-title">
           <div className="flex flex-col items-start gap-5">
             <GrammarTag style="brand">Your grammar amigo</GrammarTag>
-            <h1 id="hero-title" className="text-balance text-[44px] font-extrabold leading-[52px] tracking-[-1px] lg:text-[56px] lg:leading-[64px] lg:tracking-[-1.5px]">Better grammar. Your way.</h1>
+            <h1 id="hero-title" className="text-[44px] font-extrabold leading-[52px] tracking-[-1px] lg:text-[56px] lg:leading-[64px] lg:tracking-[-1.5px]">Better grammar. Your way.</h1>
             <p className="max-w-[560px] text-lg font-medium leading-7 text-ink-2">
               Grammigo is a friendly grammar coach that adapts to what you actually need, so there’s no wasted practice.
             </p>

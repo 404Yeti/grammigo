@@ -194,7 +194,7 @@ test.describe("private pages are never cached", () => {
     await page.goto("/account/profile");
     await expect(page.getByTestId("profile-name")).toHaveText("Back Button Ana");
     await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(`${BASE}/`);
+    await expect(page).toHaveURL(`${BASE}/onboarding`);
     await page.goBack();
     await expect(page.locator("body")).not.toContainText("Back Button Ana");
     await expect(page).toHaveURL(/\/signin\?e=session$/);

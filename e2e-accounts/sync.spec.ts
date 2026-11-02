@@ -330,7 +330,7 @@ test.describe("adding guest progress needs a clear yes", () => {
     // A signs out; B signs in on the same browser
     await page.goto("/account/profile");
     await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(`${BASE}/`);
+    await expect(page).toHaveURL(`${BASE}/learn`);
     await context.addCookies(sessionCookies(b));
     await page.goto("/account");
     await expect(page.getByTestId("dashboard-greeting")).toContainText("Second Learner");

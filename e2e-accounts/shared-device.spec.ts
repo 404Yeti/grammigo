@@ -13,7 +13,7 @@ const read = (page: import("@playwright/test").Page, key: string) => page.evalua
 async function signOut(page: import("@playwright/test").Page) {
   await page.goto("/account/profile");
   await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page).toHaveURL(`${BASE}/`);
+  await expect(page).toHaveURL(`${BASE}/learn`);
 }
 
 test.describe("shared device", () => {
