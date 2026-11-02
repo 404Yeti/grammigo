@@ -42,6 +42,8 @@ export default function PrivacyPage() {
           To prevent abuse, Grammigo counts requests per visitor using a one-way hash of the network address, held for at most
           a day. Usage logs contain counts only, never your text or audio.
         </p>
+        <h2 className="pt-2 text-base font-bold text-ink">Migo’s spoken audio</h2>
+        <p>Authored lesson instructions, listening scenarios and feedback may be sent to ElevenLabs to generate Migo’s voice, with OpenAI as a fallback. Your recordings and personal answers are not sent to ElevenLabs. Audio is optional; reading and typing remain available.</p>
         <h2 className="pt-2 text-base font-bold text-ink">OpenAI</h2>
         <p>
           OpenAI processes what is sent to it under its own terms and data-retention policy. See OpenAI’s privacy policy for

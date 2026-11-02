@@ -16,6 +16,11 @@ const files = walk(SRC).filter((f) => !/\.test\.(ts|tsx)$/.test(f));
 const text = (f: string) => readFileSync(f, "utf8");
 
 describe("API key hygiene", () => {
+  it("the ElevenLabs key is only read in the server-only voice provider module", () => {
+    const readers = files.filter(f => /ELEVENLABS_API_KEY/.test(text(f)));
+    expect(readers.map(f => f.replace(SRC, ""))).toEqual(["/features/voice/providers.ts"]);
+    expect(text(readers[0])).toMatch(/import "server-only"/);
+  });
   it("OPENAI_API_KEY is only read in the server-side config module", () => {
     const readers = files.filter((f) => /OPENAI_API_KEY/.test(text(f)));
     expect(readers.map((f) => f.replace(SRC, ""))).toEqual(["/lib/ai/config.ts"]);
@@ -29,7 +34,7 @@ describe("API key hygiene", () => {
     const client = files.filter((f) => /^\s*["']use client["']/m.test(text(f)));
     expect(client.length).toBeGreaterThan(0);
     for (const f of client) {
-      expect(text(f), f).not.toMatch(/from ["']openai["']|@\/lib\/ai\/|@\/features\/ai\/(service|handlers|deps)/);
+      expect(text(f), f).not.toMatch(/from ["']openai["']|@\/lib\/ai\/|@\/features\/ai\/(service|handlers|deps)|@\/features\/voice\/(providers|server)/);
     }
   });
 

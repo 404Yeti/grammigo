@@ -4,7 +4,7 @@ import { getLesson } from "@/data/lessons";
 export const speechRequestSchema = z.object({
   lessonId: z.string().min(1).max(80),
   questionId: z.string().min(1).max(20),
-  kind: z.enum(["instruction", "encouragement", "correction", "hint"]),
+  kind: z.enum(["instruction", "encouragement", "correction", "hint", "listening"]),
   hintIndex: z.number().int().min(0).max(2).optional(),
 }).strict();
 export type SpeechRequest = z.infer<typeof speechRequestSchema>;
@@ -16,6 +16,7 @@ export function speechText(input: SpeechRequest): string | null {
   if (!q) return null;
   let text: string | undefined;
   switch (input.kind) {
+    case "listening": text = q.listening?.transcript; break;
     case "instruction": text = q.prompt; break;
     case "encouragement": text = `${q.praise} ${q.praiseBody}`; break;
     case "correction": text = `${q.explanation} ${q.displayAnswer}`; break;

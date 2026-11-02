@@ -48,6 +48,10 @@ export interface Question {
   prompt: string;
   /** A quoted sentence the learner works on (correction / transformation). */
   source?: string;
+  /** Authored audio, revealed only after answering or choosing the reading accommodation. */
+  listening?: { transcript: string };
+  /** Keep ordered-word grading while allowing a reviewed spoken or typed sentence. */
+  allowSpeaking?: boolean;
   options?: ChoiceOption[];
   tiles?: string[];
   /** Option ids for choice questions; sentences/words for text questions. Empty for rubric. */

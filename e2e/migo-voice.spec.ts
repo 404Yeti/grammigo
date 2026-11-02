@@ -14,7 +14,7 @@ test("audio is explicit, replay is cached, mute survives refresh, and only publi
   let calls = 0;
   await page.route("**/api/ai/tts", route => {
     calls++;
-    expect(route.request().postDataJSON()).toEqual({ lessonId: LESSON, questionId: "q1", kind: "instruction" });
+    expect(route.request().postDataJSON()).toEqual({ lessonId: LESSON, questionId: "q1", kind: process.env.E2E_LISTENING === "1" ? "listening" : "instruction" });
     return route.fulfill({ contentType: "audio/wav", body: silenceWav() });
   });
   await seedReturningLearner(page);

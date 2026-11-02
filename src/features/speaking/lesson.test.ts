@@ -11,7 +11,8 @@ it("leaves the beta unchanged by default and preserves session identities when s
   const after = (await import("@/data/lessons")).getLesson(before.id)!;
   expect(after.questions.map(q => q.id)).toEqual(before.questions.map(q => q.id));
   expect(after.questions[7]).toMatchObject({ type: "speaking", strategy: "limited-rubric", evidence: "production" });
-  expect(after.questions.slice(0, 7)).toEqual(before.questions.slice(0, 7));
+  expect(after.questions.filter(q => q.id !== "q5" && q.id !== "q8")).toEqual(before.questions.filter(q => q.id !== "q5" && q.id !== "q8"));
+  expect(after.questions[4]).toMatchObject({ allowSpeaking: true, strategy: "ordered-words", acceptedAnswers: before.questions[4].acceptedAnswers });
 });
 it("checks the existing grammar objective locally, and only calls an explicit tense/time clash incorrect", async () => {
   vi.stubEnv("NEXT_PUBLIC_LESSON_SPEAKING", "true");
