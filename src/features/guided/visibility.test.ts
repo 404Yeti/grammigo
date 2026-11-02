@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { guidedVisible, guidedVoiceEnabled } from "./visibility";
+import { guidedVisible, guidedVoiceEnabled, guidedPublicPreview } from "./visibility";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -12,7 +12,7 @@ describe("Guided Correction stays hidden in production until the release gate is
   it("a preview build can opt in; development and tests always see it", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_GUIDED_PREVIEW", "true");
-    expect(guidedVisible()).toBe(true);
+    expect(guidedVisible()).toBe(false);
     vi.stubEnv("NEXT_PUBLIC_GUIDED_PREVIEW", "");
     vi.stubEnv("NODE_ENV", "development");
     expect(guidedVisible()).toBe(true);
@@ -34,10 +34,15 @@ describe("spoken answers are a separate switch, off in production until real-dev
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_GUIDED_PREVIEW", "true");
     vi.stubEnv("NEXT_PUBLIC_GUIDED_VOICE", "");
-    expect(guidedVisible()).toBe(true);
+    expect(guidedVisible()).toBe(false);
     expect(guidedVoiceEnabled()).toBe(false);
     const { guidedReleaseStatus } = await import("./release");
     expect(guidedReleaseStatus().releasable).toBe(false);
     expect(guidedReleaseStatus().blockers).toHaveLength(5);
   });
+});
+
+it("a server test preview opt-in cannot open production", () => {
+ vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("GUIDED_PUBLIC_PREVIEW", "true"); vi.stubEnv("VERCEL_ENV", "preview");
+ expect(guidedPublicPreview()).toBe(true); vi.stubEnv("VERCEL_ENV", "production"); expect(guidedPublicPreview()).toBe(false);
 });

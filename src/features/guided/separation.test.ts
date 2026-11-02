@@ -29,6 +29,7 @@ const isGuidedPath = (p: string) => GUIDED_DIRS.some((d) => p.startsWith(d)) || 
  * mastery, profile, recommendation, lesson-progress or storage module, and none passes data across.
  */
 const ENTRY_POINTS: Record<string, string[]> = {
+  "app/api/guided/access/route.ts": ["@/features/guided/visibility"],
   "app/practice/[lessonId]/guided/page.tsx": ["@/curriculum/guided", "@/features/guided/visibility", "@/features/guided/ui/GuidedScreen"],
   "app/api/ai/guided-check/route.ts": ["@/features/guided/ai/check"],
   "features/lessons/IntroScreen.tsx": ["@/features/guided/ui/GuidedEntryCard"],

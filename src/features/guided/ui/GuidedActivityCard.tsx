@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { GrammarTag } from "@/components/ui/GrammarTag";
 import { countOutcomes, hasActivity } from "../store/outcome-counts";
 import { getGuidedServerSnapshot, getGuidedSnapshot, subscribeGuided } from "../store/store";
-import { guidedVisible } from "../visibility";
+
+import { useGuidedAccess } from "../use-access";
 import { BETA, DASHBOARD } from "./copy";
 
 /**
@@ -14,8 +15,9 @@ import { BETA, DASHBOARD } from "./copy";
  * lesson progress. It is NEVER presented as mastery, a skill level or a score, and it is shown only when the activity is visible at all.
  */
 export function GuidedActivityCard() {
+  const allowed = useGuidedAccess();
   const state = useSyncExternalStore(subscribeGuided, getGuidedSnapshot, getGuidedServerSnapshot);
-  if (!state || !guidedVisible()) return null;
+  if (!state || !allowed) return null;
   const counts = countOutcomes(state);
   if (!hasActivity(counts)) return null;
   const extras = [

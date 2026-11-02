@@ -57,6 +57,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_GUIDED_PREVIEW: "true"
+          GUIDED_PUBLIC_PREVIEW: "true"
           NEXT_PUBLIC_GUIDED_VOICE: "true"
           # The guest-transfer tests use two local origins of this one build. Production has none of these set.
           NEXT_PUBLIC_GUEST_TRANSFER: "on"
@@ -69,6 +70,7 @@ jobs:
         env:
           CI: "true"
           E2E_TRANSFER: "1"
+          GUIDED_PUBLIC_PREVIEW: "true"
       - name: Keep traces of failures
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

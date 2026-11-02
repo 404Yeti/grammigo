@@ -28,6 +28,8 @@ const port = process.env.E2E_ACCOUNTS_PORT ?? "3100";
 const appEnv = {
   ...process.env,
   NEXT_PUBLIC_ACCOUNTS: "on",
+  NEXT_PUBLIC_GUIDED_PREVIEW: "true",
+  VERCEL_ENV: "production",
   NEXT_DIST_DIR: ".next-accounts",
   SUPABASE_URL: api,
   SUPABASE_ANON_KEY: anon,

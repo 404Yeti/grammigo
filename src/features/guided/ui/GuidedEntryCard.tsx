@@ -6,13 +6,15 @@ import { GrammarTag } from "@/components/ui/GrammarTag";
 import { GUIDED_SKILL_ID } from "@/curriculum/guided";
 import { activeGuidedSession } from "../store/actions";
 import { getGuidedServerSnapshot, getGuidedSnapshot, subscribeGuided } from "../store/store";
-import { guidedVoiceEnabled, guidedVisible } from "../visibility";
+import { guidedVoiceEnabled } from "../visibility";
+import { useGuidedAccess } from "../use-access";
 import { BETA } from "./copy";
 
 /** The optional doorway into Fix it with Migo, on the lesson introduction and on the lesson review. Nothing else on those screens changes. */
 export function GuidedEntryCard({ lessonId, variant }: { lessonId: string; variant: "intro" | "review" }) {
+  const allowed = useGuidedAccess();
   const state = useSyncExternalStore(subscribeGuided, getGuidedSnapshot, getGuidedServerSnapshot);
-  if (lessonId !== GUIDED_SKILL_ID || !guidedVisible()) return null;
+  if (lessonId !== GUIDED_SKILL_ID || !allowed) return null;
   const resuming = !!state && activeGuidedSession(state)?.status === "in_progress";
   const intro = variant === "intro";
   return (

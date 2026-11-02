@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
     ];
     return [
       { source: "/account/:path*", headers: privateHeaders },
+      { source: "/practice/:lessonId/guided", headers: privateHeaders },
+      { source: "/api/guided/:path*", headers: privateHeaders },
       { source: "/auth/:path*", headers: privateHeaders },
       { source: "/api/auth/:path*", headers: privateHeaders },
       { source: "/api/account/:path*", headers: privateHeaders },
@@ -31,6 +33,10 @@ const nextConfig: NextConfig = {
       { source: "/join", headers: frameGuard },
       { source: "/signin", headers: frameGuard },
     ];
+  },
+  webpack(config) {
+    config.module.rules.push({ test: /globals\.css$/, enforce: "pre", use: ["@tailwindcss/turbopack"] });
+    return config;
   },
   turbopack: {
     rules: {
