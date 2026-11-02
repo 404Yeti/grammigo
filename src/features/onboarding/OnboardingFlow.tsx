@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { getCurriculumSkill, listSkills } from "@/curriculum";
@@ -13,6 +13,8 @@ import { ProfileSummary } from "@/components/progress/ProfileSummary";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { fetchAiStatus, requestGoals, requestTranscription } from "@/features/ai/client";
+import { OptionalSpeaking } from "@/features/diagnostic/OptionalSpeaking";
+import { getStorageScope, onScopeChange } from "@/lib/scope/storage-scope";
 import { canExtend, gradeDiagnosticAnswer, selectNextItem } from "@/features/diagnostic/engine";
 import { useDerivedLearning } from "@/features/learning/use-learning";
 import { buildGoals, extractGoalsLocally } from "@/features/learning/goals";
@@ -384,13 +386,21 @@ function Quiz({ state }: { state: StoredState }) {
 /* ----------------------------------------------------------------- Profile */
 
 function Profile({ state }: { state: StoredState }) {
+  const [showSpeaking, setShowSpeaking] = useState(false);
+  const scope = useSyncExternalStore(onScopeChange, getStorageScope, () => "");
   const learning = useDerivedLearning(state)!;
   const run = state.diagnosticRuns.find((r) => r.id === state.onboarding.runId) ?? null;
   const more = run ? canExtend(run) : false;
+  if (showSpeaking && run && process.env.NEXT_PUBLIC_DIAGNOSTIC_SPEAKING === "true") {
+    return <Frame testId="onboarding-optional-speaking" onBack={() => setShowSpeaking(false)}>
+      <OptionalSpeaking key={`${scope}:${run.id}`} runId={run.id} previous={run.optionalSpeaking} onDone={() => setShowSpeaking(false)} />
+    </Frame>;
+  }
   return (
     <Frame testId="onboarding-profile" expression="happy">
       <h1 className="text-2xl font-extrabold leading-8 tracking-[-0.3px]">Here’s what I’m seeing</h1>
       <ProfileSummary profile={learning.profile} />
+      {run && process.env.NEXT_PUBLIC_DIAGNOSTIC_SPEAKING === "true" && <Button variant="secondary" onClick={() => setShowSpeaking(true)}>{run.optionalSpeaking?.status === "answered" ? "Review my optional speaking sample" : "Try optional speaking"}</Button>}
       {more && (
         <p className="rounded-[20px] border border-line bg-subtle p-4 text-sm font-medium leading-5" data-testid="extend-offer">
           I couldn’t get a clear picture yet. A few more questions would help. Totally optional.
