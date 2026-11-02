@@ -24,6 +24,7 @@ async function construction(page: Page) {
   await page.route("**/api/ai/status", r => r.fulfill({ json: { available: true } }));
   await page.goto(`/practice/${LESSON}/session`);
   await page.getByRole("button", { name: "Speak or type my sentence", exact: true }).click();
+  await expect(page.getByText(/Use these words:/)).toContainText("since · They · 2018 · lived · here · have");
 }
 test("listening uses authored audio, hides transcript, and supports replay, persisted mute and deterministic answers", async ({ page }, info) => {
   let calls = 0; const grading: string[] = [];
