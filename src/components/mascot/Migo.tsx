@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { MigoVoiceArt } from "./MigoVoiceArt";
 import { cn } from "@/lib/utils/cn";
 
 /** Expressions exported from Figma. Expression is chosen from local UI state; no network involved. */
@@ -53,15 +54,17 @@ export function Migo({ expression = "idle", size = 96, decorative = true, classN
       style={{ width: size, height: (size * 300) / 260 }}
       data-migo={expression}
     >
-      <Image
-        src={`/migo/${expression}.${["listening", "confused", "sleeping"].includes(expression) ? "png" : "svg"}`}
+      {expression === "listening" || expression === "confused" || expression === "sleeping" ? (
+        <MigoVoiceArt expression={expression} size={size} label={decorative ? undefined : ALT[expression]} />
+      ) : <Image
+        src={`/migo/${expression}.svg`}
         alt={decorative ? "" : ALT[expression]}
         width={260}
         height={300}
         unoptimized
         priority={false}
         className="size-full"
-      />
+      />}
     </span>
   );
 }
