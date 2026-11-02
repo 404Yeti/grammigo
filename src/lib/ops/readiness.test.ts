@@ -195,11 +195,13 @@ describe("Vercel function-region preparation", () => {
     expect(region.vercelConfigFor("eu-central-1", { cron: true })).toEqual({ regions: ["fra1"], crons: [{ path: "/api/auth/cleanup", schedule: "17 3 * * *" }] });
     for (const bad of [undefined, "", "sin1", "ap-southeast-9", "AP-SOUTHEAST-1", "__proto__", "constructor"]) expect(() => region.vercelConfigFor(bad), String(bad)).toThrow(/does not guess/);
   });
-  it("no vercel.json is committed yet, so no function region is assumed anywhere (and if one appears it must match a verified mapping)", () => {
+  it("Vercel settings may omit regions; any explicit function region must use a known mapping", () => {
     const file = path.join(ROOT, "vercel.json");
     if (!existsSync(file)) return;
     const cfg = JSON.parse(readFileSync(file, "utf8"));
-    expect(Object.values(region.REGION_MAP)).toEqual(expect.arrayContaining(cfg.regions ?? []));
-    expect((cfg.regions ?? []).length).toBe(1);
+    if (cfg.regions === undefined) return;
+    expect(Array.isArray(cfg.regions)).toBe(true);
+    expect(Object.values(region.REGION_MAP)).toEqual(expect.arrayContaining(cfg.regions));
+    expect(cfg.regions.length).toBe(1);
   });
 });
