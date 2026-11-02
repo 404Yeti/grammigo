@@ -10,6 +10,7 @@ import { FeedbackPanel, type FeedbackKind } from "@/components/feedback/Feedback
 import { HintCard } from "@/components/feedback/HintCard";
 import { ExitDialog } from "@/components/lesson/ExitDialog";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { MigoAudio } from "@/features/voice/MigoAudio";
 import { MigoBubble } from "@/components/mascot/MigoBubble";
 import type { AnswerState } from "@/components/ui/AnswerOption";
 import { AiNotice } from "@/components/ui/AiNotice";
@@ -249,6 +250,7 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
         </div>
 
         <div className="flex flex-col gap-3 px-2 pt-4">
+          <MigoAudio lessonId={lessonId} questionId={question.id} kind={inFeedback ? record.resolution === "correct" ? "encouragement" : "correction" : "instruction"} />
           {kind ? (
             <FeedbackPanel
               kind={kind}

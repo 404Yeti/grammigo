@@ -25,3 +25,9 @@ export function defaultAiDeps(): AiDeps {
     },
   };
 }
+
+/** Lazy shared SDK entry point for bounded hosted speech. Call only after the voice guards pass. */
+export function createSpeechClient() {
+  const config = readAiConfig();
+  return new OpenAI({ apiKey: config.apiKey ?? undefined, maxRetries: 0 }).audio.speech;
+}

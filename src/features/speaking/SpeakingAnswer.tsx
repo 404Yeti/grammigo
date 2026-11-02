@@ -90,7 +90,7 @@ export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onB
   return (
     <div className="flex flex-col gap-3" data-testid="speaking-answer">
       {!disabled && <p className="text-sm font-medium leading-5 text-ink-2">We check the grammar in your confirmed words, never your accent or pronunciation.</p>}
-      {issue && <p role="alert" className="rounded-2xl border border-line-strong bg-subtle p-4 text-sm leading-6">{ISSUES[issue]}</p>}
+      {issue && <div className="flex items-center gap-3"><Migo expression="confused" size={66} /><p role="alert" className="rounded-2xl border border-line-strong bg-subtle p-4 text-sm leading-6">{ISSUES[issue]}</p></div>}
       {phase === "review" ? (
         <div className="flex flex-col gap-3 rounded-2xl bg-subtle p-4">
           <TextField label="What we heard" multiline value={transcript} onChange={setTranscript} inputRef={transcriptRef} maxLength={500} helper="Fix anything we heard incorrectly before checking grammar." helperInsteadOfCount />
@@ -103,7 +103,7 @@ export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onB
             <Button onClick={capture.stop} fullWidth={false} variant="dark"><Square size={24} aria-hidden /> Stop recording</Button>
             <p className="text-sm font-semibold">Recording… {capture.seconds} / 30 seconds</p>
           </> : <p className="text-sm font-semibold">{phase === "permission" ? "Waiting for the microphone…" : "Turning your recording into text…"}</p>}
-          <Migo expression={phase === "recording" ? "curious" : "thinking"} size={80} />
+          <Migo expression={phase === "recording" ? "listening" : "thinking"} size={80} />
           <Button variant="ghost" onClick={() => cancel("typing")}>Cancel and type instead</Button>
         </div>
       ) : null}
