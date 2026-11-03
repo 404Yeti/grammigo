@@ -21,7 +21,7 @@ it("grounds strengths and one review tip in saved results, leaving writing unver
   const result = lessonDebrief(session);
   const text = debriefText(lesson.id, result)!;
   expect(result).toMatchObject({ independent: 6, assisted: 1, unverified: true, tipQuestion: "q2", speaking: "none" });
-  expect(text).toContain(lesson.grammarFocus);
+  expect(text).toContain(lesson.title.toLowerCase());
   expect(text).toContain("6 exercises correctly on your own");
   expect(text).toContain("Unchecked responses still need review");
   expect(text).not.toMatch(/master|CEFR|B2|fluent/i);
@@ -52,7 +52,7 @@ it("keeps all 13 lesson summaries short, with authored topic and valid review re
   expect(lessons).toHaveLength(13);
   for (const item of lessons) {
     const text = debriefText(item.id, { independent: 6, assisted: 2, unverified: true, tipQuestion: item.questions[0].id, speaking: "met" })!;
-    expect(text).toContain(item.grammarFocus);
+    expect(text).toContain(item.title.toLowerCase());
     expect(text.split(/\s+/).length).toBeLessThanOrEqual(85);
     expect(text.length).toBeLessThan(700);
   }

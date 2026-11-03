@@ -14,7 +14,7 @@ it("keeps completion and review usable after audio failure and does not regenera
   armCelebration(id);
   const view = render(<CompleteScreen lessonId={lesson.id} sessionId={id} />);
   await screen.findByText(/Audio is unavailable/);
-  expect(screen.getByTestId("lesson-debrief")).toHaveTextContent(lesson.grammarFocus);
+  expect(screen.getByTestId("lesson-debrief")).toHaveTextContent(lesson.title.toLowerCase());
   expect(screen.getByRole("link", { name: "Review My Lesson" })).toBeInTheDocument();
   const summary = screen.getByTestId("lesson-debrief").textContent;
   expect(getSnapshot().sessions.find(s => s.id === id)?.status).toBe("completed");

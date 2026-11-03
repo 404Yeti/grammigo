@@ -31,7 +31,7 @@ export function debriefText(lessonId: string, result: Debrief): string | null {
   if (!lesson) return null;
   const tip = result.tipQuestion ? lesson.questions.find(q => q.id === result.tipQuestion) : undefined;
   if (result.tipQuestion && !tip) return null;
-  const parts = [`You practiced ${lesson.grammarFocus}.`];
+  const parts = [`You practiced ${lesson.title.toLowerCase()}.`];
   if (result.independent) parts.push(`You answered ${result.independent} ${result.independent === 1 ? "exercise" : "exercises"} correctly on your own.`);
   if (result.assisted) parts.push(`You also reached ${result.assisted} correct ${result.assisted === 1 ? "answer" : "answers"} after help or another try.`);
   if (result.speaking === "met") parts.push("Your speaking response also met this task’s grammar goal.");
