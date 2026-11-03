@@ -1,12 +1,17 @@
 import { expect, test, type Page } from "@playwright/test";
 import { listSkills } from "../src/curriculum";
 import { getLesson } from "../src/data/lessons";
+import { listeningQuestion } from "../src/data/lessons/listening";
 import { createSession } from "../src/features/practice/session";
 import { emptyState } from "../src/lib/storage/schema";
 
 async function open(page: Page, lessonId = "a1-be-present") {
   const lesson = getLesson(lessonId)!;
-  const session = createSession(lesson, "challenge-browser", Date.now());
+  // CI passes runtime feature switches as E2E flags rather than NEXT_PUBLIC build flags.
+  const listening = process.env.E2E_LISTENING === "1" ? listeningQuestion(lesson) : null;
+  const runtimeLesson = listening && !lesson.questions.some(q => q.id === listening.id)
+    ? { ...lesson, questions: [...lesson.questions, listening] } : lesson;
+  const session = createSession(runtimeLesson, "challenge-browser", Date.now());
   session.currentIndex = session.records.length - 1;
   session.phase = "feedback";
   session.records = session.records.map(r => ({ ...r, resolution: "needs_review" }));
