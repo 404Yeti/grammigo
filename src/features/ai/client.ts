@@ -1,5 +1,5 @@
 import type { GoalItem } from "@/types/session";
-import type { WritingFeedback } from "./schemas";
+import { writingFeedbackSchema, type WritingFeedback } from "./schemas";
 
 /**
  * Browser-side wrappers for the AI endpoints. Every call has a timeout and NEVER throws: a null
@@ -57,4 +57,14 @@ export async function requestWritingFeedback(input: { skillId: string; questionI
     14_000,
   );
   return out?.status === "ok" ? out.feedback : null;
+}
+
+export async function requestSpeakingFeedback(input: { skillId: string; text: string }, signal?: AbortSignal): Promise<WritingFeedback | null> {
+  const out = await call<{ status: string; feedback: WritingFeedback }>(
+    "/api/ai/speaking-feedback",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...input, questionId: "final-speaking" }), signal },
+    14_000,
+  );
+  const parsed = writingFeedbackSchema.safeParse(out?.status === "ok" ? out.feedback : null);
+  return parsed.success ? parsed.data : null;
 }

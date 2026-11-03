@@ -1,3 +1,4 @@
+import { CHALLENGE_ID, speakingChallenge } from "@/features/challenge/content";
 import { getCurriculumSkill } from "@/curriculum";
 import { aiAvailability, type AiConfig } from "@/lib/ai/config";
 import { guardRequest, json, type AiKind } from "@/lib/ai/guard";
@@ -92,4 +93,19 @@ export async function handleTranscribe(req: Request, deps: AiDeps): Promise<Resp
   } catch (error) {
     return failure(error);
   }
+}
+
+/** Bounded lesson task only; shares existing writing guards, quotas and service. */
+export async function handleSpeaking(req: Request, deps: AiDeps): Promise<Response> {
+  const blocked = await guarded(req, "writing", deps, 4_000);
+  if (blocked) return blocked;
+  const parsed = writingRequestSchema.safeParse(await readJson(req));
+  if (!parsed.success || parsed.data.questionId !== CHALLENGE_ID || parsed.data.text.length > 500) return json(400, { error: "invalid_request" });
+  const skill = getCurriculumSkill(parsed.data.skillId);
+  const task = speakingChallenge(parsed.data.skillId);
+  if (!skill || !task) return json(400, { error: "invalid_request" });
+  try {
+    const feedback = await deps.service().evaluateWriting({ skill: { ...skill, questions: [task] }, questionId: task.id, text: parsed.data.text });
+    return json(200, { status: "ok", feedback });
+  } catch (error) { return failure(error); }
 }

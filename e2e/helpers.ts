@@ -33,7 +33,10 @@ export async function check(page: Page) {
 }
 
 export async function cont(page: Page) {
-  await page.getByRole("button", { name: /^(Continue|Finish lesson)$/ }).click();
+  const button = page.getByRole("button", { name: /^(Continue|Finish lesson)$/ });
+  const finishing = await button.innerText() === "Finish lesson";
+  await button.click();
+  if (finishing) await page.getByRole("button", { name: "Skip speaking and finish lesson" }).click();
 }
 
 export async function expectQuestion(page: Page, n: number) {

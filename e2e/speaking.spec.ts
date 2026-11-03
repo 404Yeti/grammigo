@@ -55,7 +55,7 @@ test("review transcript → targeted grammar correction → retry → finish; au
     await cont(page);
     await answerCorrectly(page, 9);
   }
-  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await cont(page);
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
   expect(uploads).toBe(1);
   expect(unexpected).toEqual([]);
@@ -107,7 +107,7 @@ test("an uncertain spoken exercise is saved for review without paid writing eval
     await cont(page);
     await answerCorrectly(page, 9);
   }
-  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await cont(page);
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
   expect(writingCalls).toBe(0);
 });
