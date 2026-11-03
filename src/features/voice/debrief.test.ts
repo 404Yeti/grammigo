@@ -44,6 +44,10 @@ it("uses only reliable speaking feedback and makes no claims for skipped or unce
   session.speakingChallenge.attempts[0].feedback = { ...feedback, confidence: "high" };
   expect(lessonDebrief(session).speaking).toBe("met");
   expect(debriefText(lesson.id, lessonDebrief(session))).not.toMatch(/private|Invented/);
+  session.speakingChallenge.attempts[0].feedback = { ...feedback, confidence: "high", outcome: "needs_work" };
+  const review = debriefText(lesson.id, lessonDebrief(session));
+  expect(review).toContain("grammar feedback on your speaking response");
+  expect(review).not.toContain("grammar correction");
 });
 
 it("keeps all 13 lesson summaries short, with authored topic and valid review references", async () => {

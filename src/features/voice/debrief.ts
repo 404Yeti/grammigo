@@ -41,7 +41,7 @@ export function debriefText(lessonId: string, result: Debrief): string | null {
     const hint = tip.hints[0]?.split(/(?<=[.!?])\s/)[0];
     parts.push(hint && hint.length <= 110 ? `For your next try: ${hint}` : `Compare your answer for ${tip.reviewTitle.toLowerCase()} with the model in your review.`);
   }
-  else if (result.speaking === "review") parts.push("For your next step, revisit the grammar correction in your speaking feedback and try that sentence again.");
+  else if (result.speaking === "review") parts.push("For your next step, revisit the grammar feedback on your speaking response and try that sentence again.");
   parts.push("Keep practicing, amigo, one sentence at a time.");
   return parts.join(" ");
 }
