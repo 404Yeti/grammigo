@@ -7,7 +7,7 @@ import { Migo } from "@/components/mascot/Migo";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GrammarTag } from "@/components/ui/GrammarTag";
-import { requireSkill } from "@/curriculum";
+import { getCurriculumSkill, requireSkill } from "@/curriculum";
 import { useLocalClock } from "@/features/activity/use-local-clock";
 import { explainNextStep } from "@/features/learning/derive";
 import { useDerivedLearning } from "@/features/learning/use-learning";
@@ -34,7 +34,7 @@ function ProgressContent({ state, learning }: { state: NonNullable<ReturnType<ty
   const { now, timeZone } = useLocalClock();
   const progress = progressOverview(state, learning, now);
   const active = getActiveSession(state);
-  const activeSkill = active ? progress.topics.find(t => t.skillId === active.lessonId) : null;
+  const activeSkill = active ? getCurriculumSkill(active.lessonId) : null;
   const top = learning.top;
   const recommendations = learning.recommendations.slice(0, 2);
   const labelDate = (at: number) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone }).format(at);
@@ -61,7 +61,7 @@ function ProgressContent({ state, learning }: { state: NonNullable<ReturnType<ty
             return <li key={entry.skillId} className="py-4 first:pt-0" data-skill={entry.skillId}>
               <h3 className="font-bold leading-6">{entry.title}</h3>
               <div className="mt-2 flex flex-wrap gap-2"><GrammarTag style="neutral">{entry.cefr} lesson</GrammarTag><GrammarTag style={m.status === "needs_practice" && !m.provisional ? "warning" : "info"}>{evidenceLabel(entry)}</GrammarTag></div>
-              <p className="mt-2 text-sm leading-6 text-ink-2">{checked ? `${m.independent} answers on your own · ${m.assisted} with help · ${m.incorrect} missed` : "You practiced this topic, but there aren’t enough reliably checked answers to judge it yet."}</p>
+              <p className="mt-2 text-sm leading-6 text-ink-2">{checked ? `${m.independent} ${m.independent === 1 ? "answer" : "answers"} on your own · ${m.assisted} with help · ${m.incorrect} missed` : "You practiced this topic, but there aren’t enough reliably checked answers to judge it yet."}</p>
               {checked > 0 && <p className="text-xs leading-5 text-muted">{learning.events.filter(e => e.skillId === entry.skillId && e.source === "lesson").length} lesson answers · {learning.events.filter(e => e.skillId === entry.skillId && e.source === "diagnostic").length} quick-check answers. {m.provisional ? "Only a little evidence so far." : m.reviewDue ? "A refresher is due." : "Keep practicing to build a clearer picture."}</p>}
               {observation && <p className="mt-2 text-sm leading-6 text-ink-2" data-testid="progress-speaking">{observation} Speaking observations do not change your checked-answer profile or recommendations.</p>}
               <Link className={linkClass} href={`/practice/${entry.skillId}`}>Practice {entry.title}</Link>
@@ -87,7 +87,7 @@ function ProgressContent({ state, learning }: { state: NonNullable<ReturnType<ty
     <div className="min-w-0 space-y-4">
       <Card aria-labelledby="progress-next" className="border-brand bg-brand-soft">
         <h2 id="progress-next" className="text-xl font-bold leading-7">Your next steps</h2>
-        {active && <div className="mt-3" data-testid="progress-continue"><p className="text-sm leading-6">You have a saved lesson in progress{activeSkill ? `: ${activeSkill.title}` : ""}.</p><ButtonLink className="mt-2" href={`/practice/${active.lessonId}/session`}>Continue Lesson</ButtonLink></div>}
+        {active && activeSkill && <div className="mt-3" data-testid="progress-continue"><p className="text-sm leading-6">You have a saved lesson in progress: {activeSkill.title}.</p><ButtonLink className="mt-2" href={`/practice/${active.lessonId}/session`}>Continue Lesson</ButtonLink></div>}
         <ul className="mt-4 space-y-4" data-testid="progress-recommendations">{recommendations.map(rec => <li key={rec.skillId}>
           <h3 className="font-bold">{requireSkill(rec.skillId).title}</h3>
           <p className="mt-1 text-sm leading-6 text-ink-2">{rec === top ? explainNextStep(state, learning) : rec.reason}</p>
