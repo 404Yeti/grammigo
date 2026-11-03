@@ -8,7 +8,10 @@ import { handleSyncConsent, handleSyncGet, handleSyncPut, handleSyncState, type 
 import { getViewer, type Viewer } from "@/lib/auth/viewer";
 import { emptyState } from "@/lib/storage/schema";
 import { lesson } from "@/tests/helpers";
-import { closePool, q } from "../helpers";
+import { as as asRole, closePool, q } from "../helpers";
+import { learningActivity } from "@/features/activity/calendar";
+import { activitySession } from "@/tests/activity-fixtures";
+import { parseStoredState } from "@/lib/storage/schema";
 import { config, createPerson, db, freshHeaders, service, sessionFor, type Person } from "./kit";
 
 /**
@@ -333,5 +336,45 @@ describe("measured latency (real database, sequential, includes verifying the se
     const summary = Object.fromEntries(Object.entries(t).map(([op, xs]) => [op, { n: xs.length, p50: Math.round(pct(xs, 0.5)), p95: Math.round(pct(xs, 0.95)), max: Math.round(Math.max(...xs)) }]));
     console.log("SYNC_LATENCY_MS " + JSON.stringify(summary));
     for (const [op, s] of Object.entries(summary)) expect(s.p95, `${op} p95`).toBeLessThan(1_500);
+  });
+});
+
+
+describe("activity calendar: real persisted completion evidence", () => {
+  it("round-trips historical/boundary timestamps unchanged and keeps another learner's activity private", async () => {
+    const [a, b] = await Promise.all([createPerson({ label: "calendar-a", learner: true }), createPerson({ label: "calendar-b", learner: true })]);
+    await Promise.all([consent(a), consent(b)]);
+    const times = ["2023-12-31T23:30Z", "2024-11-02T19:00Z", "2024-11-03T20:00Z", "2024-11-04T20:00Z", "2024-11-03T21:00Z"];
+    const history = times.map((t, i) => activitySession(`history-${i}`, Date.parse(t)));
+    history.push(activitySession("unfinished", Date.parse("2024-11-05T20:00Z"), "in_progress"), activitySession("abandoned", Date.parse("2024-11-06T20:00Z"), "abandoned"), activitySession("future", Date.parse("2027-01-01T12:00Z")), activitySession("missing-date", null));
+    const saved = { ...emptyState(), sessions: history };
+    const peer = { ...emptyState(), sessions: [activitySession("peer-only", Date.parse("2026-11-03T00:30Z"))] };
+    expect((await put(a, "lessons_v2", 0, saved)).status).toBe(200);
+    expect((await put(b, "lessons_v2", 0, peer)).status).toBe(200);
+    const read = (await get(a, "lessons_v2")).body as { body: unknown };
+    const loaded = parseStoredState(JSON.stringify(read.body))!;
+    expect(loaded.sessions).toEqual(history);
+    expect(learningActivity(loaded.sessions, Date.parse("2026-11-04T12:00Z"), "America/Los_Angeles")).toMatchObject({ totalActiveDays: 4, longestStreak: 3, currentStreak: 0, firstMonth: "2023-12" });
+    const { client } = sessionFor(b.cookies);
+    expect((await client.from("learner_documents").select("body").eq("user_id", a.id)).data).toEqual([]);
+    const peerRead = (await get(b, "lessons_v2")).body as { body: unknown };
+    expect(learningActivity(parseStoredState(JSON.stringify(peerRead.body))!.sessions, Date.parse("2026-11-04T12:00Z"), "UTC").totalActiveDays).toBe(1);
+    expect((await stored(a.id, "lessons_v2"))?.body.sessions).toEqual(history);
+  });
+
+  it("database session timezone does not shift saved instants or break a DST streak", async () => {
+    const a = await createPerson({ label: "calendar-tz", learner: true }); await consent(a);
+    const records = ["2024-03-09T20:00Z", "2024-03-10T19:00Z", "2024-03-11T19:00Z"].map((t, i) => activitySession(`dst-${i}`, Date.parse(t)));
+    expect((await put(a, "lessons_v2", 0, { ...emptyState(), sessions: records })).status).toBe(200);
+    for (const zone of ["UTC", "Pacific/Auckland"]) {
+      const body = await asRole("authenticated", a.id, async query => {
+        await query("select set_config('TimeZone', $1, true)", [zone]);
+        const r = await query("select body from public.learner_documents where user_id=$1 and doc_key='lessons_v2'", [a.id]);
+        return r.rows[0].body;
+      });
+      const loaded = parseStoredState(JSON.stringify(body))!;
+      expect(loaded.sessions).toEqual(records);
+      expect(learningActivity(loaded.sessions, Date.parse("2024-03-11T23:00Z"), "America/Los_Angeles")).toMatchObject({ totalActiveDays: 3, currentStreak: 3, longestStreak: 3 });
+    }
   });
 });
