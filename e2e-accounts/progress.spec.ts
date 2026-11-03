@@ -14,6 +14,10 @@ test("@cross Progress keeps signed-in learners and guest evidence separate on a 
   await page.addInitScript(states=>{for(const [key,state] of Object.entries(states)) if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(state));},saved);
   await context.addCookies(sessionCookies(a)); await page.goto("/account");
   await expect(page.getByTestId("dashboard-greeting")).toHaveText("Hi, Progress Alpha");
+  // Injecting an Auth session bypasses the real sign-in callback, which writes the scope cookie.
+  // The greeting also renders in the loading shell: wait for the verified dashboard to initialize scope.
+  await expect(page.getByTestId("dashboard-skills")).toBeVisible();
+  await expect.poll(async () => (await context.cookies()).find(c => c.name === "gm-scope")?.value).toBe(a.id);
   await page.goto("/progress");
   await expect(page.getByTestId("progress-completed")).toHaveText("3");
   await expect(page.getByTestId("progress-topics")).toHaveText("4");
@@ -21,6 +25,8 @@ test("@cross Progress keeps signed-in learners and guest evidence separate on a 
   await expect(page).toHaveURL(`${BASE}/learn`);
   await context.addCookies(sessionCookies(b));await page.goto("/account");
   await expect(page.getByTestId("dashboard-greeting")).toHaveText("Hi, Progress Bravo");
+  await expect(page.getByTestId("dashboard-skills")).toBeVisible();
+  await expect.poll(async () => (await context.cookies()).find(c => c.name === "gm-scope")?.value).toBe(b.id);
   await page.goto("/progress");
   await expect(page.getByTestId("progress-completed")).toHaveText("1");
   await expect(page.getByTestId("progress-grammar-list")).not.toContainText("Present simple of");
