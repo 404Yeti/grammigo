@@ -63,20 +63,23 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   await page.goto("/practice/a1-be-present");
   await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
   // Populate old clips: the new debrief must persist while keeping device storage bounded.
-  await page.evaluate(async () => {
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
-      request.onupgradeneeded = () => request.result.createObjectStore("clips", { keyPath: "key" }).createIndex("at", "at");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction("clips", "readwrite");
-      for (let i = 0; i < 24; i++) tx.objectStore("clips").put({ key: `old-${i}`, blob: new Blob(["old"]), at: i });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-    db.close();
+  const persistentAudio = await page.evaluate(async () => {
+    try {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
+        request.onupgradeneeded = () => request.result.createObjectStore("clips", { keyPath: "key" }).createIndex("at", "at");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("clips", "readwrite");
+        for (let i = 0; i < 24; i++) tx.objectStore("clips").put({ key: `old-${i}`, blob: new Blob(["old"]), at: i });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      return true;
+    } catch { return false; } // WebKit may deny binary storage; tab replay must still work.
   });
   await page.getByLabel("She am a teacher.", { exact: true }).check({ force: true });
   await page.getByRole("button", { name: "Check Answer" }).click();
@@ -110,20 +113,26 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   await expect.poll(() => calls.filter(c => c.kind === "debrief").length).toBe(1);
   await expect(page.getByTestId("lesson-debrief")).toContainText("You practiced");
   await expect(page.getByRole("button", { name: "Replay Migo", exact: true })).toBeEnabled();
-  const clips = await page.evaluate(async () => {
-    const db = await new Promise<IDBDatabase>(resolve => {
-      const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
-      request.onsuccess = () => resolve(request.result);
+  if (persistentAudio) {
+    const clips = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>(resolve => {
+        const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
+        request.onsuccess = () => resolve(request.result);
+      });
+      const values = await new Promise<{ key: string }[]>(resolve => {
+        const request = db.transaction("clips", "readonly").objectStore("clips").getAll();
+        request.onsuccess = () => resolve(request.result);
+      });
+      db.close();
+      return values.map(v => v.key);
     });
-    const values = await new Promise<{ key: string }[]>(resolve => {
-      const request = db.transaction("clips", "readonly").objectStore("clips").getAll();
-      request.onsuccess = () => resolve(request.result);
-    });
-    db.close();
-    return values.map(v => v.key);
-  });
-  expect(clips).toHaveLength(24);
-  expect(clips.some(key => key.includes('"kind":"debrief"'))).toBe(true);
+    expect(clips).toHaveLength(24);
+    expect(clips.some(key => key.includes('"kind":"debrief"'))).toBe(true);
+  } else {
+    const clip = await page.evaluate(() => JSON.parse(sessionStorage.getItem("grammigo:debrief-audio:v1") ?? "null"));
+    expect(clip?.key).toContain('"kind":"debrief"');
+    expect(clip?.audio.length).toBeLessThanOrEqual(1_024_000);
+  }
   await page.screenshot({ path: info.outputPath("automatic-celebration.png"), fullPage: true });
   await page.reload();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
