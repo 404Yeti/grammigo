@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { readAiConfig } from "@/lib/ai/config";
 import { MemoryRateLimiter } from "@/lib/ai/rate-limit";
 import { handleSpeech, resetSpeechCache, type SpeechDeps } from "./server";
+import { SpeechProviderError } from "./providers";
 
 beforeEach(resetSpeechCache);
 const request = () => new Request("https://grammigo.test/api/ai/tts", { method: "POST", headers: { host: "grammigo.test", origin: "https://grammigo.test", "content-length": "120" }, body: JSON.stringify({ lessonId: "present-perfect-vs-past-simple", questionId: "q1", kind: "instruction" }) });
@@ -52,4 +53,111 @@ it("keeps ElevenLabs working after Coral shutdown and never falls back to a reti
   resetSpeechCache(); primary.mockRejectedValue(new Error("unavailable"));
   expect((await handleSpeech(request(), deps)).status).toBe(503);
   expect(coral).not.toHaveBeenCalled();
+});
+
+it("bounds concurrent distinct primary/fallback attempts with the shared daily cap", async () => {
+  const { deps, primary, coral } = setup();
+  deps.dailyCap = 3;
+  deps.config.limits.perMinute.tts = 100;
+  primary.mockRejectedValue(new Error("private upstream details"));
+  const kinds = ["instruction", "encouragement", "correction", "hint", "positive", "supportive"];
+  const responses = await Promise.all(kinds.map(kind => {
+    const req = request();
+    return handleSpeech(new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ lessonId: "present-perfect-vs-past-simple", questionId: "q1", kind }) }), deps);
+  }));
+  expect(primary.mock.calls.length + coral.mock.calls.length).toBe(3);
+  expect(responses.some(response => response.status === 503)).toBe(true);
+});
+it("bounds concurrent ElevenLabs calls independently while Coral uses only remaining shared slots", async () => {
+  const { deps, primary, coral } = setup();
+  deps.primary!.dailyCap = 1; deps.dailyCap = 3;
+  const kinds = ["instruction", "positive", "supportive"];
+  const responses = await Promise.all(kinds.map(kind => {
+    const req = request();
+    return handleSpeech(new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ lessonId: "present-perfect-vs-past-simple", questionId: "q1", kind }) }), deps);
+  }));
+  expect(responses.map(response => response.status)).toEqual([200, 200, 200]);
+  expect(primary).toHaveBeenCalledOnce(); expect(coral).toHaveBeenCalledTimes(2);
+});
+it("reserves monthly credits by character count once per synthesis and caches fallback without exposing diagnostics", async () => {
+  const { deps, primary, coral } = setup();
+  const reserve = vi.fn(async (provider: string) => provider === "elevenlabs" ? "elevenlabs_monthly_credit_budget" as const : null); deps.budget = { reserve };
+  const log = vi.spyOn(console, "info").mockImplementation(() => {});
+  try {
+    const response = await handleSpeech(request(), deps);
+    expect(response.status).toBe(200);
+    expect(response.headers.has("x-tts-reason")).toBe(false);
+    await handleSpeech(request(), deps);
+    expect(reserve).toHaveBeenCalledTimes(2);
+    expect(reserve).toHaveBeenCalledWith("elevenlabs", expect.any(Number), expect.any(Number));
+    expect(primary).not.toHaveBeenCalled(); expect(coral).toHaveBeenCalledOnce();
+    expect(JSON.stringify(log.mock.calls)).toContain("elevenlabs_monthly_credit_budget");
+  } finally { log.mockRestore(); }
+});
+it("does not synthesize through a monthly budget outage or refund a possibly billed failed primary", async () => {
+  const { deps, primary, coral } = setup();
+  const reserve = vi.fn(async () => { throw new Error("private token or network"); }); deps.budget = { reserve };
+  const response = await handleSpeech(request(), deps);
+  expect(await response.json()).toEqual({ error: "voice_unavailable" });
+  expect(primary).not.toHaveBeenCalled(); expect(coral).not.toHaveBeenCalled();
+  resetSpeechCache();
+  deps.budget = { reserve: vi.fn(async () => null) };
+  primary.mockRejectedValue(new Error("private provider body"));
+  expect((await handleSpeech(request(), deps)).status).toBe(200);
+  expect(deps.budget.reserve).toHaveBeenCalledTimes(2);
+});
+
+it("logs safe fallback reasons even with usage logging off, never raw errors or authored copy", async () => {
+  const { deps, primary } = setup();
+  const log = vi.spyOn(console, "info").mockImplementation(() => {});
+  try {
+    deps.primary!.dailyCap = 0;
+    await handleSpeech(request(), deps);
+    expect(JSON.stringify(log.mock.calls)).toContain("elevenlabs_daily_cap");
+    resetSpeechCache(); deps.primary!.dailyCap = 20;
+    primary.mockRejectedValue(new Error("secret token and personal data"));
+    await handleSpeech(request(), deps);
+    const entries = JSON.stringify(log.mock.calls);
+    expect(entries).toContain("provider_failure");
+    expect(entries).not.toContain("secret token");
+    expect(entries).not.toContain("personal data");
+    expect(entries).not.toContain("characters");
+  } finally { log.mockRestore(); }
+});
+
+it.each([
+  new SpeechProviderError("provider_http", 402),
+  new SpeechProviderError("provider_http", 429),
+  new SpeechProviderError("provider_timeout"),
+])("falls back on provider balance errors/timeouts and bounds subsequent retries (%j)", async error => {
+  const { deps, primary, coral } = setup();
+  deps.dailyCap = 2;
+  primary.mockRejectedValue(error);
+  expect((await handleSpeech(request(), deps)).status).toBe(200);
+  expect(primary).toHaveBeenCalledOnce(); expect(coral).toHaveBeenCalledOnce();
+  // A replay is cached, while another text cannot create uncounted failure/fallback attempts.
+  expect((await handleSpeech(request(), deps)).status).toBe(200);
+  const req = request();
+  expect((await handleSpeech(new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ lessonId: "present-perfect-vs-past-simple", questionId: "q1", kind: "positive" }) }), deps)).status).toBe(503);
+  expect(primary).toHaveBeenCalledOnce(); expect(coral).toHaveBeenCalledOnce();
+});
+
+it("does not charge any synthesis allowance when a monthly quota check is denied", async () => {
+  const { deps, primary, coral } = setup();
+  deps.dailyCap = 1; deps.primary!.dailyCap = 1; deps.monthlyCredits = 0;
+  // The declined primary must leave the only shared slot available for Coral.
+  expect((await handleSpeech(request(), deps)).status).toBe(200);
+  expect(primary).not.toHaveBeenCalled(); expect(coral).toHaveBeenCalledOnce();
+});
+
+it("retains uncertain failed primary credits without retrying it after the short fallback cache expires", async () => {
+  const { deps, primary, coral } = setup();
+  primary.mockRejectedValue(new SpeechProviderError("provider_timeout"));
+  // The exact authored prompt length is known only after the first provider dispatch.
+  await handleSpeech(request(), deps);
+  const submitted = (primary.mock.calls[0] as unknown as [string])[0].length;
+  deps.monthlyCredits = submitted;
+  deps.now = () => Date.parse("2026-11-02T00:01:01Z");
+  expect((await handleSpeech(request(), deps)).status).toBe(200);
+  expect(primary).toHaveBeenCalledOnce(); expect(coral).toHaveBeenCalledTimes(2);
 });

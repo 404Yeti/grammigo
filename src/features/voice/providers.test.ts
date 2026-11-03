@@ -6,7 +6,7 @@ it("uses only the server key and the fixed custom voice/model, with bounded time
   const fetcher = vi.fn(async () => new Response(new Uint8Array([1, 2]), { headers: { "content-type": "audio/mpeg" } }));
   expect(elevenLabsProvider({})).toBeUndefined();
   const provider = elevenLabsProvider({ ELEVENLABS_API_KEY: "server-only-test", ELEVENLABS_DAILY_CALL_CAP: "500" }, fetcher)!;
-  expect(provider.dailyCap).toBe(50);
+  expect(provider.dailyCap).toBe(500);
   expect(await provider.generate("Authored instruction.")).toEqual(new Uint8Array([1, 2]));
   const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
   expect(url).toContain(`/v1/text-to-speech/${CUSTOM_MIGO_VOICE}?output_format=mp3_44100_128`);
@@ -23,4 +23,14 @@ it("rejects provider errors, non-audio, empty audio and oversized streaming outp
   await expect(readSpeechAudio(new Response("not audio"))).rejects.toThrow("speech_unavailable");
   await expect(readSpeechAudio(new Response(new Uint8Array(), { headers: { "content-type": "audio/mpeg" } }))).rejects.toThrow("speech_unavailable");
   await expect(readSpeechAudio(new Response(new Uint8Array(MAX_AUDIO_BYTES + 1), { headers: { "content-type": "audio/mpeg" } }))).rejects.toThrow("speech_unavailable");
+});
+
+it("classifies HTTP, timeout and network failures without preserving raw provider details", async () => {
+  for (const [name, reason] of [["TimeoutError", "provider_timeout"], ["AbortError", "provider_timeout"], ["TypeError", "provider_network"]]) {
+    const fetcher = vi.fn(async () => { const error = new Error("private provider credentials"); error.name = name; throw error; });
+    const provider = elevenLabsProvider({ ELEVENLABS_API_KEY: "secret" }, fetcher)!;
+    await expect(provider.generate("Public prompt")).rejects.toMatchObject({ message: "speech_unavailable", reason });
+  }
+  const provider = elevenLabsProvider({ ELEVENLABS_API_KEY: "secret" }, vi.fn(async () => new Response("private provider body", { status: 429 })))!;
+  await expect(provider.generate("Public prompt")).rejects.toMatchObject({ message: "speech_unavailable", reason: "provider_http", status: 429 });
 });

@@ -5,7 +5,8 @@ import { guardRequest, json, limiterFor } from "@/lib/ai/guard";
 import type { RateLimiter } from "@/lib/ai/rate-limit";
 import { recordSpeechUsage } from "./usage";
 import { speechRequestSchema, speechText } from "./content";
-import { CORAL_IDENTITY, elevenLabsProvider, generateCoral, MAX_AUDIO_BYTES } from "./providers";
+import { CORAL_IDENTITY, elevenLabsProvider, generateCoral, MAX_AUDIO_BYTES, SpeechProviderError } from "./providers";
+import { synthesisBudget, monthlyCreditLimit, synthesisLimit, type SynthesisBudget } from "./budgets";
 
 export { MAX_AUDIO_BYTES } from "./providers";
 const CORAL_SHUTDOWN = Date.parse("2027-01-06T00:00:00Z");
@@ -21,13 +22,16 @@ export interface SpeechDeps {
   limiter: RateLimiter;
   generate: (text: string) => Promise<Uint8Array>;
   primary?: { identity: string; dailyCap: number; generate: (text: string) => Promise<Uint8Array> };
+  budget?: SynthesisBudget;
+  monthlyCredits?: number;
   now?: () => number;
 }
 export function defaultSpeechDeps(): SpeechDeps {
   const config = readAiConfig();
   return {
     config, enabled: process.env.MIGO_VOICE_ENABLED === "true",
-    dailyCap: Math.min(100, Math.max(1, Number(process.env.TTS_DAILY_CALL_CAP) || 50)),
+    dailyCap: synthesisLimit(process.env.TTS_DAILY_CALL_CAP),
+    monthlyCredits: monthlyCreditLimit(process.env.ELEVENLABS_MONTHLY_CREDIT_BUDGET),
     limiter: limiterFor(config), generate: generateCoral, primary: elevenLabsProvider(),
   };
 }
@@ -35,13 +39,17 @@ export function resetSpeechCache() { cache.clear(); pending.clear(); }
 
 async function synthesize(text: string, deps: SpeechDeps): Promise<Clip> {
   const now = deps.now?.() ?? Date.now();
-  const day = new Date(now).toISOString().slice(0, 10);
-  const reserve = async () => {
-    const budget = await deps.limiter.hit(`tts:budget:${day}`, deps.dailyCap, 86_400);
-    if (!budget.allowed) throw new Error("budget");
+  const budget = deps.budget ?? synthesisBudget(deps.config, {
+    shared: deps.dailyCap, primary: deps.primary?.dailyCap ?? 0, credits: deps.monthlyCredits ?? 100_000,
+  }, deps.limiter);
+  const diagnostic = (event: "fallback" | "unavailable" | "provider_failure", reason: string, provider?: "elevenlabs" | "coral", status?: number) => {
+    console.info("[tts-diagnostic]", JSON.stringify({ event, reason, ...(provider ? { provider } : {}), ...(status ? { status } : {}) }));
+  };
+  const reserve = async (provider: "elevenlabs" | "coral") => {
+    try { return await budget.reserve(provider, text.length, now); }
+    catch { diagnostic("unavailable", "synthesis_budget_unavailable"); throw new Error("synthesis_budget_unavailable"); }
   };
   const attempt = async (generate: SpeechDeps["generate"], provider: "elevenlabs" | "coral") => {
-    await reserve(); // limiter errors fail closed, before a paid request
     const started = Date.now();
     try {
       const bytes = await generate(text);
@@ -50,20 +58,24 @@ async function synthesize(text: string, deps: SpeechDeps): Promise<Clip> {
       recordSpeechUsage(counts);
       if (deps.config.usageLog) console.info("[tts-usage]", JSON.stringify(counts));
       return bytes;
-    } catch {
+    } catch (error) {
+      const reason = error instanceof SpeechProviderError ? error.reason : "provider_failure";
+      diagnostic(provider === "elevenlabs" ? "fallback" : "provider_failure", reason, provider, error instanceof SpeechProviderError ? error.status : undefined);
       recordSpeechUsage({ provider, characters: text.length, ms: Date.now() - started, failed: true });
       return null;
     }
   };
   if (deps.primary) {
-    // Separate provider budget: <=20 calls / <=6,400 authored characters daily by default.
-    const budget = await deps.limiter.hit(`tts:elevenlabs:budget:${day}`, deps.primary.dailyCap, 86_400);
-    if (budget.allowed) {
+    const denial = await reserve("elevenlabs");
+    if (denial === "shared_daily_cap") { diagnostic("unavailable", denial); throw new Error("budget"); }
+    if (!denial) {
       const bytes = await attempt(deps.primary.generate, "elevenlabs");
       if (bytes) return { bytes, expires: now + 86_400_000 };
-    }
-  }
-  if (now >= CORAL_SHUTDOWN) throw new Error("voice_unavailable");
+    } else diagnostic("fallback", denial, "elevenlabs");
+  } else diagnostic("fallback", "elevenlabs_not_configured", "elevenlabs");
+  if (now >= CORAL_SHUTDOWN) { diagnostic("unavailable", "coral_retired", "coral"); throw new Error("voice_unavailable"); }
+  const denial = await reserve("coral");
+  if (denial) { diagnostic("unavailable", denial, "coral"); throw new Error("budget"); }
   const bytes = await attempt(deps.generate, "coral");
   if (!bytes) throw new Error("voice_unavailable");
   // Recover the primary voice after a brief outage, rather than caching Coral indefinitely as Migo.

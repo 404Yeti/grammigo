@@ -1,4 +1,5 @@
 import "server-only";
+import { synthesisLimit } from "./budgets";
 import { createSpeechClient } from "@/features/ai/deps";
 
 export const CUSTOM_MIGO_VOICE = "v50G5ovlVt3QsSRU1EhH";
@@ -6,11 +7,18 @@ export const ELEVEN_MODEL = "eleven_multilingual_v2";
 export const CORAL_IDENTITY = "openai:gpt-4o-mini-tts:coral";
 export const MAX_AUDIO_BYTES = 256_000;
 
+export class SpeechProviderError extends Error {
+  constructor(public readonly reason: "provider_http" | "provider_timeout" | "provider_network" | "invalid_audio", public readonly status?: number) {
+    super("speech_unavailable");
+  }
+}
+
 /** Bound a response while streaming, rather than buffering an untrusted provider body first. */
 export async function readSpeechAudio(response: Response): Promise<Uint8Array> {
-  if (!response.ok || !response.headers.get("content-type")?.startsWith("audio/")) throw new Error("speech_unavailable");
+  if (!response.ok) throw new SpeechProviderError("provider_http", response.status);
+  if (!response.headers.get("content-type")?.startsWith("audio/")) throw new SpeechProviderError("invalid_audio");
   const reader = response.body?.getReader();
-  if (!reader) throw new Error("speech_unavailable");
+  if (!reader) throw new SpeechProviderError("invalid_audio");
   const parts: Uint8Array[] = [];
   let size = 0;
   try {
@@ -18,11 +26,11 @@ export async function readSpeechAudio(response: Response): Promise<Uint8Array> {
       const part = await reader.read();
       if (part.done) break;
       size += part.value.byteLength;
-      if (size > MAX_AUDIO_BYTES) { await reader.cancel(); throw new Error("speech_unavailable"); }
+      if (size > MAX_AUDIO_BYTES) { await reader.cancel(); throw new SpeechProviderError("invalid_audio"); }
       parts.push(part.value);
     }
   } finally { reader.releaseLock(); }
-  if (!size) throw new Error("speech_unavailable");
+  if (!size) throw new SpeechProviderError("invalid_audio");
   const bytes = new Uint8Array(size);
   let offset = 0;
   for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
@@ -32,18 +40,25 @@ export async function readSpeechAudio(response: Response): Promise<Uint8Array> {
 export function elevenLabsProvider(env: Record<string, string | undefined> = process.env, fetchImpl: typeof fetch = fetch) {
   const apiKey = env.ELEVENLABS_API_KEY?.trim();
   if (!apiKey) return undefined;
-  const requested = Number(env.ELEVENLABS_DAILY_CALL_CAP);
-  const dailyCap = Number.isFinite(requested) && requested > 0 ? Math.min(50, Math.floor(requested)) : 20;
+  const dailyCap = synthesisLimit(env.ELEVENLABS_DAILY_CALL_CAP);
   return {
     identity: `elevenlabs:${ELEVEN_MODEL}:${CUSTOM_MIGO_VOICE}`,
     dailyCap,
-    generate: async (text: string) => readSpeechAudio(await fetchImpl(
-      `https://api.elevenlabs.io/v1/text-to-speech/${CUSTOM_MIGO_VOICE}?output_format=mp3_44100_128`, {
-        method: "POST", headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
-        body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.95 } }),
-        signal: AbortSignal.timeout(5000), redirect: "error",
-      },
-    )),
+    generate: async (text: string) => {
+      try {
+        return await readSpeechAudio(await fetchImpl(
+          `https://api.elevenlabs.io/v1/text-to-speech/${CUSTOM_MIGO_VOICE}?output_format=mp3_44100_128`, {
+            method: "POST", headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
+            body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.95 } }),
+            signal: AbortSignal.timeout(5000), redirect: "error",
+          },
+        ));
+      } catch (error) {
+        if (error instanceof SpeechProviderError) throw error;
+        const timeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+        throw new SpeechProviderError(timeout ? "provider_timeout" : "provider_network");
+      }
+    },
   };
 }
 

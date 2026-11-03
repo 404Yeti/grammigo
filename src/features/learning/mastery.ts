@@ -133,7 +133,12 @@ export function computeSkillMastery(
   now: number,
   config: MasteryConfig = DEFAULT_MASTERY_CONFIG,
 ): SkillMastery {
-  const events = allEvents.filter((e) => e.skillId === skillId).sort((a, b) => a.at - b.at);
+  // Tied timestamps are common across devices. A total ordering makes floating-point sums,
+  // group ordering and recurring-error lists identical regardless of merge/input order.
+  const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+  const events = allEvents.filter((e) => e.skillId === skillId).sort((a, b) =>
+    a.at - b.at || compare(a.groupId, b.groupId) || compare(a.questionKey, b.questionKey) ||
+    compare(a.source, b.source) || compare(a.outcome, b.outcome));
   if (events.length === 0) return emptyMastery(skillId);
 
   let weighted = 0;
