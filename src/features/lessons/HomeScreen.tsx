@@ -19,6 +19,8 @@ import { restartOnboarding } from "@/features/onboarding/actions";
 import { getActiveSession, getCompletedSessions } from "@/features/practice/selectors";
 import { summarizeSession } from "@/features/practice/summary";
 import { usePracticeState } from "@/features/practice/use-practice-state";
+import { ActivityCalendar } from "@/features/activity/ActivityCalendar";
+import { useStorageScope } from "@/features/accounts/scope-client";
 import { timeAgo } from "@/lib/utils/time";
 
 function Skeleton({ className }: { className: string }) {
@@ -27,6 +29,7 @@ function Skeleton({ className }: { className: string }) {
 
 export function HomeScreen() {
   const router = useRouter();
+  const scope = useStorageScope();
   const state = usePracticeState();
   const learning = useDerivedLearning(state);
 
@@ -121,6 +124,7 @@ export function HomeScreen() {
           </section>
 
           <div className="flex flex-col gap-4">
+            <ActivityCalendar key={scope} sessions={state.sessions} />
             {skipped && (
               <Card className="p-5" aria-labelledby="meet-migo">
                 <h2 id="meet-migo" className="text-xl font-bold leading-7">Want a better starting point?</h2>

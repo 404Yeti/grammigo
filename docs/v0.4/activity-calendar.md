@@ -1,0 +1,15 @@
+# FAI-55 — Learning activity calendar
+
+Baseline: c11945e (Phase 1 deployed). This PR implements Phase 2 only. FAI-56 stays in backlog. No merge or deployment is authorized. Automatic Vercel deployment is disabled for the review branch only.
+
+The shared `ActivityCalendar` sits in the existing learning Home and authenticated dashboard, including an empty state for new accounts. It derives activity exclusively from `Session.status === "completed"` with a finite, valid `completedAt` at or before the current instant. Multiple completions on one date count once. Unfinished/abandoned work, missing dates and future-dated records do not count. Diagnostic and Guided Correction data are not regular lesson completions.
+
+All timestamps, including historical ones, are interpreted in the browser's **current local timezone**. Historical completion-time timezones were never stored and are not reconstructed. Travelling or changing the device timezone may legitimately move dates, combine/split active days and change streaks; returning to the earlier zone reproduces its view. The UI explains this policy. Original timestamps and completion records are never rewritten or backfilled.
+
+Calendar adjacency uses date-only UTC ordinals *after* converting timestamps to local dates, never elapsed 24-hour gaps. Thus spring/fall DST changes, midnight, leap days and year changes are handled consistently. Current streak ends today, or yesterday while today is still available; a missed date ends it. Longest streak and total active days cover all valid history, independently of the viewed month. Navigation is bounded by the earliest active month and the current month. Future date labels may appear in the current month but cannot show activity.
+
+The browser clock/timezone refreshes at local midnight, on focus/visibility, and at most every minute while visible. A timezone or account change clamps/resets navigation. The calendar is a semantic read-only table with full date labels, an announced month, native keyboard-accessible navigation, active-day markers and cream/orange tokens. No day selection, score, reward or badge is added.
+
+No database migration, new table/key, storage version bump, endpoint, authentication, RLS, sync policy or dependency change is required. Both dashboards pass only their existing scoped history; the authenticated dashboard retains its server-verified learner/ready guard, and component state is keyed by scope. Existing consent, sync and conflict resolution continue unchanged.
+
+Verification includes pure date/streak tests (local midnight, 23/25-hour DST days, repeated hours, timezone switches, leap/year boundaries, future/unfinished filtering, v1 history migration and sync), component clock/navigation/scope tests, real local-database persistence/RLS/timezone integration tests, and mobile/desktop plus authenticated browser coverage. No production database or paid API is used. Docker is unavailable in this WSL environment; database and signed-in browser tests run against the existing disposable CI Supabase stack.

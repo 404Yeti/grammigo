@@ -22,6 +22,7 @@ import { restartOnboarding } from "@/features/onboarding/actions";
 import { getActiveSession } from "@/features/practice/selectors";
 import { usePracticeState } from "@/features/practice/use-practice-state";
 import { setStorageScope } from "@/lib/scope/storage-scope";
+import { ActivityCalendar } from "@/features/activity/ActivityCalendar";
 import { timeAgo } from "@/lib/utils/time";
 import { useStorageScope, writeScopeCookie } from "./scope-client";
 
@@ -115,6 +116,7 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
             <ButtonLink href="/onboarding" className="mt-6">Start the quick check</ButtonLink>
             <ButtonLink href="/library" variant="secondary" className="mt-3">Pick a lesson myself</ButtonLink>
           </section>
+          <div className="mt-6"><ActivityCalendar key={scope} sessions={state.sessions} /></div>
         </div>
       </AppShell>
     );
@@ -166,6 +168,7 @@ export function Dashboard({ userId, displayName, practising, welcome }: { userId
           </div>
 
           <div className="flex flex-col gap-4">
+            <ActivityCalendar key={scope} sessions={state.sessions} />
             <ImportCard userId={userId} />
             <SyncCard />
             <Card aria-labelledby="quick-check" data-testid="dashboard-diagnostic">
