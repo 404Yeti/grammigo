@@ -1,5 +1,8 @@
 "use client";
 
+import { FinalSpeakingChallenge } from "@/features/challenge/FinalSpeakingChallenge";
+import { updateChallenge } from "@/features/challenge/actions";
+import { getScopeRevision } from "@/lib/scope/storage-scope";
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HelpCircle } from "lucide-react";
@@ -168,13 +171,17 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
     else setError(null);
   };
 
+  const finishLesson = () => {
+    primeMigoAudio();
+    armCelebration(session.id);
+    leaving.current = true;
+    practiceActions.advance(session.id);
+    router.push(`/practice/${lessonId}/complete?session=${session.id}`);
+  };
   const onContinue = () => {
     if (isLastQuestion(session)) {
       primeMigoAudio();
-      armCelebration(session.id);
-      leaving.current = true;
-      practiceActions.advance(session.id);
-      router.push(`/practice/${lessonId}/complete?session=${session.id}`);
+      updateChallenge(session.id, getScopeRevision(), c => c);
     } else {
       practiceActions.advance(session.id);
     }
@@ -207,6 +214,8 @@ export function SessionScreen({ lessonId }: { lessonId: string }) {
   const showWhy = kind === "exhausted" || (kind === "incorrect" && record.whyViewed);
   const announcement = kind ? `${title} ${body}` : "";
   const nextHint = record.hintsUsed > 0 ? question.hints[record.hintsUsed - 1] : null;
+
+  if (session.speakingChallenge?.status === "active") return <FinalSpeakingChallenge key={`${scope}:${session.id}`} session={session} onFinish={finishLesson} onExit={() => router.push("/learn")} />;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[638px] flex-col px-4 pb-6 pt-5">

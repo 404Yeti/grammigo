@@ -1,3 +1,4 @@
+import { CHALLENGE_ID, speakingChallenge } from "@/features/challenge/content";
 import { z } from "zod";
 import { getLesson } from "@/data/lessons";
 
@@ -15,7 +16,7 @@ export function speechText(input: SpeechRequest): string | null {
   const lesson = getLesson(input.lessonId);
   if (!lesson) return null;
   if (input.kind === "celebration") return input.questionId === "completion" ? "You did it, amigo! Another lesson complete. Keep it up!" : null;
-  const q = lesson.questions.find(question => question.id === input.questionId);
+  const q = input.questionId === CHALLENGE_ID ? speakingChallenge(lesson.id) : lesson.questions.find(question => question.id === input.questionId);
   if (!q) return null;
   let text: string | undefined;
   switch (input.kind) {

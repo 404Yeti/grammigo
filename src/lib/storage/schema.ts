@@ -1,3 +1,4 @@
+import { challengeSchema } from "@/features/challenge/schema";
 import type { DiagnosticRun } from "@/features/diagnostic/engine";
 import { optionalSpeakingSchema } from "@/features/diagnostic/speaking-schema";
 import type {
@@ -180,7 +181,13 @@ export function parseStoredState(raw: string | null): StoredState | null {
   }
   if (!isObject(data) || !Array.isArray(data.sessions)) return null;
 
-  const sessions = data.sessions.filter(isSession);
+  const sessions = data.sessions.filter(isSession).map((value: Session) => {
+    const session = { ...value };
+    const challenge = challengeSchema.safeParse(session.speakingChallenge);
+    delete session.speakingChallenge;
+    if (challenge.success) session.speakingChallenge = challenge.data;
+    return session;
+  });
   const activeSessionId = activeIdFor(sessions, data.activeSessionId);
 
   if (data.version === 1) {

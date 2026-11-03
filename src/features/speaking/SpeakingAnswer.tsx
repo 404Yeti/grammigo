@@ -19,9 +19,9 @@ const ISSUES: Record<VoiceIssue, string> = {
   failed: "We couldn’t turn that recording into text. Record again or type instead.",
 };
 
-export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onBusyChange, draftSaved = true }: {
+export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onBusyChange, draftSaved = true, onTranscript }: {
   value: string; onChange: (text: string) => void; disabled: boolean; error?: string | null;
-  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>; onBusyChange?: (busy: boolean) => void; draftSaved?: boolean;
+  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>; onBusyChange?: (busy: boolean) => void; draftSaved?: boolean; onTranscript?: (text: string) => void;
 }) {
   const capture = useVoiceCapture();
   const [phase, setPhase] = useState<Phase>(value ? "typing" : "ready");
@@ -79,6 +79,7 @@ export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onB
       if (current !== generation.current) return;
       if (!text?.trim()) { setIssue(navigator.onLine === false ? "offline" : "failed"); setPhase("ready"); return; }
       setTranscript(text.trim().slice(0, 500));
+      onTranscript?.(text.trim().slice(0, 500));
       setPhase("review");
     });
     if (current !== generation.current) return;
@@ -93,7 +94,7 @@ export function SpeakingAnswer({ value, onChange, disabled, error, inputRef, onB
       {issue && <div className="flex items-center gap-3"><Migo expression="confused" size={66} /><p role="alert" className="rounded-2xl border border-line-strong bg-subtle p-4 text-sm leading-6">{ISSUES[issue]}</p></div>}
       {phase === "review" ? (
         <div className="flex flex-col gap-3 rounded-2xl bg-subtle p-4">
-          <TextField label="What we heard" multiline value={transcript} onChange={setTranscript} inputRef={transcriptRef} maxLength={500} helper="Fix anything we heard incorrectly before checking grammar." helperInsteadOfCount />
+          <TextField label="What we heard" multiline value={transcript} onChange={text => { setTranscript(text); onTranscript?.(text); }} inputRef={transcriptRef} maxLength={500} helper="Fix anything we heard incorrectly before checking grammar." helperInsteadOfCount />
           <Button disabled={!transcript.trim()} onClick={() => { onChange(transcript.trim()); setPhase("typing"); }}>Use this transcript</Button>
           <Button variant="ghost" onClick={() => { cancel(); setTranscript(""); }}>Record again</Button>
         </div>

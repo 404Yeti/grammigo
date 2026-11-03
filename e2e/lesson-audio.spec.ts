@@ -58,7 +58,7 @@ test("listening uses authored audio, hides transcript, and supports replay, pers
   await expect(page.getByTestId("feedback-panel")).toHaveAttribute("data-kind", "correct-independent");
   await expect(page.getByTestId("listening-transcript")).toContainText(scenario);
   await page.screenshot({ path: info.outputPath("listening-feedback.png"), fullPage: true });
-  await page.getByRole("button", { name: "Finish lesson", exact: true }).click();
+  await cont(page);
   await expect(page).toHaveURL(new RegExp(`/practice/${LESSON}/complete`));
   await page.reload();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();

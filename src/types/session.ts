@@ -49,6 +49,8 @@ export interface Session {
   phase: Phase;
   draft: string;
   records: QuestionRecord[];
+  /** Optional v0.4 extension; excluded from deterministic exercise scores. */
+  speakingChallenge?: import("@/features/challenge/schema").SpeakingChallenge;
 }
 
 /** User-facing lesson lifecycle, derived from a session (see deriveLessonState). */
