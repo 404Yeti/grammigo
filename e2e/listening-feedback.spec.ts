@@ -91,13 +91,16 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   expect(calls.filter(c => c.kind === "listening")).toHaveLength(1);
   await answerLessonQuestion(page, "a1-be-present", 9);
   await cont(page);
-  await expect.poll(() => calls.filter(c => c.kind === "celebration").length).toBe(1);
-  await expect(page.getByTestId("migo-spoken-text")).toContainText("You did it, amigo!");
+  await expect.poll(() => calls.filter(c => c.kind === "debrief").length).toBe(1);
+  await expect(page.getByTestId("lesson-debrief")).toContainText("You practiced");
   await page.screenshot({ path: info.outputPath("automatic-celebration.png"), fullPage: true });
   await page.reload();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
-  expect(calls.filter(c => c.kind === "celebration")).toHaveLength(1);
-  expect(calls.filter(c => c.kind === "positive")).toHaveLength(1); // reusable response across questions
+  expect(calls.filter(c => c.kind === "debrief")).toHaveLength(1);
+  expect(calls.filter(c => c.kind === "positive")).toHaveLength(3); // three reusable responses across questions
+  await page.getByRole("button", { name: "Listen to Migo", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Replay Migo", exact: true })).toBeEnabled();
+  expect(calls.filter(c => c.kind === "debrief")).toHaveLength(1); // persisted audio survives reload
 });
 
 test("@cross browser-denied autoplay offers replay, and persistent mute suppresses all automatic requests", async ({ page }, info) => {

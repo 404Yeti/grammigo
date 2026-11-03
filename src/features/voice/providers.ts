@@ -5,7 +5,7 @@ import { createSpeechClient } from "@/features/ai/deps";
 export const CUSTOM_MIGO_VOICE = "v50G5ovlVt3QsSRU1EhH";
 export const ELEVEN_MODEL = "eleven_multilingual_v2";
 export const CORAL_IDENTITY = "openai:gpt-4o-mini-tts:coral";
-export const MAX_AUDIO_BYTES = 256_000;
+export const MAX_AUDIO_BYTES = 768_000;
 
 export class SpeechProviderError extends Error {
   constructor(public readonly reason: "provider_http" | "provider_timeout" | "provider_network" | "invalid_audio", public readonly status?: number) {

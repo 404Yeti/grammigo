@@ -59,7 +59,7 @@ it("automatically plays a fresh feedback event once, with visible text and cache
   const event = `correct:${crypto.randomUUID()}`;
   const { rerender, unmount } = render(<MigoAudio {...input} kind="positive" autoPlayKey={event} />);
   await waitFor(() => expect(play).toHaveBeenCalledOnce());
-  expect(screen.getByTestId("migo-spoken-text")).toHaveTextContent("Nice work! That’s right.");
+  expect(screen.getByTestId("migo-spoken-text")).toHaveTextContent("Nailed it! Let’s keep going.");
   rerender(<MigoAudio {...input} kind="positive" autoPlayKey={event} />);
   await act(async () => {});
   expect(play).toHaveBeenCalledOnce();
@@ -88,4 +88,16 @@ it("offers replay when browser autoplay is denied, without retrying automaticall
   expect(screen.getByTestId("migo-spoken-text")).toHaveTextContent("You did it, amigo!");
   fireEvent.click(screen.getByRole("button", { name: "Replay Migo" }));
   await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
+});
+
+it("coalesces rapid play clicks while an audio request is pending", async () => {
+  let finish!: (response: Response) => void;
+  vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
+  render(<MigoAudio {...input} questionId="q4" />);
+  const button = screen.getByRole("button", { name: "Listen to Migo" });
+  fireEvent.click(button);
+  fireEvent.click(button);
+  await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+  finish(new Response(new Blob(["clip"]), { headers: { "content-type": "audio/mpeg" } }));
+  await waitFor(() => expect(play).toHaveBeenCalledOnce());
 });

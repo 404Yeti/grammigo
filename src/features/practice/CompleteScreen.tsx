@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MigoAudio } from "@/features/voice/MigoAudio";
+import type { Session } from "@/types/session";
+import { savedDebrief, debriefText } from "@/features/voice/debrief";
 import { pendingCelebration } from "@/features/voice/events";
 import { getStorageScope } from "@/lib/scope/storage-scope";
 import { Confetti } from "@/components/progress/Confetti";
@@ -52,7 +54,7 @@ export function CompleteScreen({ lessonId, sessionId: sessionIdProp }: { lessonI
           Another step toward better English. Look how far you’ve come!
         </p>
 
-        <CompletionAudio key={`${getStorageScope()}:${session.id}`} sessionId={session.id} lessonId={lessonId} />
+        <CompletionAudio key={`${getStorageScope()}:${session.id}`} session={session} />
 
         <div className="mt-2 grid w-full grid-cols-2 gap-3 text-left">
           <StatTile value={summary.completed} label="exercises completed" />
@@ -84,7 +86,11 @@ export function CompleteScreen({ lessonId, sessionId: sessionIdProp }: { lessonI
   );
 }
 
-function CompletionAudio({ sessionId, lessonId }: { sessionId: string; lessonId: string }) {
-  const [event] = useState(() => pendingCelebration(sessionId));
-  return <MigoAudio lessonId={lessonId} questionId="completion" kind="celebration" autoPlayKey={event} />;
+function CompletionAudio({ session }: { session: Session }) {
+  const [event] = useState(() => pendingCelebration(session.id));
+  const [debrief] = useState(() => savedDebrief(session));
+  return <div className="w-full text-left">
+    <p className="text-sm font-medium leading-6" data-testid="lesson-debrief">{debriefText(session.lessonId, debrief)}</p>
+    <MigoAudio lessonId={session.lessonId} questionId="completion" kind="debrief" debrief={debrief} autoPlayKey={event} />
+  </div>;
 }

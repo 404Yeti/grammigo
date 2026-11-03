@@ -79,3 +79,15 @@ it("reuses one paid positive clip across questions and lessons, including the au
   expect(speechText({ ...input, kind: "supportive" })!.length).toBeLessThanOrEqual(170);
   expect(speechText({ lessonId: "not-a-lesson", questionId: "completion", kind: "celebration" })).toBeNull();
 });
+
+it("synthesizes and coalesces a bounded result debrief through existing guards and cache", async () => {
+  const deps = setup();
+  const payload = { ...input, questionId: "completion", kind: "debrief", debrief: { independent: 6, assisted: 1, unverified: true, tipQuestion: "q2", speaking: "met" } };
+  const responses = await Promise.all([handleSpeech(request(payload), deps), handleSpeech(request(payload), deps)]);
+  expect(responses.map(r => r.status)).toEqual([200, 200]);
+  expect((await handleSpeech(request(payload), deps)).status).toBe(200);
+  expect(deps.generate).toHaveBeenCalledOnce();
+  expect(deps.generate.mock.calls[0][0]).toContain("6 exercises correctly on your own");
+  expect((await handleSpeech(request({ ...payload, debrief: { ...payload.debrief, text: "invented mastery" } }), deps)).status).toBe(400);
+  expect((await handleSpeech(request({ ...payload, debrief: { ...payload.debrief, independent: 200 } }), deps)).status).toBe(400);
+});
