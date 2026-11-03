@@ -1,11 +1,15 @@
 import { CHALLENGE_ID, speakingChallenge } from "@/features/challenge/content";
+import { debriefSchema, debriefText } from "./debrief";
+import { POSITIVE_RESPONSES } from "./positive";
 import { z } from "zod";
 import { getLesson } from "@/data/lessons";
 
 export const speechRequestSchema = z.object({
   lessonId: z.string().min(1).max(80),
   questionId: z.string().min(1).max(20),
-  kind: z.enum(["instruction", "encouragement", "correction", "hint", "listening", "positive", "supportive", "celebration"]),
+  kind: z.enum(["instruction", "encouragement", "correction", "hint", "listening", "positive", "supportive", "celebration", "debrief"]),
+  variant: z.number().int().min(0).max(2).optional(),
+  debrief: debriefSchema.optional(),
   hintIndex: z.number().int().min(0).max(2).optional(),
 }).strict();
 export type SpeechRequest = z.infer<typeof speechRequestSchema>;
@@ -15,12 +19,13 @@ export const MAX_SPEECH_CHARACTERS = 320;
 export function speechText(input: SpeechRequest): string | null {
   const lesson = getLesson(input.lessonId);
   if (!lesson) return null;
+  if (input.kind === "debrief") return input.questionId === "completion" && input.debrief ? debriefText(input.lessonId, input.debrief) : null;
   if (input.kind === "celebration") return input.questionId === "completion" ? "You did it, amigo! Another lesson complete. Keep it up!" : null;
   const q = input.questionId === CHALLENGE_ID ? speakingChallenge(lesson.id) : lesson.questions.find(question => question.id === input.questionId);
   if (!q) return null;
   let text: string | undefined;
   switch (input.kind) {
-    case "positive": text = "Nice work! That’s right."; break;
+    case "positive": text = POSITIVE_RESPONSES[input.variant ?? 0]; break;
     case "supportive": {
       const hint = q.hints[0]?.replace(/\s+/g, " ").trim();
       text = `Good try. ${hint && hint.length <= 160 ? hint : "Check the grammar pattern, then try again. You can do this."}`;

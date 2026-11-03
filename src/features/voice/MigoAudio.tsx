@@ -4,16 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { speechText, type SpeechRequest } from "./content";
+import { getStorageScope } from "@/lib/scope/storage-scope";
+import { debriefClipCache } from "./clip-cache";
+import { positiveVariant } from "./positive";
 import { claimAutomaticSpeech } from "./events";
 import { stopMigoAudio, takeMigoAudio } from "./player";
 import { setMigoMuted, useMigoMuted } from "./preference";
 
 const audioCache = new Map<string, string>();
-const MAX_BYTES = 256_000;
+const MAX_BYTES = 768_000;
 function remember(key: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   audioCache.set(key, url);
-  // At most eight public authored clips, in memory only. Never cache learner responses.
+  // At most eight authored/result-summary clips in memory. Never cache transcripts.
   while (audioCache.size > 8) {
     const oldest = audioCache.keys().next().value!;
     URL.revokeObjectURL(audioCache.get(oldest)!);
@@ -25,11 +28,15 @@ function remember(key: string, blob: Blob) {
 type AudioInput = SpeechRequest & { autoPlayKey?: string };
 export function MigoAudio(input: AudioInput) {
   if (process.env.NEXT_PUBLIC_MIGO_VOICE !== "true") return null;
-  return <AudioPreference input={input} />;
+  return input.kind === "positive" ? <PositiveAudio key={input.autoPlayKey ?? `${input.lessonId}:${input.questionId}`} input={input} /> : <AudioPreference input={input} />;
+}
+function PositiveAudio({ input }: { input: AudioInput }) {
+  const [variant] = useState(() => positiveVariant(input.autoPlayKey ?? `${input.lessonId}:${input.questionId}`));
+  return <AudioPreference input={{ ...input, variant }} />;
 }
 function AudioPreference({ input }: { input: AudioInput }) {
   const muted = useMigoMuted();
-  return <AudioControl key={`${input.lessonId}:${input.questionId}:${input.kind}:${input.hintIndex ?? 0}:${muted}`} input={input} muted={muted} />;
+  return <AudioControl key={`${input.lessonId}:${input.questionId}:${input.kind}:${input.hintIndex ?? 0}:${input.variant ?? 0}:${JSON.stringify(input.debrief)}:${muted}`} input={input} muted={muted} />;
 }
 function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "playing" | "failed">("idle");
@@ -38,9 +45,9 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
   const generation = useRef(0);
   const { autoPlayKey, ...requestInput } = input;
   const body = JSON.stringify(requestInput);
-  const short = ["positive", "supportive", "celebration"].includes(input.kind);
+  const short = ["positive", "supportive", "celebration", "debrief"].includes(input.kind);
   const spokenText = short ? speechText(requestInput) : null;
-  const key = short ? `short:${spokenText}` : body;
+  const key = input.kind === "debrief" ? `${getStorageScope()}:${body}` : short ? `short:${spokenText}` : body;
   const owner = useRef(Symbol("migo-audio"));
 
   const stop = useCallback(() => {
@@ -50,8 +57,10 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
   }, []);
   useEffect(() => () => stop(), [stop]);
 
+  const busy = useRef(false);
   const play = useCallback(async () => {
-    if (muted || status === "loading") return;
+    if (muted || busy.current) return;
+    busy.current = true;
     const current = ++generation.current;
     setStatus("loading");
     let url = audioCache.get(key);
@@ -61,7 +70,9 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
         request.current = controller;
         const timer = setTimeout(() => controller.abort(), 18_000);
         try {
-          const response = await fetch("/api/ai/tts", {
+          const persistent = input.kind === "debrief" ? await debriefClipCache(body) : null;
+          const saved = await persistent?.read();
+          const response = saved ?? await fetch("/api/ai/tts", {
             method: "POST", headers: { "Content-Type": "application/json" }, body,
             signal: controller.signal, cache: "no-store",
           });
@@ -70,6 +81,7 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
           if (!blob.size || blob.size > MAX_BYTES) throw new Error("invalid_audio");
           if (current !== generation.current) return;
           url = remember(key, blob);
+          if (!saved) await persistent?.write(blob);
         } finally { clearTimeout(timer); }
       }
       if (current !== generation.current) return;
@@ -83,8 +95,8 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
       catch { if (current === generation.current) setStatus("ready"); }
     } catch {
       if (current === generation.current) setStatus("failed");
-    }
-  }, [muted, status, key, body]);
+    } finally { busy.current = false; }
+  }, [muted, key, body, input.kind]);
 
   useEffect(() => {
     let live = true;
@@ -97,7 +109,7 @@ function AudioControl({ input, muted }: { input: AudioInput; muted: boolean }) {
 
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3" data-testid="migo-audio">
-      {spokenText && <p className="text-sm font-medium leading-6" data-testid="migo-spoken-text">{spokenText}</p>}
+      {spokenText && input.kind !== "debrief" && <p className="text-sm font-medium leading-6" data-testid="migo-spoken-text">{spokenText}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" fullWidth={false} disabled={muted || status === "loading"} onClick={play}>
           {status === "ready" || status === "playing" ? <RotateCcw size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}
