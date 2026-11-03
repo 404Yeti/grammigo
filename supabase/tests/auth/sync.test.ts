@@ -12,6 +12,9 @@ import { as as asRole, closePool, q } from "../helpers";
 import { learningActivity } from "@/features/activity/calendar";
 import { activitySession } from "@/tests/activity-fixtures";
 import { parseStoredState } from "@/lib/storage/schema";
+import { deriveLearning } from "@/features/learning/derive";
+import { progressOverview } from "@/features/progress/derive";
+import { PROGRESS_NOW, progressFixture } from "@/tests/progress-fixtures";
 import { config, createPerson, db, freshHeaders, service, sessionFor, type Person } from "./kit";
 
 /**
@@ -376,5 +379,31 @@ describe("activity calendar: real persisted completion evidence", () => {
       expect(loaded.sessions).toEqual(records);
       expect(learningActivity(loaded.sessions, Date.parse("2024-03-11T23:00Z"), "America/Los_Angeles")).toMatchObject({ totalActiveDays: 3, currentStreak: 3, longestStreak: 3 });
     }
+  });
+});
+
+describe("Progress: saved learning evidence and account isolation", () => {
+  it("round-trips exercise, diagnostic and optional speaking evidence without exposing another learner's profile", async () => {
+    const [a, b] = await Promise.all([createPerson({label:"progress-a",learner:true}), createPerson({label:"progress-b",learner:true})]);
+    await Promise.all([consent(a),consent(b)]);
+    const evidence = progressFixture();
+    evidence.sessions[0].speakingChallenge = {status:"finished",draft:"",retryUsed:false,attempts:[{text:"I am ready.",at:PROGRESS_NOW-1,feedback:{outcome:"meets_goal",confidence:"high",errors:[],suggestedCorrection:null,explanation:"Target pattern seen.",example:null,assessedSkillIds:["a1-be-present"]}}]};
+    expect((await put(a,"lessons_v2",0,evidence)).status).toBe(200);
+    expect((await put(b,"lessons_v2",0,emptyState())).status).toBe(200);
+    const readA = (await get(a,"lessons_v2")).body as {body:unknown};
+    const loadedA = parseStoredState(JSON.stringify(readA.body))!;
+    expect(loadedA).toEqual(evidence);
+    const learning = deriveLearning(loadedA,PROGRESS_NOW);
+    const progress = progressOverview(loadedA,learning,PROGRESS_NOW);
+    expect(progress).toMatchObject({completedLessons:3});
+    expect(progress.topics).toHaveLength(4);
+    expect(progress.latestSpeaking.get("a1-be-present")).toMatch(/AI observation/);
+    expect(learning.top).toEqual(deriveLearning(evidence,PROGRESS_NOW).top);
+    const {client} = sessionFor(b.cookies);
+    expect((await client.from("learner_documents").select("body").eq("user_id",a.id)).data).toEqual([]);
+    const readB = (await get(b,"lessons_v2")).body as {body:unknown};
+    const loadedB = parseStoredState(JSON.stringify(readB.body))!;
+    expect(progressOverview(loadedB,deriveLearning(loadedB,PROGRESS_NOW),PROGRESS_NOW)).toMatchObject({completedLessons:0,topics:[],levels:[]});
+    expect((await handleSyncGet(await deps(a,{viewer:{kind:"anonymous"}}),"lessons_v2")).status).toBe(401);
   });
 });
