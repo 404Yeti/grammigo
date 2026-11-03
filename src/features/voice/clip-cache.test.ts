@@ -1,26 +1,38 @@
 import "@/tests/mocks";
 import { afterEach, expect, it, vi } from "vitest";
-import { webcrypto } from "node:crypto";
-import { debriefClipCache } from "./clip-cache";
 import { setStorageScope } from "@/lib/scope/storage-scope";
-afterEach(() => { vi.unstubAllGlobals(); setStorageScope(""); });
-it("persists clips across cache handles, isolates learners and bounds storage", async () => {
-  vi.stubGlobal("crypto", webcrypto);
-  const stores = new Map<string, Map<string, Response>>();
-  vi.stubGlobal("caches", { open: async (name: string) => {
-    const data = stores.get(name) ?? new Map<string, Response>(); stores.set(name, data);
-    return { match: async (key: string) => data.get(key)?.clone(), put: async (key: string, r: Response) => { data.set(key, r); }, keys: async () => [...data.keys()], delete: async (key: string) => data.delete(key) };
-  } });
-  const first = await debriefClipCache("saved outcomes");
-  await first!.write(new Blob(["clip"]));
-  expect(await (await (await debriefClipCache("saved outcomes"))!.read())!.text()).toBe("clip");
-  for (let i = 0; i < 26; i++) await (await debriefClipCache(String(i)))!.write(new Blob(["clip"]));
-  expect([...stores.values()][0].size).toBe(24);
-  setStorageScope("11111111-1111-4111-8111-111111111111");
-  expect(await (await debriefClipCache("25"))!.read()).toBeUndefined();
-});
-it("degrades harmlessly when browser cache storage fails", async () => {
-  vi.stubGlobal("crypto", webcrypto);
-  vi.stubGlobal("caches", { open: async () => { throw new Error("storage disabled"); } });
+import { debriefClipCache } from "./clip-cache";
+
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+it("returns no cache when IndexedDB is unavailable", async () => {
+  vi.stubGlobal("indexedDB", undefined);
   expect(await debriefClipCache("outcomes")).toBeNull();
+});
+it("storage denial never prevents readable completion or audio fallback", async () => {
+  vi.stubGlobal("indexedDB", { open: () => { throw new Error("storage disabled"); } });
+  const cache = await debriefClipCache("outcomes");
+  expect(await cache!.read()).toBeUndefined();
+  await expect(cache!.write(new Blob(["clip"]))).resolves.toBeUndefined();
+});
+it("bounds stalled storage operations so audio preparation can recover", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("indexedDB", { open: () => ({}) });
+  const cache = await debriefClipCache("outcomes");
+  const read = cache!.read();
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(await read).toBeUndefined();
+});
+
+it("captures each learner namespace before asynchronous playback work", async () => {
+  const open = vi.fn(() => { throw new Error("disabled"); });
+  vi.stubGlobal("indexedDB", { open });
+  const guest = await debriefClipCache("outcomes");
+  setStorageScope("11111111-1111-4111-8111-111111111111");
+  const learner = await debriefClipCache("outcomes");
+  await guest!.read();
+  await learner!.read();
+  expect(open.mock.calls).toEqual([
+    ["grammigo-debrief-v1-guest", 1],
+    ["grammigo-debrief-v1-11111111-1111-4111-8111-111111111111", 1],
+  ]);
 });

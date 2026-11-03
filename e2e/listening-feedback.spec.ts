@@ -62,6 +62,22 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   await seedReturningLearner(page);
   await page.goto("/practice/a1-be-present");
   await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
+  // Populate old clips: the new debrief must persist while keeping device storage bounded.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("clips", { keyPath: "key" }).createIndex("at", "at");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("clips", "readwrite");
+      for (let i = 0; i < 24; i++) tx.objectStore("clips").put({ key: `old-${i}`, blob: new Blob(["old"]), at: i });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
   await page.getByLabel("She am a teacher.", { exact: true }).check({ force: true });
   await page.getByRole("button", { name: "Check Answer" }).click();
   await expect(page.getByTestId("migo-spoken-text")).toContainText("Good try.");
@@ -93,6 +109,21 @@ test("@cross automatic correct, wrong, retry and success feedback; refresh and r
   await cont(page);
   await expect.poll(() => calls.filter(c => c.kind === "debrief").length).toBe(1);
   await expect(page.getByTestId("lesson-debrief")).toContainText("You practiced");
+  await expect(page.getByRole("button", { name: "Replay Migo", exact: true })).toBeEnabled();
+  const clips = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>(resolve => {
+      const request = indexedDB.open("grammigo-debrief-v1-guest", 1);
+      request.onsuccess = () => resolve(request.result);
+    });
+    const values = await new Promise<{ key: string }[]>(resolve => {
+      const request = db.transaction("clips", "readonly").objectStore("clips").getAll();
+      request.onsuccess = () => resolve(request.result);
+    });
+    db.close();
+    return values.map(v => v.key);
+  });
+  expect(clips).toHaveLength(24);
+  expect(clips.some(key => key.includes('"kind":"debrief"'))).toBe(true);
   await page.screenshot({ path: info.outputPath("automatic-celebration.png"), fullPage: true });
   await page.reload();
   await expect(page.getByRole("heading", { name: "You did it, amigo!" })).toBeVisible();
