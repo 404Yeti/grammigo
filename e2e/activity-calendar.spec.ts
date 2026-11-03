@@ -65,19 +65,23 @@ test("@cross historical v1 timestamps stay intact and leap-day activity remains 
   expect(await page.evaluate(() => localStorage.getItem("grammigo:v1"))).toBe(original);
 });
 
-test("timezone changes reproject historical timestamps without changing saved progress", async ({ page, context }) => {
-  await page.clock.setFixedTime(new Date("2026-11-03T12:00Z"));
-  await seed(page, [completed("boundary", "2026-11-03T00:30Z")]);
-  await page.goto("/learn"); const calendar = page.getByTestId("activity-calendar");
-  await expect(calendar.locator('[data-date="2026-11-02"]')).toHaveAttribute("data-active", "true");
-  const original = await page.evaluate(() => localStorage.getItem("grammigo:v2"));
-  const cdp = await context.newCDPSession(page);
-  await cdp.send("Emulation.setTimezoneOverride", { timezoneId: "Pacific/Kiritimati" });
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(calendar.locator('[data-date="2026-11-03"]')).toHaveAttribute("data-active", "true");
-  await expect(calendar.locator('[data-date="2026-11-02"]')).toHaveAttribute("data-active", "false");
-  await expect(calendar.getByText(/Pacific\/Kiritimati/)).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem("grammigo:v2"))).toBe(original);
+test.describe("device timezone changes", () => {
+  test.use({ timezoneId: undefined });
+  test("timezone changes reproject historical timestamps without changing saved progress", async ({ page, context }) => {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setTimezoneOverride", { timezoneId: "America/Los_Angeles" });
+    await page.clock.setFixedTime(new Date("2026-11-03T12:00Z"));
+    await seed(page, [completed("boundary", "2026-11-03T00:30Z")]);
+    await page.goto("/learn"); const calendar = page.getByTestId("activity-calendar");
+    await expect(calendar.locator('[data-date="2026-11-02"]')).toHaveAttribute("data-active", "true");
+    const original = await page.evaluate(() => localStorage.getItem("grammigo:v2"));
+    await cdp.send("Emulation.setTimezoneOverride", { timezoneId: "Pacific/Kiritimati" });
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(calendar.locator('[data-date="2026-11-03"]')).toHaveAttribute("data-active", "true");
+    await expect(calendar.locator('[data-date="2026-11-02"]')).toHaveAttribute("data-active", "false");
+    await expect(calendar.getByText(/Pacific\/Kiritimati/)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("grammigo:v2"))).toBe(original);
+  });
 });
 
 test("@cross local midnight updates the month and expires a missed-day streak", async ({ page }) => {

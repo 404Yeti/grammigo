@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Clock } from "lucide-react";
 import { requireSkill } from "@/curriculum";
 import { getLesson } from "@/data/lessons";
@@ -20,7 +20,7 @@ import { getActiveSession, getCompletedSessions } from "@/features/practice/sele
 import { summarizeSession } from "@/features/practice/summary";
 import { usePracticeState } from "@/features/practice/use-practice-state";
 import { ActivityCalendar } from "@/features/activity/ActivityCalendar";
-import { useStorageScope } from "@/features/accounts/scope-client";
+import { getStorageScope, onScopeChange } from "@/lib/scope/storage-scope";
 import { timeAgo } from "@/lib/utils/time";
 
 function Skeleton({ className }: { className: string }) {
@@ -29,7 +29,7 @@ function Skeleton({ className }: { className: string }) {
 
 export function HomeScreen() {
   const router = useRouter();
-  const scope = useStorageScope();
+  const scope = useSyncExternalStore(onScopeChange, getStorageScope, () => "");
   const state = usePracticeState();
   const learning = useDerivedLearning(state);
 
