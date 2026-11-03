@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "feat/fai-53-tts-budgets": false,
-      "feat/fai-55-learning-activity-calendar": false
+      "feat/fai-55-learning-activity-calendar": false,
+      "feat/fai-56-progress": false
     }
   }
 }

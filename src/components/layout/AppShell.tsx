@@ -11,12 +11,13 @@ import { Wordmark } from "./Wordmark";
 const ITEMS = [
   { label: "Home", href: "/learn", icon: Home },
   { label: "Practice", href: "/library", icon: BookOpen },
-  { label: "Progress", href: null, icon: BarChart3 },
+  { label: "Progress", href: "/progress", icon: BarChart3 },
 ] as const;
 
 function isActive(pathname: string, href: string | null): boolean {
   if (!href) return false;
-  return href === "/learn" ? pathname === "/learn" : pathname.startsWith("/practice") || pathname.startsWith("/library");
+  if (href === "/library") return pathname.startsWith("/practice") || pathname.startsWith("/library");
+  return pathname === href;
 }
 
 function NavItem({ item, pathname, layout }: { item: (typeof ITEMS)[number]; pathname: string; layout: "bottom" | "side" }) {

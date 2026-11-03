@@ -3,6 +3,12 @@ import type { Session } from "@/types/session";
 const DAY_MS = 86_400_000;
 const ordinal = (date: string) => Date.parse(`${date}T00:00:00Z`) / DAY_MS;
 
+/** Shared completion rule for the calendar and Progress. Never infer a missing completion date. */
+export function hasCompletedActivity(session: Session, now: number): boolean {
+  const at = session.completedAt;
+  return session.status === "completed" && at !== null && Number.isFinite(at) && at <= now && Number.isFinite(new Date(at).getTime());
+}
+
 /** All instants, including historical ones, are projected into the viewer's CURRENT timezone. */
 export function learningActivity(sessions: readonly Session[], now: number, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -17,7 +23,7 @@ export function learningActivity(sessions: readonly Session[], now: number, time
   const activeDates = new Set<string>();
   for (const session of sessions) {
     const at = session.completedAt;
-    if (session.status !== "completed" || at === null || !Number.isFinite(at) || at > now || !Number.isFinite(new Date(at).getTime())) continue;
+    if (!hasCompletedActivity(session, now) || at === null) continue;
     activeDates.add(dateKey(at));
   }
   const dates = [...activeDates].sort();

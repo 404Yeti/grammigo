@@ -1,0 +1,40 @@
+import { BASE, createAccount, sessionCookies } from "./helpers";
+import { expect, test } from "./fixtures";
+import { emptyState } from "../src/lib/storage/schema";
+import { PROGRESS_NOW, progressFixture } from "../src/tests/progress-fixtures";
+
+test("@cross Progress keeps signed-in learners and guest evidence separate on a shared device", async ({context,page}) => {
+  await page.clock.setFixedTime(PROGRESS_NOW);
+  const a = await createAccount({name:"Progress Alpha",learner:true});
+  const b = await createAccount({name:"Progress Bravo",learner:true});
+  const aState = progressFixture();
+  const guest = {...emptyState(),sessions:[aState.sessions[0]]};
+  const bState = {...emptyState(),sessions:[aState.sessions[2]]};
+  const saved = {"grammigo:v2":guest,[`grammigo:v2:u:${a.id}`]:aState,[`grammigo:v2:u:${b.id}`]:bState};
+  await page.addInitScript(states=>{for(const [key,state] of Object.entries(states)) if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(state));},saved);
+  await context.addCookies(sessionCookies(a)); await page.goto("/account");
+  await expect(page.getByTestId("dashboard-greeting")).toHaveText("Hi, Progress Alpha");
+  // Injecting an Auth session bypasses the real sign-in callback, which writes the scope cookie.
+  // The greeting also renders in the loading shell: wait for the verified dashboard to initialize scope.
+  await expect(page.getByTestId("dashboard-skills")).toBeVisible();
+  await expect.poll(async () => (await context.cookies()).find(c => c.name === "gm-scope")?.value).toBe(a.id);
+  await page.goto("/progress");
+  await expect(page.getByTestId("progress-completed")).toHaveText("3");
+  await expect(page.getByTestId("progress-topics")).toHaveText("4");
+  await page.goto("/account/profile");await page.getByRole("button",{name:"Sign out",exact:true}).click();
+  await expect(page).toHaveURL(`${BASE}/learn`);
+  await context.addCookies(sessionCookies(b));await page.goto("/account");
+  await expect(page.getByTestId("dashboard-greeting")).toHaveText("Hi, Progress Bravo");
+  await expect(page.getByTestId("dashboard-skills")).toBeVisible();
+  await expect.poll(async () => (await context.cookies()).find(c => c.name === "gm-scope")?.value).toBe(b.id);
+  await page.goto("/progress");
+  await expect(page.getByTestId("progress-completed")).toHaveText("1");
+  await expect(page.getByTestId("progress-grammar-list")).not.toContainText("Present simple of");
+  await expect(page.getByTestId("progress-grammar-list")).toContainText("Past simple");
+  await page.goto("/account/profile");await page.getByRole("button",{name:"Sign out",exact:true}).click();
+  await page.goto("/progress");
+  await expect(page.getByTestId("progress-completed")).toHaveText("1");
+  await expect(page.getByTestId("progress-grammar-list")).toContainText("Present simple of");
+  await expect(page.getByTestId("progress-grammar-list")).not.toContainText("Past simple");
+  for(const [key,state] of Object.entries(saved))expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBe(JSON.stringify(state));
+});
